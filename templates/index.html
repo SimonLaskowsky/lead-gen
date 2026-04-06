@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lead Gen</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    :root {
+      --bg: #f5f6fa;
+      --surface: #ffffff;
+      --border: #e8eaf0;
+      --text: #1a1d2e;
+      --muted: #7c8098;
+      --primary: #6366f1;
+      --primary-soft: #eef2ff;
+      --primary-dark: #4f46e5;
+      --success: #10b981;
+      --success-soft: #d1fae5;
+      --warning: #f59e0b;
+      --warning-soft: #fef3c7;
+      --purple: #8b5cf6;
+      --purple-soft: #ede9fe;
+      --danger: #ef4444;
+      --danger-soft: #fee2e2;
+      --gray-soft: #f1f2f6;
+      --shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.1), 0 1px 4px rgba(0,0,0,0.06);
+      --radius: 14px;
+      --radius-sm: 8px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Top accent bar ── */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899);
+      z-index: 9999;
+    }
+
+    /* ── Navbar ── */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.75rem;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: white;
+    }
+    .brand-name {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    /* ── Buttons ── */
+    .btn { font-family: 'Inter', sans-serif; font-weight: 500; border-radius: var(--radius-sm); font-size: 13px; }
+    .btn-primary { background: var(--primary); border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-ghost:hover { background: var(--bg); }
+    .btn-search { background: var(--primary); color: white; border: none; padding: 8px 18px; border-radius: 9px; font-weight: 600; gap: 6px; display: flex; align-items: center; }
+    .btn-search:hover { background: var(--primary-dark); color: white; }
+
+    /* ── Layout ── */
+    .page { max-width: 1440px; margin: 0 auto; padding: 1.75rem 1.75rem; }
+
+    /* ── Stats ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 540px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+    .stat-card.active { border-color: var(--primary); background: var(--primary-soft); }
+    .stat-card.active .stat-label { color: var(--primary); }
+    .stat-emoji { font-size: 20px; margin-bottom: 6px; display: block; }
+    .stat-number { font-size: 26px; font-weight: 700; letter-spacing: -1px; line-height: 1; }
+    .stat-label { font-size: 11.5px; font-weight: 500; color: var(--muted); margin-top: 4px; }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .filter-bar .form-control,
+    .filter-bar .form-select {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      color: var(--text);
+      padding: 7px 12px;
+      background: var(--bg);
+      height: 36px;
+    }
+    .filter-bar .form-control:focus,
+    .filter-bar .form-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+      background: white;
+    }
+    .record-count {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--muted);
+      background: var(--gray-soft);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    /* ── Table card ── */
+    .table-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .table { margin: 0; font-size: 13.5px; color: var(--text); }
+    .table thead th {
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 10px 14px;
+      white-space: nowrap;
+    }
+    .table td { border-color: var(--border); padding: 12px 14px; vertical-align: middle; }
+    .table tbody tr { transition: background 0.1s; }
+    .table tbody tr:hover { background: #f8f9ff; }
+    .table tbody tr:last-child td { border-bottom: none; }
+
+    /* ── Status badges ── */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: 11.5px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .s-new      { background: #dbeafe; color: #1e40af; }
+    .s-emailed  { background: var(--warning-soft); color: #92400e; }
+    .s-replied  { background: var(--purple-soft); color: #5b21b6; }
+    .s-converted{ background: var(--success-soft); color: #065f46; }
+    .s-skipped  { background: var(--gray-soft); color: #6b7280; }
+
+    /* ── Website & email cells ── */
+    .site-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: var(--primary);
+      text-decoration: none;
+      background: var(--primary-soft);
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+    .site-link:hover { color: var(--primary-dark); background: #dde1fd; }
+    .no-site {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: #b91c1c;
+      background: var(--danger-soft);
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+    .email-cell { font-size: 12.5px; color: var(--muted); }
+    .email-cell a { color: var(--text); text-decoration: none; }
+    .email-cell a:hover { color: var(--primary); }
+    .biz-name { font-weight: 600; font-size: 13.5px; margin-bottom: 2px; }
+    .biz-phone { font-size: 11.5px; color: var(--muted); }
+    .biz-meta  { font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+    .emailed-date { font-size: 10.5px; color: var(--muted); margin-top: 3px; }
+    .notes-cell { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted); }
+
+    /* ── Action buttons ── */
+    .action-row { display: flex; gap: 5px; align-items: center; }
+    .btn-ai {
+      width: 30px; height: 30px;
+      border: none;
+      background: var(--purple-soft);
+      color: var(--purple);
+      border-radius: 7px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-ai:hover { background: #c4b5fd; color: #4c1d95; }
+    .btn-email {
+      width: 30px; height: 30px;
+      border: none;
+      background: var(--primary-soft);
+      color: var(--primary);
+      border-radius: 7px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-email:hover { background: #c7d2fe; color: var(--primary-dark); }
+    .btn-more {
+      width: 30px; height: 30px;
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--muted);
+      border-radius: 7px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-more:hover { background: var(--bg); color: var(--text); }
+    .dropdown-menu { border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow-md); font-size: 13px; padding: 6px; }
+    .dropdown-item { border-radius: 6px; padding: 7px 12px; color: var(--text); }
+    .dropdown-item:hover { background: var(--bg); }
+    .dropdown-item.text-danger:hover { background: var(--danger-soft); }
+    .dropdown-divider { border-color: var(--border); margin: 5px 0; }
+
+    /* ── Empty state ── */
+    .empty-state { text-align: center; padding: 5rem 2rem; }
+    .empty-state .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .empty-state h5 { font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .empty-state p { color: var(--muted); font-size: 13px; }
+
+    /* ── Loading overlay ── */
+    .loading-overlay {
+      position: fixed; inset: 0;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(4px);
+      z-index: 9998;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .loading-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2.5rem 3rem;
+      text-align: center;
+      box-shadow: var(--shadow-md);
+      max-width: 340px;
+    }
+    .loading-spinner {
+      width: 44px; height: 44px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-title { font-weight: 700; font-size: 15px; color: var(--text); margin-bottom: 6px; }
+    .loading-sub { font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+
+    /* ── Toasts ── */
+    .toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+    .app-toast {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      box-shadow: var(--shadow-md);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      min-width: 240px;
+      animation: slideIn 0.2s ease;
+    }
+    @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .toast-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .toast-success .toast-dot { background: var(--success); }
+    .toast-danger .toast-dot { background: var(--danger); }
+    .toast-warning .toast-dot { background: var(--warning); }
+    .toast-close { margin-left: auto; background: none; border: none; color: var(--muted); cursor: pointer; padding: 0; font-size: 14px; line-height: 1; }
+
+    /* ── Modals ── */
+    .modal-content {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+    }
+    .modal-header {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 18px 22px;
+      position: relative;
+    }
+    .modal-header::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--purple));
+    }
+    .modal-title { font-weight: 700; font-size: 15px; color: var(--text); }
+    .modal-body { background: white; padding: 22px; }
+    .modal-footer { background: var(--bg); border-top: 1px solid var(--border); padding: 14px 22px; }
+    .btn-close { opacity: 0.4; }
+    .btn-close:hover { opacity: 0.7; }
+    .form-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+    .form-control, .form-select {
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 13.5px;
+      color: var(--text);
+      padding: 9px 13px;
+      background: white;
+      font-family: 'Inter', sans-serif;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    }
+
+    /* ── Email modal ── */
+    .subject-pill {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .subject-pill .pill-label { font-size: 10.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-right: 2px; }
+    .email-textarea {
+      font-family: 'Inter', sans-serif;
+      font-size: 13.5px;
+      line-height: 1.75;
+      min-height: 280px;
+      resize: vertical;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      padding: 14px;
+    }
+
+    /* ── Analyze modal ── */
+    .analyze-loading {
+      text-align: center;
+      padding: 3.5rem 2rem;
+    }
+    .analyze-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 20px;
+      text-align: left;
+      max-width: 280px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12.5px;
+      color: var(--muted);
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: var(--bg);
+    }
+    .step.active { color: var(--primary); background: var(--primary-soft); }
+    .step.done { color: var(--success); background: var(--success-soft); }
+    .step-icon { font-size: 15px; }
+
+    .analysis-output {
+      font-size: 13.5px;
+      line-height: 1.8;
+      color: var(--text);
+      max-height: 480px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .analysis-output::-webkit-scrollbar { width: 4px; }
+    .analysis-output::-webkit-scrollbar-track { background: var(--bg); border-radius: 2px; }
+    .analysis-output::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .analysis-h1 { font-size: 15px; font-weight: 700; color: var(--text); margin: 18px 0 8px; }
+    .analysis-h2 { font-size: 13.5px; font-weight: 700; color: var(--text); margin: 16px 0 6px; padding: 6px 10px; background: var(--bg); border-radius: 6px; border-left: 3px solid var(--primary); }
+    .analysis-h3 { font-size: 13px; font-weight: 600; color: var(--text); margin: 12px 0 4px; }
+    .analysis-hr { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+    .analysis-bullet { padding: 2px 0 2px 18px; position: relative; }
+    .analysis-bullet::before { content: '·'; position: absolute; left: 6px; color: var(--primary); font-weight: 700; }
+    .analysis-p { margin-bottom: 10px; }
+
+    .check-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+    .check-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 11px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .check-ok   { background: var(--success-soft); color: #065f46; }
+    .check-warn { background: var(--warning-soft); color: #92400e; }
+    .check-bad  { background: var(--danger-soft); color: #991b1b; }
+
+    /* ── Alert override ── */
+    .alert-info-soft { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; border-radius: var(--radius-sm); padding: 10px 14px; font-size: 12.5px; }
+
+    /* ── Scrollbar ── */
+    * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  </style>
+</head>
+<body>
+
+<!-- Topbar -->
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-icon">🌐</div>
+    <div>
+      <div class="brand-name">Lead Gen</div>
+      <div class="brand-sub">cold email tool</div>
+    </div>
+  </div>
+  <button class="btn-search" data-bs-toggle="modal" data-bs-target="#searchModal">
+    <i class="bi bi-search" style="font-size:12px"></i> Szukaj leadów
+  </button>
+</header>
+
+<div class="page">
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card active" onclick="filterByStatus('all')" id="stat-all">
+      <span class="stat-emoji">📊</span>
+      <div class="stat-number" id="count-total">{{ stats.total }}</div>
+      <div class="stat-label">Wszystkie</div>
+    </div>
+    <div class="stat-card" onclick="filterByStatus('new')" id="stat-new">
+      <span class="stat-emoji">🆕</span>
+      <div class="stat-number" style="color:#1d4ed8" id="count-new">{{ stats.new }}</div>
+      <div class="stat-label">Nowe</div>
+    </div>
+    <div class="stat-card" onclick="filterByStatus('emailed')" id="stat-emailed">
+      <span class="stat-emoji">📤</span>
+      <div class="stat-number" style="color:#b45309" id="count-emailed">{{ stats.emailed }}</div>
+      <div class="stat-label">Wysłane</div>
+    </div>
+    <div class="stat-card" onclick="filterByStatus('replied')" id="stat-replied">
+      <span class="stat-emoji">💬</span>
+      <div class="stat-number" style="color:#6d28d9" id="count-replied">{{ stats.replied }}</div>
+      <div class="stat-label">Odpowiedzi</div>
+    </div>
+    <div class="stat-card" onclick="filterByStatus('converted')" id="stat-converted">
+      <span class="stat-emoji">⭐</span>
+      <div class="stat-number" style="color:#065f46" id="count-converted">{{ stats.converted }}</div>
+      <div class="stat-label">Klienci</div>
+    </div>
+    <div class="stat-card" onclick="filterByStatus('skipped')" id="stat-skipped">
+      <span class="stat-emoji">⏭️</span>
+      <div class="stat-number" style="color:#6b7280" id="count-skipped">{{ stats.skipped }}</div>
+      <div class="stat-label">Pominięte</div>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filter-bar">
+    <input type="text" id="searchInput" class="form-control" style="max-width:210px" placeholder="🔍  Szukaj firmy..." oninput="debounceLoad()" />
+    <select id="cityFilter" class="form-select" style="max-width:150px" onchange="loadLeads()">
+      <option value="">📍 Wszystkie miasta</option>
+      {% for city in cities %}
+      <option value="{{ city }}">{{ city }}</option>
+      {% endfor %}
+    </select>
+    <select id="typeFilter" class="form-select" style="max-width:170px" onchange="loadLeads()">
+      <option value="">🏪 Wszystkie typy</option>
+      {% for bt in business_types %}
+      <option value="{{ bt }}">{{ bt }}</option>
+      {% endfor %}
+    </select>
+    <span class="record-count" id="leadCount">—</span>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th style="width:36px">#</th>
+            <th>Firma</th>
+            <th>Typ / Miasto</th>
+            <th>Strona</th>
+            <th>Email</th>
+            <th>Status</th>
+            <th>Notatki</th>
+            <th style="width:108px">Akcje</th>
+          </tr>
+        </thead>
+        <tbody id="leadsTableBody">
+          <tr><td colspan="8" style="padding:3rem;text-align:center;color:var(--muted)">Ładowanie...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay d-none" id="loadingOverlay">
+  <div class="loading-card">
+    <div class="loading-spinner"></div>
+    <div class="loading-title" id="loadingText">Szukam leadów...</div>
+    <div class="loading-sub">Google Maps + analiza stron.<br>Może potrwać chwilę ☕</div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ══════════════════════════════════════
+     SEARCH MODAL
+══════════════════════════════════════ -->
+<div class="modal fade" id="searchModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:440px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">🔍 Szukaj nowych leadów</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Typ biznesu</label>
+          <input type="text" id="searchType" class="form-control" placeholder="np. restauracja, fryzjer, mechanik..." />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Miasto</label>
+          <input type="text" id="searchCity" class="form-control" placeholder="np. Kraków, Warszawa, Gdańsk..." />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Liczba wyników</label>
+          <select id="searchMax" class="form-select">
+            <option value="5">5 firm</option>
+            <option value="10" selected>10 firm</option>
+            <option value="20">20 firm</option>
+          </select>
+        </div>
+        <div class="alert-info-soft">
+          💡 Firmy już w bazie zostaną automatycznie pominięte.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-bs-dismiss="modal">Anuluj</button>
+        <button class="btn btn-primary" onclick="doSearch()">
+          <i class="bi bi-search me-1"></i> Szukaj
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     EMAIL MODAL
+══════════════════════════════════════ -->
+<div class="modal fade" id="emailModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">📧 Email — <span id="emailForBusiness"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="emailLoadingState" class="text-center" style="padding:3rem 0">
+          <div class="loading-spinner" style="width:36px;height:36px;margin-bottom:14px"></div>
+          <div style="font-weight:600;font-size:14px;color:var(--text)">Generuję email z AI...</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px">Analizuję stronę i piszę spersonalizowaną wiadomość ✍️</div>
+        </div>
+        <div id="emailContent" class="d-none">
+          <div class="subject-pill">
+            <span class="pill-label">Temat</span>
+            <span id="emailSubject" style="flex:1"></span>
+          </div>
+          <textarea id="emailBody" class="form-control email-textarea"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer" id="emailFooter" style="display:none!important">
+        <button class="btn btn-ghost btn-sm" onclick="copyEmail()">
+          <i class="bi bi-clipboard me-1"></i> Kopiuj
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="markEmailed()">
+          <i class="bi bi-check2 me-1"></i> Oznaczyłem jako wysłany
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     ANALYZE MODAL
+══════════════════════════════════════ -->
+<div class="modal fade" id="analyzeModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">✨ Analiza AI — <span id="analyzeForBusiness"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Loading state -->
+        <div id="analyzeLoadingState" class="analyze-loading">
+          <div class="loading-spinner" style="width:40px;height:40px;margin-bottom:20px"></div>
+          <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:6px">Przeprowadzam pełny audyt...</div>
+          <div style="font-size:12.5px;color:var(--muted);margin-bottom:24px">Może potrwać ~30 sekund</div>
+          <div class="analyze-steps">
+            <div class="step active" id="step1"><span class="step-icon">📸</span> Robię zrzuty ekranu (desktop + mobile)</div>
+            <div class="step" id="step2"><span class="step-icon">🔬</span> Sprawdzam parametry techniczne</div>
+            <div class="step" id="step3"><span class="step-icon">🤖</span> Claude analizuje jak człowiek</div>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div id="analyzeContent" class="d-none">
+          <div class="row g-4">
+            <div class="col-lg-8">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:10px">🤖 Co widzi AI</div>
+              <div class="analysis-output" id="analyzeResult"></div>
+            </div>
+            <div class="col-lg-4">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:10px">🔬 Sprawdzenia techniczne</div>
+              <div class="check-grid" id="analyzeChecks"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error -->
+        <div id="analyzeError" class="d-none" style="background:var(--danger-soft);border:1px solid #fecaca;border-radius:10px;padding:14px 16px;color:#991b1b;font-size:13px"></div>
+      </div>
+      <div class="modal-footer" id="analyzeFooter" style="display:none!important">
+        <button class="btn btn-primary" onclick="generateEmailFromAnalysis()">
+          <i class="bi bi-envelope me-1"></i> Generuj email na podstawie tej analizy
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     NOTES MODAL
+══════════════════════════════════════ -->
+<div class="modal fade" id="notesModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:420px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">📝 Notatka — <span id="notesForBusiness"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Notatka</label>
+          <textarea id="notesInput" class="form-control" rows="4" placeholder="Dodaj notatkę..."></textarea>
+        </div>
+        <div>
+          <label class="form-label">Email kontaktowy</label>
+          <input type="email" id="emailInput" class="form-control" placeholder="email@firma.pl" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-bs-dismiss="modal">Anuluj</button>
+        <button class="btn btn-primary" onclick="saveNotes()">Zapisz</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let currentStatus = 'all';
+let currentLeadId = null;
+let debounceTimer = null;
+
+// ── Status badge HTML ──
+const STATUS_BADGES = {
+  new:       '<span class="status-badge s-new">🆕 Nowy</span>',
+  emailed:   '<span class="status-badge s-emailed">📤 Wysłany</span>',
+  replied:   '<span class="status-badge s-replied">💬 Odpowiedź</span>',
+  converted: '<span class="status-badge s-converted">⭐ Klient!</span>',
+  skipped:   '<span class="status-badge s-skipped">⏭️ Pominięty</span>',
+};
+
+// ── Simple markdown renderer ──
+function renderMd(text) {
+  if (!text) return '';
+  let html = escHtml(text);
+  html = html.replace(/^# (.+)$/gm,   '<div class="analysis-h1">$1</div>');
+  html = html.replace(/^## (.+)$/gm,  '<div class="analysis-h2">$1</div>');
+  html = html.replace(/^### (.+)$/gm, '<div class="analysis-h3">$1</div>');
+  html = html.replace(/^---$/gm,      '<div class="analysis-hr"></div>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/^[•\-\*] (.+)$/gm, '<div class="analysis-bullet">$1</div>');
+  html = html.replace(/\n\n+/g, '<div style="height:10px"></div>');
+  html = html.replace(/\n/g, '<br>');
+  return html;
+}
+
+// ── Debounce ──
+function debounceLoad() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(loadLeads, 380);
+}
+
+// ── Filter by status ──
+function filterByStatus(status) {
+  currentStatus = status;
+  document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
+  document.getElementById('stat-' + (status === 'all' ? 'all' : status)).classList.add('active');
+  loadLeads();
+}
+
+// ── Load leads ──
+async function loadLeads() {
+  const search = document.getElementById('searchInput').value;
+  const city   = document.getElementById('cityFilter').value;
+  const type   = document.getElementById('typeFilter').value;
+  const params = new URLSearchParams({ status: currentStatus, search, city, business_type: type });
+  const res    = await fetch('/api/leads?' + params);
+  const leads  = await res.json();
+  document.getElementById('leadCount').textContent = leads.length + ' rekordów';
+  renderTable(leads);
+}
+
+// ── Render table ──
+function renderTable(leads) {
+  const tbody = document.getElementById('leadsTableBody');
+  if (!leads.length) {
+    tbody.innerHTML = `<tr><td colspan="8">
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <h5>Brak leadów</h5>
+        <p>Kliknij "Szukaj leadów" aby znaleźć nowych potencjalnych klientów.</p>
+      </div>
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = leads.map(lead => {
+    const websiteCell = lead.website_url
+      ? `<a href="${escHtml(lead.website_url)}" target="_blank" class="site-link"><i class="bi bi-globe2" style="font-size:11px"></i>${escHtml(shortUrl(lead.website_url))}</a>`
+      : `<span class="no-site"><i class="bi bi-x-circle" style="font-size:11px"></i> Brak</span>`;
+
+    const emailCell = lead.email
+      ? `<div class="email-cell"><a href="mailto:${escHtml(lead.email)}">${escHtml(lead.email)}</a></div>`
+      : `<span style="color:var(--muted);font-size:12px">—</span>`;
+
+    const emailedDate = lead.emailed_at
+      ? `<div class="emailed-date">📅 ${lead.emailed_at.slice(0,10)}</div>` : '';
+
+    const aiBtn = lead.website_url
+      ? `<button class="btn-ai" title="Analiza AI ✨" onclick="openAnalyzeModal(${lead.id}, '${escHtml(lead.business_name)}')"><i class="bi bi-stars"></i></button>`
+      : '';
+
+    return `<tr>
+      <td style="color:var(--muted);font-size:12px">${lead.id}</td>
+      <td>
+        <div class="biz-name">${escHtml(lead.business_name)}</div>
+        ${lead.phone ? `<div class="biz-phone"><i class="bi bi-telephone" style="font-size:10px"></i> ${escHtml(lead.phone)}</div>` : ''}
+      </td>
+      <td class="biz-meta">${escHtml(lead.business_type)}<br>${escHtml(lead.city)}</td>
+      <td>${websiteCell}</td>
+      <td>${emailCell}</td>
+      <td>${STATUS_BADGES[lead.status] || lead.status}${emailedDate}</td>
+      <td><div class="notes-cell" title="${escHtml(lead.notes || '')}">${escHtml(lead.notes || '—')}</div></td>
+      <td>
+        <div class="action-row">
+          ${aiBtn}
+          <button class="btn-email" title="Generuj email" onclick="openEmailModal(${lead.id}, '${escHtml(lead.business_name)}')"><i class="bi bi-envelope"></i></button>
+          <div class="dropdown">
+            <button class="btn-more dropdown-toggle" data-bs-toggle="dropdown" title="Więcej"><i class="bi bi-three-dots"></i></button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="#" onclick="setStatus(${lead.id},'emailed')">📤 Wysłano email</a></li>
+              <li><a class="dropdown-item" href="#" onclick="setStatus(${lead.id},'replied')">💬 Odpowiedział</a></li>
+              <li><a class="dropdown-item" href="#" onclick="setStatus(${lead.id},'converted')">⭐ Został klientem</a></li>
+              <li><a class="dropdown-item" href="#" onclick="setStatus(${lead.id},'new')">🔄 Wróć do Nowy</a></li>
+              <li><a class="dropdown-item" href="#" onclick="setStatus(${lead.id},'skipped')">⏭️ Pomiń</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="#" onclick="openNotesModal(${lead.id},'${escHtml(lead.business_name)}','${escHtml(lead.notes||'')}','${escHtml(lead.email||'')}')">📝 Notatki / email</a></li>
+              <li><a class="dropdown-item text-danger" href="#" onclick="deleteLead(${lead.id})">🗑️ Usuń</a></li>
+            </ul>
+          </div>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function shortUrl(url) {
+  try { return new URL(url).hostname.replace('www.',''); }
+  catch { return url.slice(0,20); }
+}
+
+// ── Search ──
+async function doSearch() {
+  const business_type = document.getElementById('searchType').value.trim();
+  const city          = document.getElementById('searchCity').value.trim();
+  const max_results   = document.getElementById('searchMax').value;
+
+  if (!business_type || !city) { showToast('Podaj typ biznesu i miasto', 'warning'); return; }
+
+  bootstrap.Modal.getInstance(document.getElementById('searchModal')).hide();
+  document.getElementById('loadingText').textContent = `Szukam: ${business_type} w ${city}...`;
+  document.getElementById('loadingOverlay').classList.remove('d-none');
+
+  try {
+    const res  = await fetch('/api/search', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({business_type, city, max_results}) });
+    const data = await res.json();
+    if (data.error) { showToast('Błąd: ' + data.error, 'danger'); }
+    else {
+      showToast(`✅ Dodano ${data.added} nowych leadów (${data.skipped} duplikatów pominięto)`, 'success');
+      await refreshStats();
+      location.reload();
+    }
+  } catch(e) { showToast('Błąd połączenia: ' + e.message, 'danger'); }
+  finally    { document.getElementById('loadingOverlay').classList.add('d-none'); }
+}
+
+// ── Email modal ──
+async function openEmailModal(leadId, businessName) {
+  currentLeadId = leadId;
+  document.getElementById('emailForBusiness').textContent = businessName;
+  document.getElementById('emailLoadingState').classList.remove('d-none');
+  document.getElementById('emailContent').classList.add('d-none');
+  document.getElementById('emailFooter').style.setProperty('display','none','important');
+
+  new bootstrap.Modal(document.getElementById('emailModal')).show();
+
+  const leadRes = await fetch(`/api/lead/${leadId}`);
+  const lead    = await leadRes.json();
+  let emailText = lead.generated_email;
+
+  if (!emailText) {
+    try {
+      const res  = await fetch(`/api/lead/${leadId}/generate-email`, { method:'POST' });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      emailText = data.email;
+    } catch(e) {
+      document.getElementById('emailLoadingState').innerHTML = `<div style="color:var(--danger);padding:2rem;text-align:center">❌ ${escHtml(e.message)}</div>`;
+      return;
+    }
+  }
+
+  const lines   = emailText.split('\n');
+  let subject   = '';
+  let body      = emailText;
+  if (lines[0].toLowerCase().startsWith('temat:')) {
+    subject = lines[0].replace(/^temat:\s*/i, '');
+    body    = lines.slice(1).join('\n').trim();
+  }
+
+  document.getElementById('emailSubject').textContent = subject;
+  document.getElementById('emailBody').value          = body;
+  document.getElementById('emailLoadingState').classList.add('d-none');
+  document.getElementById('emailContent').classList.remove('d-none');
+  document.getElementById('emailFooter').style.removeProperty('display');
+}
+
+function copyEmail() {
+  const subject = document.getElementById('emailSubject').textContent;
+  const body    = document.getElementById('emailBody').value;
+  navigator.clipboard.writeText((subject ? 'Temat: ' + subject + '\n\n' : '') + body)
+    .then(() => showToast('📋 Skopiowano do schowka!', 'success'));
+}
+
+async function markEmailed() {
+  if (!currentLeadId) return;
+  const body    = document.getElementById('emailBody').value;
+  const subject = document.getElementById('emailSubject').textContent;
+  const full    = (subject ? 'Temat: ' + subject + '\n\n' : '') + body;
+  await fetch(`/api/lead/${currentLeadId}/update`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status:'emailed', generated_email: full}) });
+  bootstrap.Modal.getInstance(document.getElementById('emailModal')).hide();
+  showToast('📤 Oznaczono jako wysłany!', 'success');
+  await refreshStats();
+  loadLeads();
+}
+
+// ── Analyze modal ──
+async function openAnalyzeModal(leadId, businessName) {
+  currentLeadId = leadId;
+  document.getElementById('analyzeForBusiness').textContent = businessName;
+  document.getElementById('analyzeLoadingState').classList.remove('d-none');
+  document.getElementById('analyzeContent').classList.add('d-none');
+  document.getElementById('analyzeError').classList.add('d-none');
+  document.getElementById('analyzeFooter').style.setProperty('display','none','important');
+  resetSteps();
+
+  new bootstrap.Modal(document.getElementById('analyzeModal')).show();
+
+  // Animate steps
+  await animateStep('step1', 500);
+  await animateStep('step2', 1000);
+  await animateStep('step3', 500);
+
+  try {
+    const res  = await fetch(`/api/lead/${leadId}/analyze`, { method:'POST' });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    // Render analysis with markdown
+    document.getElementById('analyzeResult').innerHTML = renderMd(data.analysis);
+
+    // Render checks
+    const wd     = data.website_data || {};
+    const checks = [
+      { label:'🔒 SSL',            ok: wd.has_ssl },
+      { label:'📱 Responsywna',     ok: wd.has_mobile_viewport },
+      { label:'🔍 Meta desc.',      ok: !!wd.meta_description },
+      { label:'👆 CTA',             ok: wd.has_cta },
+      { label:'📬 Formularz',       ok: wd.has_contact_form },
+      { label:'📲 Social media',    ok: wd.has_social },
+      { label:'🏗️ Nowoczesny układ',ok: !wd.uses_tables_layout },
+      { label:'📊 Analityki OK',    ok: !wd.has_dead_analytics },
+    ];
+    if (wd.pagespeed_score != null) {
+      const s = wd.pagespeed_score;
+      checks.push({ label: `⚡ PageSpeed ${s}/100`, ok: s >= 80, warn: s >= 60 });
+    }
+    document.getElementById('analyzeChecks').innerHTML = checks.map(c => {
+      const cls = c.ok ? 'check-ok' : (c.warn ? 'check-warn' : 'check-bad');
+      const ico = c.ok ? '✓' : (c.warn ? '△' : '✗');
+      return `<span class="check-pill ${cls}">${ico} ${escHtml(c.label)}</span>`;
+    }).join('');
+
+    document.getElementById('analyzeLoadingState').classList.add('d-none');
+    document.getElementById('analyzeContent').classList.remove('d-none');
+    document.getElementById('analyzeFooter').style.removeProperty('display');
+  } catch(e) {
+    document.getElementById('analyzeLoadingState').classList.add('d-none');
+    const err = document.getElementById('analyzeError');
+    err.classList.remove('d-none');
+    err.textContent = '❌ Błąd: ' + e.message;
+  }
+}
+
+function resetSteps() {
+  ['step1','step2','step3'].forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.remove('active','done');
+  });
+}
+
+function animateStep(id, delay) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      const prev = { step2:'step1', step3:'step2' }[id];
+      if (prev) { document.getElementById(prev).classList.remove('active'); document.getElementById(prev).classList.add('done'); }
+      document.getElementById(id).classList.add('active');
+      resolve();
+    }, delay);
+  });
+}
+
+function generateEmailFromAnalysis() {
+  bootstrap.Modal.getInstance(document.getElementById('analyzeModal')).hide();
+  setTimeout(() => openEmailModal(currentLeadId, document.getElementById('analyzeForBusiness').textContent), 300);
+}
+
+// ── Status / notes / delete ──
+async function setStatus(leadId, status) {
+  await fetch(`/api/lead/${leadId}/update`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status}) });
+  await refreshStats();
+  loadLeads();
+}
+
+function openNotesModal(leadId, businessName, notes, email) {
+  currentLeadId = leadId;
+  document.getElementById('notesForBusiness').textContent = businessName;
+  document.getElementById('notesInput').value  = notes;
+  document.getElementById('emailInput').value  = email;
+  new bootstrap.Modal(document.getElementById('notesModal')).show();
+}
+
+async function saveNotes() {
+  const notes = document.getElementById('notesInput').value;
+  const email = document.getElementById('emailInput').value;
+  await fetch(`/api/lead/${currentLeadId}/update`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({notes, email}) });
+  bootstrap.Modal.getInstance(document.getElementById('notesModal')).hide();
+  showToast('💾 Zapisano', 'success');
+  loadLeads();
+}
+
+async function deleteLead(leadId) {
+  if (!confirm('Usunąć tego leada? Tej operacji nie można cofnąć.')) return;
+  await fetch(`/api/lead/${leadId}`, { method:'DELETE' });
+  await refreshStats();
+  loadLeads();
+}
+
+// ── Stats ──
+async function refreshStats() {
+  const s = await (await fetch('/api/stats')).json();
+  document.getElementById('count-total').textContent     = s.total;
+  document.getElementById('count-new').textContent       = s.new;
+  document.getElementById('count-emailed').textContent   = s.emailed;
+  document.getElementById('count-replied').textContent   = s.replied;
+  document.getElementById('count-converted').textContent = s.converted;
+  document.getElementById('count-skipped').textContent   = s.skipped;
+}
+
+// ── Toasts ──
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  const id = 'toast-' + Date.now();
+  container.insertAdjacentHTML('beforeend', `
+    <div id="${id}" class="app-toast toast-${type}">
+      <div class="toast-dot"></div>
+      <span>${message}</span>
+      <button class="toast-close" onclick="document.getElementById('${id}').remove()">×</button>
+    </div>
+  `);
+  setTimeout(() => document.getElementById(id)?.remove(), 4000);
+}
+
+// ── Utils ──
+function escHtml(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// Init
+loadLeads();
+</script>
+</body>
+</html>

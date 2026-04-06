@@ -1,0 +1,7 @@
+flask
+python-dotenv
+anthropic
+googlemaps
+requests
+beautifulsoup4
+playwright
