@@ -161,9 +161,7 @@ def analyze_lead(lead_id):
 
     website_data = scraper.scrape_website(lead["website_url"])
     screenshots = scraper.screenshot_website(lead["website_url"])
-
-    if not screenshots.get("desktop") and not screenshots.get("mobile"):
-        return jsonify({"error": "Nie udało się zrobić zrzutu ekranu strony"}), 500
+    # screenshots may be empty if Playwright/Chromium is unavailable — fall back to text-only
 
     try:
         analysis = analyzer.analyze_website_visually(lead, screenshots, website_data)

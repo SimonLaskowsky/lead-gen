@@ -52,6 +52,22 @@ def analyze_website_visually(lead: dict, screenshots: dict, website_data: dict |
 
     tech_block = "\n".join(tech_facts)
 
+    desktop_bytes = (screenshots or {}).get("desktop")
+    mobile_bytes  = (screenshots or {}).get("mobile")
+    has_screenshots = bool(desktop_bytes or mobile_bytes)
+
+    visual_instruction = (
+        "Masz przed sobą zrzuty ekranu tej strony (desktop i mobile). Przeprowadź szczegółowy audyt wzrokowy i techniczny."
+        if has_screenshots else
+        "Nie masz zrzutów ekranu — przeprowadź audyt na podstawie danych technicznych i treści strony poniżej. Bądź równie konkretny i krytyczny."
+    )
+
+    mobile_section = (
+        "**3. Mobile (patrz na zrzut mobilny)**\nCzy strona działa na telefonie? Co się psuje — tekst, przyciski, układ?"
+        if has_screenshots else
+        f"**3. Mobile**\nBrak meta viewport: {'TAK — strona NIE jest responsywna' if website_data and not website_data.get('has_mobile_viewport') else 'jest responsywna'}. Oceń konsekwencje."
+    )
+
     prompt = f"""Jesteś senior konsultantem ds. web designu i marketingu cyfrowego. Przeprowadzasz pełny audyt strony polskiego lokalnego biznesu.
 
 === DANE FIRMY ===
@@ -64,7 +80,7 @@ URL: {lead.get('website_url', '')}
 {page_text}
 
 === TWOJE ZADANIE ===
-Masz przed sobą zrzuty ekranu tej strony (desktop i mobile). Przeprowadź szczegółowy audyt.
+{visual_instruction}
 
 Oceń każdy punkt konkretnie — nie ogólnikowo:
 
@@ -74,8 +90,7 @@ Czy strona od razu komunikuje czym się firma zajmuje? Czy wygląda profesjonaln
 **2. Design i estetyka**
 Kolory, typografia, jakość zdjęć/grafik, spójność wizualna. Czy wygląda nowocześnie czy jak relikt lat 2010?
 
-**3. Mobile (patrz na zrzut mobilny)**
-Czy strona działa na telefonie? Co się psuje — tekst, przyciski, układ?
+{mobile_section}
 
 **4. Treść i komunikacja**
 Czy jasno widać: co oferują, dla kogo, ile kosztuje, jak się skontaktować? Czy są opinie klientów?
@@ -85,11 +100,8 @@ Podaj 3-4 konkretne zmiany które miałyby największy wpływ na konwersję.
 
 Pisz po polsku. Bądź szczery i konkretny — jak gdybyś płacił za ten audyt. Używaj punktorów i nagłówków z powyższej struktury."""
 
-    # Build message content with both screenshots
+    # Build message content — add screenshots only if available
     content = []
-
-    desktop_bytes = screenshots.get("desktop")
-    mobile_bytes = screenshots.get("mobile")
 
     if desktop_bytes:
         content.append({"type": "text", "text": "**Zrzut ekranu — DESKTOP (1280px):**"})
