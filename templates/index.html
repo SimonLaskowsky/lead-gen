@@ -717,8 +717,14 @@
         <div id="analyzeError" class="d-none" style="background:var(--danger-soft);border:1px solid #fecaca;border-radius:10px;padding:14px 16px;color:#991b1b;font-size:13px"></div>
       </div>
       <div class="modal-footer" id="analyzeFooter" style="display:none!important">
+        <span id="cachedBadge" style="display:none;align-items:center;gap:5px;font-size:12px;color:var(--muted);background:var(--bg);padding:4px 10px;border-radius:20px;border:1px solid var(--border)">
+          💾 Z pamięci podręcznej
+        </span>
+        <button id="regenBtn" class="btn btn-ghost btn-sm" style="display:none" onclick="runAnalysis(currentLeadId)">
+          <i class="bi bi-arrow-clockwise me-1"></i> Regeneruj
+        </button>
         <button class="btn btn-primary" onclick="generateEmailFromAnalysis()">
-          <i class="bi bi-envelope me-1"></i> Generuj email na podstawie tej analizy
+          <i class="bi bi-envelope me-1"></i> Generuj email
         </button>
       </div>
     </div>
@@ -835,8 +841,13 @@ function renderTable(leads) {
     const emailedDate = lead.emailed_at
       ? `<div class="emailed-date">📅 ${lead.emailed_at.slice(0,10)}</div>` : '';
 
+    const hasAnalysis = !!(lead.ai_analysis && lead.ai_analysis.length > 10);
     const aiBtn = lead.website_url
-      ? `<button class="btn-ai" title="Analiza AI ✨" onclick="openAnalyzeModal(${lead.id}, '${escHtml(lead.business_name)}')"><i class="bi bi-stars"></i></button>`
+      ? `<button class="btn-ai" title="${hasAnalysis ? '✅ Analiza gotowa — kliknij by otworzyć' : 'Uruchom analizę AI ✨'}"
+           style="${hasAnalysis ? 'background:#d1fae5;color:#065f46' : ''}"
+           onclick="openAnalyzeModal(${lead.id}, '${escHtml(lead.business_name)}')">
+           <i class="bi bi-${hasAnalysis ? 'check-circle-fill' : 'stars'}"></i>
+         </button>`
       : '';
 
     return `<tr>
@@ -975,6 +986,26 @@ async function openAnalyzeModal(leadId, businessName) {
 
   new bootstrap.Modal(document.getElementById('analyzeModal')).show();
 
+  // Check cache first
+  try {
+    const cached = await fetch(`/api/lead/${leadId}/analyze`);
+    const cdata  = await cached.json();
+    if (cdata.cached) {
+      showAnalysisResult(cdata.analysis, cdata.website_data, true);
+      return;
+    }
+  } catch(_) {}
+
+  // No cache — run fresh analysis
+  await runAnalysis(leadId);
+}
+
+async function runAnalysis(leadId) {
+  document.getElementById('analyzeLoadingState').classList.remove('d-none');
+  document.getElementById('analyzeContent').classList.add('d-none');
+  document.getElementById('analyzeError').classList.add('d-none');
+  resetSteps();
+
   // Animate steps
   await animateStep('step1', 500);
   await animateStep('step2', 1000);
@@ -984,41 +1015,50 @@ async function openAnalyzeModal(leadId, businessName) {
     const res  = await fetch(`/api/lead/${leadId}/analyze`, { method:'POST' });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-
-    // Render analysis with markdown
-    document.getElementById('analyzeResult').innerHTML = renderMd(data.analysis);
-
-    // Render checks
-    const wd     = data.website_data || {};
-    const checks = [
-      { label:'🔒 SSL',            ok: wd.has_ssl },
-      { label:'📱 Responsywna',     ok: wd.has_mobile_viewport },
-      { label:'🔍 Meta desc.',      ok: !!wd.meta_description },
-      { label:'👆 CTA',             ok: wd.has_cta },
-      { label:'📬 Formularz',       ok: wd.has_contact_form },
-      { label:'📲 Social media',    ok: wd.has_social },
-      { label:'🏗️ Nowoczesny układ',ok: !wd.uses_tables_layout },
-      { label:'📊 Analityki OK',    ok: !wd.has_dead_analytics },
-    ];
-    if (wd.pagespeed_score != null) {
-      const s = wd.pagespeed_score;
-      checks.push({ label: `⚡ PageSpeed ${s}/100`, ok: s >= 80, warn: s >= 60 });
-    }
-    document.getElementById('analyzeChecks').innerHTML = checks.map(c => {
-      const cls = c.ok ? 'check-ok' : (c.warn ? 'check-warn' : 'check-bad');
-      const ico = c.ok ? '✓' : (c.warn ? '△' : '✗');
-      return `<span class="check-pill ${cls}">${ico} ${escHtml(c.label)}</span>`;
-    }).join('');
-
-    document.getElementById('analyzeLoadingState').classList.add('d-none');
-    document.getElementById('analyzeContent').classList.remove('d-none');
-    document.getElementById('analyzeFooter').style.removeProperty('display');
+    showAnalysisResult(data.analysis, data.website_data, false);
   } catch(e) {
     document.getElementById('analyzeLoadingState').classList.add('d-none');
     const err = document.getElementById('analyzeError');
     err.classList.remove('d-none');
     err.textContent = '❌ Błąd: ' + e.message;
   }
+}
+
+function showAnalysisResult(analysis, websiteData, fromCache) {
+  document.getElementById('analyzeResult').innerHTML = renderMd(analysis);
+
+  const wd     = websiteData || {};
+  const checks = [
+    { label:'🔒 SSL',             ok: wd.has_ssl },
+    { label:'📱 Responsywna',      ok: wd.has_mobile_viewport },
+    { label:'🔍 Meta desc.',       ok: !!wd.meta_description },
+    { label:'👆 CTA',              ok: wd.has_cta },
+    { label:'📬 Formularz',        ok: wd.has_contact_form },
+    { label:'📲 Social media',     ok: wd.has_social },
+    { label:'🏗️ Nowoczesny układ', ok: !wd.uses_tables_layout },
+    { label:'📊 Analityki OK',     ok: !wd.has_dead_analytics },
+  ];
+  if (wd.pagespeed_score != null) {
+    const s = wd.pagespeed_score;
+    checks.push({ label: `⚡ PageSpeed ${s}/100`, ok: s >= 80, warn: s >= 60 });
+  }
+  document.getElementById('analyzeChecks').innerHTML = checks.map(c => {
+    const cls = c.ok ? 'check-ok' : (c.warn ? 'check-warn' : 'check-bad');
+    const ico = c.ok ? '✓' : (c.warn ? '△' : '✗');
+    return `<span class="check-pill ${cls}">${ico} ${escHtml(c.label)}</span>`;
+  }).join('');
+
+  document.getElementById('analyzeLoadingState').classList.add('d-none');
+  document.getElementById('analyzeContent').classList.remove('d-none');
+
+  // Footer: always show email button + regenerate if from cache
+  const footer = document.getElementById('analyzeFooter');
+  footer.style.removeProperty('display');
+  document.getElementById('regenBtn').style.display = fromCache ? 'inline-flex' : 'none';
+  document.getElementById('cachedBadge').style.display = fromCache ? 'inline-flex' : 'none';
+
+  // Refresh table so the button turns green
+  loadLeads();
 }
 
 function resetSteps() {

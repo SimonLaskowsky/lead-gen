@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, Response
 from dotenv import load_dotenv
 from datetime import datetime
 from functools import wraps
+import json
 import os
 import db
 import scraper
@@ -136,11 +137,25 @@ def get_lead(lead_id):
     return jsonify(lead)
 
 
-@app.route("/api/lead/<int:lead_id>/analyze", methods=["POST"])
+@app.route("/api/lead/<int:lead_id>/analyze", methods=["GET", "POST"])
 def analyze_lead(lead_id):
     lead = db.get_lead(lead_id)
     if not lead:
         return jsonify({"error": "Nie znaleziono"}), 404
+
+    # GET — return cached result
+    if request.method == "GET":
+        analysis = lead.get("ai_analysis", "") or ""
+        checks_raw = lead.get("website_checks", "") or ""
+        if not analysis:
+            return jsonify({"cached": False})
+        try:
+            website_data = json.loads(checks_raw) if checks_raw else {}
+        except Exception:
+            website_data = {}
+        return jsonify({"cached": True, "analysis": analysis, "website_data": website_data})
+
+    # POST — run fresh analysis
     if not lead.get("website_url"):
         return jsonify({"error": "Brak strony do analizy"}), 400
 
@@ -152,10 +167,11 @@ def analyze_lead(lead_id):
 
     try:
         analysis = analyzer.analyze_website_visually(lead, screenshots, website_data)
-        # Store analysis in notes if empty, otherwise prepend
-        existing_notes = lead.get("notes", "") or ""
-        prefix = f"[AI Analiza]\n{analysis}\n\n"
-        db.update_lead(lead_id, notes=prefix + existing_notes if existing_notes else prefix.strip())
+        db.update_lead(
+            lead_id,
+            ai_analysis=analysis,
+            website_checks=json.dumps(website_data or {}),
+        )
         return jsonify({"analysis": analysis, "website_data": website_data})
     except Exception as e:
         return jsonify({"error": str(e)}), 500

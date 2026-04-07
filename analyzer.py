@@ -132,76 +132,134 @@ def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: st
     city = lead.get("city", "")
     has_website = bool(lead.get("website_url"))
 
-    if not has_website:
-        prompt = f"""Jesteś pomocnikiem webdevelopera piszącego cold email po polsku do lokalnego biznesu, który NIE ma strony internetowej.
+    # ── Shared context: who Szymon is ──
+    sender_context = """
+Kim jest Szymon (nadawca emaila):
+- Młody web developer z Polski, robi strony dla lokalnych firm
+- Zrealizował kilka projektów dla firm w regionie, klienci są zadowoleni
+- Nie jest wielką agencją — jest to atut (szybko, tanio, bezpośredni kontakt)
+- Cena: 500 PLN za stronę 4-podstronową (to mocno poniżej rynku — agencje biorą 3000-8000 PLN za to samo)
+- Dostępny, odpowiada tego samego dnia
+"""
 
+    # ── Proven statistics to use ──
+    stats_arsenal = """
+Statystyki które można użyć (tylko te pasujące do konkretnych problemów tej firmy):
+- 60% ruchu w internecie pochodzi z telefonów — strona nieresponsywna traci ponad połowę odwiedzających
+- Strony ładujące się ponad 3 sekundy tracą 53% użytkowników mobilnych (Google)
+- 75% użytkowników ocenia wiarygodność firmy po wyglądzie strony
+- Strony z SSL konwertują o 85% lepiej — bez SSL przeglądarka wyświetla "Niezabezpieczona"
+- Firmy z profesjonalną stroną dostają średnio 3x więcej zapytań online
+- Brak CTA (przycisku "zadzwoń/napisz") to najczęstsza przyczyna ucieczki klientów ze strony
+- Strony z opiniami klientów konwertują o 270% lepiej niż bez opinii
+Używaj TYLKO 1-2 statystyk pasujących do problemów tej konkretnej firmy. Nie wymieniaj wszystkich.
+"""
+
+    if not has_website:
+        prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Szymona — web developera który oferuje zbudowanie strony lokalnej firmie.
+
+{sender_context}
+
+=== DANE FIRMY ===
 Firma: {business_name}
 Typ biznesu: {business_type}
 Miasto: {city}
+Sytuacja: firma NIE MA strony internetowej w ogóle
 
-Napisz krótki, przyjazny, profesjonalny cold email po polsku proponując zbudowanie strony internetowej.
+{stats_arsenal}
+
+=== ZADANIE ===
+Napisz cold email który SPRZEDAJE. Nie informacyjny — sprzedażowy.
+
+Struktura emaila (nie pisz nagłówków, po prostu tak go zbuduj):
+1. TEMAT: intrygujący, konkretny, nie "Propozycja strony" — coś co wywołuje ciekawość lub lekki strach przed stratą
+2. HOOK (pierwsze zdanie): zaskakujący fakt lub pytanie które boli — np. "Szukałem dziś {business_type} w {city} na Google — Pana firmy nie ma."
+3. KOSZT BRAKU STRONY: przetłumacz brak strony na realne straty — ilu klientów szuka online i ich nie znajduje
+4. SOCIAL PROOF: wspomnij że inne podobne firmy w regionie już to zrobiły i co zyskały (ogólnie, nie fake)
+5. OFERTA + CENA: konkretnie — co dostaną, ile kosztuje, ile to trwa. Zakotwicz cenę (agencje biorą 5x więcej)
+6. CTA: jedno proste działanie — nie "proszę o kontakt" ale konkretne np. "Czy mogę pokazać Panu przykładowy projekt w tym tygodniu?"
+
 Zasady:
-- Maksymalnie 150 słów
-- Wspomnij konkretne korzyści dla tego typu biznesu
-- Wspomnij cenę 500 PLN za stronę 4-podstronową
-- Nie bądź nachalny, bądź pomocny
-- Zacznij od "Temat: ..." (pierwsza linia to temat)
+- Maksymalnie 180 słów (krótko = szanujemy czas)
+- Pisz jak człowiek, nie jak bot ani agencja marketingowa
+- Jedna konkretna statystyka pasująca do branży
+- Pierwsza linia to: Temat: [temat]
 - Podpisz się: Szymon
-- Pisz naturalnie, jak człowiek — nie jak robot"""
+- Nie używaj słów: "pragnę", "uprzejmie", "niniejszym", "pozwalam sobie"
+- Nie zaczynaj od "Dzień dobry" — zacznij od haka"""
 
     else:
-        # Prefer AI visual analysis over hardcoded checks if available
+        # Build specific issues list
+        issues = []
+        if website_data and not website_data.get("error"):
+            if not website_data.get("has_mobile_viewport"):
+                issues.append("brak responsywności — strona się psuje na telefonach")
+            if not website_data.get("has_ssl"):
+                issues.append("brak SSL — Chrome pokazuje 'Niezabezpieczona' zanim klient w ogóle zobaczy stronę")
+            if not website_data.get("meta_description"):
+                issues.append("brak meta description — Google nie wie jak promować tę stronę")
+            if not website_data.get("has_cta"):
+                issues.append("brak przycisku CTA — klient nie wie co ma zrobić żeby się skontaktować")
+            if not website_data.get("has_contact_form"):
+                issues.append("brak formularza — można tylko zadzwonić, połowa klientów woli pisać")
+            if website_data.get("uses_tables_layout"):
+                issues.append("układ tabelkowy — design rodem z 2008 roku, wygląda nieprofesjonalnie")
+            if website_data.get("has_dead_analytics"):
+                issues.append("Google Analytics wyłączony od 2023 — właściciel nie widzi ilu klientów traci")
+            score = website_data.get("pagespeed_score")
+            if score is not None and score < 60:
+                issues.append(f"PageSpeed {score}/100 — strona ładuje się bardzo wolno, większość użytkowników mobilnych wychodzi")
+            elif score is not None and score < 80:
+                issues.append(f"PageSpeed {score}/100 — strona ładuje się wolno na telefonie")
+
         if ai_analysis:
-            analysis_context = f"Analiza AI strony:\n{ai_analysis}"
+            site_context = f"Szczegółowa analiza AI strony:\n{ai_analysis[:1200]}"
+        elif issues:
+            site_context = "Konkretne problemy znalezione na stronie:\n" + "\n".join(f"- {i}" for i in issues)
         else:
-            issues = []
-            if website_data and not website_data.get("error"):
-                if not website_data.get("has_mobile_viewport"):
-                    issues.append("strona nie jest responsywna (źle wygląda na telefonie)")
-                if not website_data.get("has_ssl"):
-                    issues.append("brak certyfikatu SSL (strona nie jest bezpieczna — przeglądarka wyświetla ostrzeżenie)")
-                if not website_data.get("meta_description"):
-                    issues.append("brak opisu meta — gorsza widoczność w Google")
-                if not website_data.get("has_cta"):
-                    issues.append("brak wyraźnego przycisku/wezwania do działania (CTA)")
-                if not website_data.get("has_contact_form"):
-                    issues.append("brak formularza kontaktowego")
-                if website_data.get("uses_tables_layout"):
-                    issues.append("przestarzały układ oparty na tabelach — strona wygląda jak z lat 2000")
-                if not website_data.get("has_social"):
-                    issues.append("brak linków do mediów społecznościowych")
-                score = website_data.get("pagespeed_score")
-                if score is not None and score < 60:
-                    fcp = website_data.get("pagespeed_fcp", "")
-                    issues.append(f"bardzo wolne ładowanie na telefonie (PageSpeed score: {score}/100{', czas: ' + fcp if fcp else ''})")
-                elif score is not None and score < 80:
-                    issues.append(f"wolne ładowanie na telefonie (PageSpeed score: {score}/100)")
-                if website_data.get("text_preview"):
-                    issues.append(f"Treść strony: {website_data['text_preview'][:300]}")
-            analysis_context = "Zauważone problemy:\n" + "\n".join(f"- {i}" for i in issues[:4]) if issues else "Ogólna modernizacja i poprawa UX"
+            site_context = "Strona wymaga modernizacji — przestarzały design, brak nowoczesnych elementów"
 
-        prompt = f"""Jesteś pomocnikiem webdevelopera piszącego cold email po polsku do lokalnego biznesu oferując ulepszenie ich strony.
+        prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Szymona — web developera który oferuje modernizację strony lokalnej firmie.
 
+{sender_context}
+
+=== DANE FIRMY ===
 Firma: {business_name}
 Typ biznesu: {business_type}
 Miasto: {city}
 URL: {lead.get('website_url', '')}
 
-{analysis_context}
+=== CO ZNALAZŁ NA STRONIE ===
+{site_context}
 
-Na podstawie tej analizy napisz krótki, przyjazny, profesjonalny cold email po polsku.
+{stats_arsenal}
+
+=== ZADANIE ===
+Napisz cold email który SPRZEDAJE modernizację strony. Nie "zauważyłem kilka rzeczy" — "Twoja strona traci Ci klientów i wiem jak to naprawić za 500 PLN."
+
+Struktura emaila (nie pisz nagłówków, po prostu tak go zbuduj):
+1. TEMAT: konkretny i niepokojący — np. "Sprawdziłem stronę [firma] — jest jeden problem który kosztuje Cię klientów"
+2. HOOK: zacznij od JEDNEGO konkretnego problemu który znalazłeś — opisz go tak jakbyś właśnie wyszedł ze strony, bo to prawda
+3. KOSZT PROBLEMU: przetłumacz ten problem na realne straty klientów/pieniędzy — użyj jednej trafnej statystyki
+4. RESZTA PROBLEMÓW: wymień 1-2 kolejne (skrótowo)
+5. SOCIAL PROOF: wspomnij że pomogłeś już innym firmom w podobnej sytuacji, efekty
+6. OFERTA: konkretnie — 4-podstronowa modernizacja, 500 PLN, 7-14 dni. Zakotwicz cenę vs agencje (3000-8000 PLN)
+7. CTA: jedno konkretne pytanie lub propozycja następnego kroku
+
 Zasady:
-- Maksymalnie 180 słów
-- Wspomnij 2-3 konkretne problemy które zauważyłeś (na podstawie analizy powyżej)
-- Wspomnij cenę 500 PLN za odświeżenie strony (4 podstrony)
-- Nie bądź nachalny, bądź pomocny i konkretny
-- Zacznij od "Temat: ..." (pierwsza linia to temat)
+- Maksymalnie 200 słów
+- KONKRETNY — odwołuj się do rzeczy które naprawdę znalazłeś na ich stronie
+- Pisz jak człowiek, bezpośrednio, po imieniu jeśli pasuje
+- Jedna konkretna statystyka (pasująca do głównego problemu)
+- Pierwsza linia: Temat: [temat]
 - Podpisz się: Szymon
-- Pisz naturalnie, jak człowiek — nie jak robot"""
+- Nie używaj korporacyjnego języka
+- Zacznij od haka, nie od "Dzień dobry, nazywam się Szymon i..."
+"""
 
     message = client.messages.create(
         model="claude-opus-4-6",
-        max_tokens=600,
+        max_tokens=800,
         messages=[{"role": "user", "content": prompt}],
     )
 

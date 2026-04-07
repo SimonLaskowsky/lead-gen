@@ -7,6 +7,7 @@ DB_PATH = "leads.db"
 
 def init_db():
     with get_conn() as conn:
+        _migrate(conn)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS leads (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,11 +21,25 @@ def init_db():
                 status TEXT DEFAULT 'new',
                 generated_email TEXT DEFAULT '',
                 notes TEXT DEFAULT '',
+                ai_analysis TEXT DEFAULT '',
+                website_checks TEXT DEFAULT '',
                 emailed_at TEXT,
                 created_at TEXT DEFAULT (datetime('now')),
                 UNIQUE(business_name, city)
             )
         """)
+
+
+def _migrate(conn):
+    """Add new columns to existing databases without losing data."""
+    for col, definition in [
+        ("ai_analysis",    "TEXT DEFAULT ''"),
+        ("website_checks", "TEXT DEFAULT ''"),
+    ]:
+        try:
+            conn.execute(f"ALTER TABLE leads ADD COLUMN {col} {definition}")
+        except Exception:
+            pass  # column already exists
 
 
 @contextmanager
