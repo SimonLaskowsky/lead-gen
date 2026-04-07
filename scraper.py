@@ -139,6 +139,14 @@ def scrape_website(url: str) -> dict | None:
 
         # Checks
         has_ssl = resp.url.startswith("https://")
+        if not has_ssl:
+            # Site may support HTTPS without forcing a redirect — probe directly
+            try:
+                https_url = "https://" + resp.url.split("://", 1)[1]
+                test = requests.head(https_url, headers=HEADERS, timeout=5)
+                has_ssl = test.status_code < 500
+            except Exception:
+                pass
         has_contact_form = bool(soup.find("form"))
         has_og_image = og_image_tag is not None
 
