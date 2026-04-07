@@ -9,15 +9,18 @@ def _client():
 
 
 def _compress(png_bytes: bytes, max_width: int = 1100, quality: int = 72) -> bytes:
-    """Resize + convert PNG to JPEG to reduce payload size."""
-    from PIL import Image
-    img = Image.open(io.BytesIO(png_bytes))
-    if img.width > max_width:
-        ratio = max_width / img.width
-        img = img.resize((max_width, int(img.height * ratio)), Image.LANCZOS)
-    buf = io.BytesIO()
-    img.convert("RGB").save(buf, format="JPEG", quality=quality, optimize=True)
-    return buf.getvalue()
+    """Resize + convert PNG to JPEG to reduce payload size. Falls back to raw PNG if Pillow missing."""
+    try:
+        from PIL import Image
+        img = Image.open(io.BytesIO(png_bytes))
+        if img.width > max_width:
+            ratio = max_width / img.width
+            img = img.resize((max_width, int(img.height * ratio)), Image.LANCZOS)
+        buf = io.BytesIO()
+        img.convert("RGB").save(buf, format="JPEG", quality=quality, optimize=True)
+        return buf.getvalue()
+    except ImportError:
+        return png_bytes  # Pillow not installed, send raw PNG
 
 
 def analyze_website_visually(lead: dict, screenshots: dict, website_data: dict | None = None) -> str:

@@ -172,6 +172,8 @@ def analyze_lead(lead_id):
         )
         return jsonify({"analysis": analysis, "website_data": website_data})
     except Exception as e:
+        import traceback
+        traceback.print_exc()  # full traceback in Railway logs
         return jsonify({"error": str(e)}), 500
 
 
