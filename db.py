@@ -2,7 +2,8 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import datetime
 
-DB_PATH = "leads.db"
+import os
+DB_PATH = os.getenv("DB_PATH", "leads.db")
 
 
 def init_db():
