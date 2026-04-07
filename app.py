@@ -170,6 +170,7 @@ def analyze_lead(lead_id):
             lead_id,
             ai_analysis=analysis,
             website_checks=json.dumps(website_data or {}),
+            generated_email="",
         )
         return jsonify({"analysis": analysis, "website_data": website_data})
     except Exception as e:
