@@ -138,7 +138,7 @@ def scrape_website(url: str) -> dict | None:
         clean_text = " ".join(soup.get_text().split())[:3000]
 
         # Checks
-        has_ssl = url.startswith("https://")
+        has_ssl = resp.url.startswith("https://")
         has_contact_form = bool(soup.find("form"))
         has_og_image = og_image_tag is not None
 
