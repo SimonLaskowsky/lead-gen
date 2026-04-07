@@ -4,4 +4,4 @@ anthropic
 googlemaps
 requests
 beautifulsoup4
-playwright
+playwright==1.58.0
