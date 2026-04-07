@@ -235,6 +235,11 @@
       border-radius: 20px;
       font-weight: 500;
     }
+    .tech-pills { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+    .tech-pill {
+      font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 10px;
+      letter-spacing: 0.02em; white-space: nowrap;
+    }
     .email-cell { font-size: 12.5px; color: var(--muted); }
     .email-cell a { color: var(--text); text-decoration: none; }
     .email-cell a:hover { color: var(--primary); }
@@ -829,9 +834,35 @@ function renderTable(leads) {
     return;
   }
 
+  const TECH_COLORS = {
+    'WordPress':   ['#e8f4fd','#1d6fa5'],
+    'Elementor':   ['#fce7f3','#9d174d'],
+    'Divi':        ['#ede9fe','#5b21b6'],
+    'Wix':         ['#f3f4f6','#111827'],
+    'Squarespace': ['#f3f4f6','#111827'],
+    'Shopify':     ['#ecfdf5','#065f46'],
+    'Webflow':     ['#eff6ff','#1d4ed8'],
+    'Next.js':     ['#f3f4f6','#111827'],
+    'Nuxt.js':     ['#ecfdf5','#065f46'],
+    'Joomla':      ['#fff7ed','#c2410c'],
+    'Drupal':      ['#eff6ff','#1d4ed8'],
+  };
+
   tbody.innerHTML = leads.map(lead => {
+    let techPills = '';
+    try {
+      const checks = lead.website_checks ? JSON.parse(lead.website_checks) : {};
+      const stack = checks.tech_stack || [];
+      if (stack.length) {
+        techPills = `<div class="tech-pills">${stack.map(t => {
+          const [bg, fg] = TECH_COLORS[t] || ['#f3f4f6','#374151'];
+          return `<span class="tech-pill" style="background:${bg};color:${fg}">${escHtml(t)}</span>`;
+        }).join('')}</div>`;
+      }
+    } catch(e) {}
+
     const websiteCell = lead.website_url
-      ? `<a href="${escHtml(lead.website_url)}" target="_blank" class="site-link"><i class="bi bi-globe2" style="font-size:11px"></i>${escHtml(shortUrl(lead.website_url))}</a>`
+      ? `<div><a href="${escHtml(lead.website_url)}" target="_blank" class="site-link"><i class="bi bi-globe2" style="font-size:11px"></i>${escHtml(shortUrl(lead.website_url))}</a>${techPills}</div>`
       : `<span class="no-site"><i class="bi bi-x-circle" style="font-size:11px"></i> Brak</span>`;
 
     const emailCell = lead.email

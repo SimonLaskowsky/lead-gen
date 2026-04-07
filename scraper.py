@@ -126,6 +126,9 @@ def scrape_website(url: str) -> dict | None:
         # Has leftover legacy UA code even though GA4 exists
         has_legacy_ua = has_ua_code and has_ga4
 
+        # Detect tech stack BEFORE decomposing script/style tags
+        tech_stack = _detect_tech(page_source, soup)
+
         # Get full text before decomposing tags (for email extraction)
         full_text = soup.get_text(separator=" ")
 
@@ -175,6 +178,7 @@ def scrape_website(url: str) -> dict | None:
             "uses_tables_layout": uses_tables,
             "has_dead_analytics": has_dead_analytics,
             "has_legacy_ua": has_legacy_ua,
+            "tech_stack": tech_stack,
             "image_count": len(images),
             "pagespeed_score": pagespeed.get("performance_score") if pagespeed else None,
             "pagespeed_fcp": pagespeed.get("first_contentful_paint") if pagespeed else None,
@@ -192,6 +196,48 @@ def scrape_website(url: str) -> dict | None:
         return {"error": f"HTTP {e.response.status_code}"}
     except Exception as e:
         return {"error": str(e)}
+
+
+def _detect_tech(html: str, soup) -> list[str]:
+    """Detect CMS/framework from raw HTML. Returns list of tech names."""
+    tech = []
+
+    # WordPress — most reliable signals
+    if "wp-content/" in html or "wp-includes/" in html:
+        tech.append("WordPress")
+        if "elementor" in html.lower():
+            tech.append("Elementor")
+        elif "/divi/" in html or "et_pb_" in html:
+            tech.append("Divi")
+
+    # Website builders
+    if "wixstatic.com" in html or "wix.com/_api" in html:
+        tech.append("Wix")
+    if "squarespace.com" in html or "squarespace-cdn.com" in html:
+        tech.append("Squarespace")
+    if "cdn.shopify.com" in html:
+        tech.append("Shopify")
+    if "webflow.com" in html:
+        tech.append("Webflow")
+
+    # JS frameworks (only if no builder detected yet)
+    if not tech:
+        if "__NEXT_DATA__" in html or "/_next/static/" in html:
+            tech.append("Next.js")
+        elif "__NUXT__" in html or "/_nuxt/" in html:
+            tech.append("Nuxt.js")
+
+    # Other CMS via generator meta tag
+    if not tech:
+        gen = soup.find("meta", attrs={"name": "generator"})
+        if gen:
+            content = (gen.get("content") or "").lower()
+            if "joomla" in content:
+                tech.append("Joomla")
+            elif "drupal" in content:
+                tech.append("Drupal")
+
+    return tech
 
 
 def screenshot_website(url: str) -> dict[str, bytes | None]:

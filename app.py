@@ -118,6 +118,7 @@ def search():
             address=lead.get("address", ""),
             business_type=business_type,
             city=city,
+            website_checks=json.dumps(website_data or {}),
         )
 
         if lead_id:
