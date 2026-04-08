@@ -73,6 +73,9 @@ def get_leads():
         business_type=business_type or None,
         search=search or None,
     )
+    # Strip binary fields before JSON serialization
+    for lead in leads:
+        lead.pop("mockup_image", None)
     return jsonify(leads)
 
 
@@ -135,6 +138,11 @@ def get_lead(lead_id):
     lead = db.get_lead(lead_id)
     if not lead:
         return jsonify({"error": "Nie znaleziono"}), 404
+    lead["has_mockup"] = bool(lead.pop("mockup_image", None))
+    try:
+        lead["observations"] = json.loads(lead.get("observations") or "[]")
+    except Exception:
+        lead["observations"] = []
     return jsonify(lead)
 
 
@@ -161,6 +169,28 @@ def analyze_lead(lead_id):
         return jsonify({"error": "Brak strony do analizy"}), 400
 
     website_data = scraper.scrape_website(lead["website_url"])
+
+    # Outsourced platform — skip Claude analysis, return instant pitch
+    outsourced = (website_data or {}).get("outsourced_platform")
+    if outsourced:
+        pitch = (website_data or {}).get("outsourced_pitch", "korzystają z zewnętrznej platformy")
+        analysis = f"""## Strona na platformie {outsourced}
+
+Ten biznes korzysta z **{outsourced}** zamiast własnej strony — {pitch}.
+
+### Szansa sprzedażowa
+To idealny lead do zaproponowania własnej strony. Argumenty:
+- **Zero prowizji** — własna strona nie pobiera % od rezerwacji/wizyt
+- **Własna marka i domena** — niezależność od platformy
+- **Lepsza widoczność w Google** — własne SEO, własna domena
+- **Pełna kontrola** nad wyglądem, treścią i danymi klientów
+- Platforma może zmienić warunki lub podnieść prowizje w każdej chwili
+
+### Rekomendacja
+Zaproponuj prostą stronę z formularzem kontaktowym lub systemem rezerwacji. 500 PLN za stronę która sprawi że przestają płacić prowizje."""
+        db.update_lead(lead_id, ai_analysis=analysis, website_checks=json.dumps(website_data), generated_email="")
+        return jsonify({"analysis": analysis, "website_data": website_data})
+
     screenshots = scraper.screenshot_website(lead["website_url"])
     # screenshots may be empty if Playwright/Chromium is unavailable — fall back to text-only
 
@@ -189,19 +219,22 @@ def generate_email(lead_id):
     if lead.get("website_url"):
         website_data = scraper.scrape_website(lead["website_url"])
 
-    # Use AI analysis from notes if already done
-    ai_analysis = None
-    notes = lead.get("notes", "") or ""
-    if notes.startswith("[AI Analiza]"):
-        # Extract just the analysis part
-        ai_analysis = notes.replace("[AI Analiza]\n", "").split("\n\n")[0]
+    ai_analysis = lead.get("ai_analysis") or None
+    my_feedback = (request.json or {}).get("my_feedback", "").strip()
 
     try:
-        email_text = analyzer.generate_email(lead, website_data, ai_analysis=ai_analysis)
-        db.update_lead(lead_id, generated_email=email_text)
+        email_text = analyzer.generate_email(lead, website_data, ai_analysis=ai_analysis, my_feedback=my_feedback or None)
+        updates = {"generated_email": email_text}
+        if my_feedback:
+            existing = json.loads(lead.get("observations") or "[]")
+            if my_feedback not in existing:
+                existing.append(my_feedback)
+            updates["observations"] = json.dumps(existing, ensure_ascii=False)
+        db.update_lead(lead_id, **updates)
         return jsonify({"email": email_text})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 
 @app.route("/api/lead/<int:lead_id>/update", methods=["POST"])

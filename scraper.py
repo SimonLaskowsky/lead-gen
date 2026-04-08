@@ -9,6 +9,34 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 }
 
+OUTSOURCED_PLATFORMS = {
+    "booksy.com":       {"name": "Booksy",       "pitch": "płacą prowizję od każdej rezerwacji"},
+    "fresha.com":       {"name": "Fresha",        "pitch": "płacą prowizję od każdej rezerwacji"},
+    "treatwell.pl":     {"name": "Treatwell",     "pitch": "płacą prowizję od każdej rezerwacji"},
+    "treatwell.com":    {"name": "Treatwell",     "pitch": "płacą prowizję od każdej rezerwacji"},
+    "facebook.com":     {"name": "Facebook",      "pitch": "używają Facebooka zamiast własnej strony"},
+    "sites.google.com": {"name": "Google Sites",  "pitch": "używają darmowej strony Google bez własnej domeny"},
+    "linktr.ee":        {"name": "Linktree",      "pitch": "używają Linktree zamiast własnej strony"},
+    "znanylekarz.pl":   {"name": "Znany Lekarz",  "pitch": "płacą prowizję od każdej wizyty"},
+    "goldenline.pl":    {"name": "Goldenline",    "pitch": "mają tylko profil na platformie zamiast własnej strony"},
+    "instagram.com":    {"name": "Instagram",     "pitch": "używają Instagrama zamiast własnej strony"},
+}
+
+
+def detect_outsourced_platform(url: str) -> dict | None:
+    """Check if URL belongs to a known booking/social platform instead of own website."""
+    if not url:
+        return None
+    try:
+        from urllib.parse import urlparse
+        domain = urlparse(url).netloc.lower().lstrip("www.")
+        for platform_domain, info in OUTSOURCED_PLATFORMS.items():
+            if domain == platform_domain or domain.endswith("." + platform_domain):
+                return info
+    except Exception:
+        pass
+    return None
+
 
 def _attr(tag, key, default=""):
     """Safe attribute getter — handles BeautifulSoup tags with attrs=None."""
@@ -95,6 +123,10 @@ def get_pagespeed_score(url: str) -> dict | None:
 def scrape_website(url: str) -> dict | None:
     if not url:
         return None
+    # If the URL itself is a known platform, skip scraping entirely
+    platform = detect_outsourced_platform(url)
+    if platform:
+        return {"outsourced_platform": platform["name"], "outsourced_pitch": platform["pitch"], "tech_stack": []}
     try:
         resp = requests.get(url, headers=HEADERS, timeout=10)
         resp.raise_for_status()
@@ -257,22 +289,59 @@ def screenshot_website(url: str) -> dict[str, bytes | None]:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
 
-            # Desktop screenshot
+            # Desktop screenshot — use "load" + extra wait for JS-rendered sites
             desktop_page = browser.new_page(viewport={"width": 1280, "height": 900})
-            desktop_page.goto(url, timeout=20000, wait_until="domcontentloaded")
-            desktop_page.wait_for_timeout(1500)
+            desktop_page.goto(url, timeout=30000, wait_until="load")
+            desktop_page.wait_for_timeout(3000)
             results["desktop"] = desktop_page.screenshot(type="png")
 
             # Mobile screenshot (iPhone 12 size)
             mobile_page = browser.new_page(viewport={"width": 390, "height": 844})
-            mobile_page.goto(url, timeout=20000, wait_until="domcontentloaded")
-            mobile_page.wait_for_timeout(1000)
+            mobile_page.goto(url, timeout=30000, wait_until="load")
+            mobile_page.wait_for_timeout(2000)
             results["mobile"] = mobile_page.screenshot(type="png")
 
             browser.close()
     except Exception as e:
         print(f"Screenshot failed for {url}: {e}")
     return results
+
+
+def screenshot_html(html: str, width: int = 1280) -> bytes | None:
+    """Render an HTML string with Playwright and return a JPEG screenshot."""
+    try:
+        import tempfile, pathlib
+        from playwright.sync_api import sync_playwright
+
+        with tempfile.NamedTemporaryFile(suffix=".html", delete=False, mode="w", encoding="utf-8") as f:
+            f.write(html)
+            tmp_path = pathlib.Path(f.name)
+
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True)
+                page = browser.new_page(viewport={"width": width, "height": 900})
+                page.goto(f"file://{tmp_path}", wait_until="domcontentloaded")
+                page.wait_for_timeout(500)
+                # Screenshot full page height
+                png = page.screenshot(type="png", full_page=True)
+                browser.close()
+        finally:
+            tmp_path.unlink(missing_ok=True)
+
+        # Convert to JPEG
+        try:
+            from PIL import Image
+            import io
+            img = Image.open(io.BytesIO(png))
+            buf = io.BytesIO()
+            img.convert("RGB").save(buf, format="JPEG", quality=85, optimize=True)
+            return buf.getvalue()
+        except ImportError:
+            return png
+    except Exception as e:
+        print(f"screenshot_html failed: {e}")
+        return None
 
 
 def extract_email_from_website(website_data: dict | None) -> str:

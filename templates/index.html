@@ -240,6 +240,17 @@
       font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 10px;
       letter-spacing: 0.02em; white-space: nowrap;
     }
+    .obs-chip {
+      display: inline-block; font-size: 11px; padding: 3px 8px; border-radius: 20px;
+      background: var(--bg); border: 1px solid var(--border); color: var(--muted);
+      cursor: pointer; margin: 2px 2px 0 0; transition: background 0.15s;
+    }
+    .obs-chip:hover { background: #ede9fe; color: #5b21b6; border-color: #c4b5fd; }
+    .platform-pill {
+      font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px;
+      background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa;
+      white-space: nowrap;
+    }
     .email-cell { font-size: 12.5px; color: var(--muted); }
     .email-cell a { color: var(--text); text-decoration: none; }
     .email-cell a:hover { color: var(--primary); }
@@ -419,7 +430,7 @@
       font-family: 'Inter', sans-serif;
       font-size: 13.5px;
       line-height: 1.75;
-      min-height: 280px;
+      min-height: 420px !important;
       resize: vertical;
       border: 1.5px solid var(--border);
       border-radius: var(--radius-sm);
@@ -672,6 +683,9 @@
         <button class="btn btn-ghost btn-sm" onclick="copyEmail()">
           <i class="bi bi-clipboard me-1"></i> Kopiuj
         </button>
+        <button class="btn btn-ghost btn-sm" onclick="openInGmail()" style="color:#c5221f">
+          <i class="bi bi-envelope-arrow-up me-1"></i> Otwórz w Gmail
+        </button>
         <button class="btn btn-primary btn-sm" onclick="markEmailed()">
           <i class="bi bi-check2 me-1"></i> Oznaczyłem jako wysłany
         </button>
@@ -714,6 +728,12 @@
             <div class="col-lg-4">
               <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:10px">🔬 Sprawdzenia techniczne</div>
               <div class="check-grid" id="analyzeChecks"></div>
+
+              <div id="myFeedbackBox" class="d-none" style="margin-top:16px">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:6px">✍️ Twoja obserwacja</div>
+                <textarea id="myFeedback" rows="3" placeholder="np. okropna kolorystyka, tekst nieczytelny, wygląda jak z 2008..." style="width:100%;font-size:12.5px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;resize:vertical;font-family:inherit;color:var(--text)"></textarea>
+                <div id="obsHistory" style="margin-top:6px"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -728,7 +748,7 @@
         <button id="regenBtn" class="btn btn-ghost btn-sm" style="display:none" onclick="runAnalysis(currentLeadId)">
           <i class="bi bi-arrow-clockwise me-1"></i> Regeneruj
         </button>
-        <button class="btn btn-primary" onclick="generateEmailFromAnalysis()">
+<button class="btn btn-primary" onclick="generateEmailFromAnalysis()">
           <i class="bi bi-envelope me-1"></i> Generuj email
         </button>
       </div>
@@ -767,7 +787,8 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 let currentStatus = 'all';
-let currentLeadId = null;
+let currentLeadId    = null;
+let currentLeadEmail = null;
 let debounceTimer = null;
 
 // ── Status badge HTML ──
@@ -850,14 +871,20 @@ function renderTable(leads) {
 
   tbody.innerHTML = leads.map(lead => {
     let techPills = '';
+    let outsourcedPlatform = null;
     try {
       const checks = lead.website_checks ? JSON.parse(lead.website_checks) : {};
-      const stack = checks.tech_stack || [];
-      if (stack.length) {
-        techPills = `<div class="tech-pills">${stack.map(t => {
-          const [bg, fg] = TECH_COLORS[t] || ['#f3f4f6','#374151'];
-          return `<span class="tech-pill" style="background:${bg};color:${fg}">${escHtml(t)}</span>`;
-        }).join('')}</div>`;
+      outsourcedPlatform = checks.outsourced_platform || null;
+      if (outsourcedPlatform) {
+        techPills = `<div class="tech-pills"><span class="platform-pill">⚠️ ${escHtml(outsourcedPlatform)}</span></div>`;
+      } else {
+        const stack = checks.tech_stack || [];
+        if (stack.length) {
+          techPills = `<div class="tech-pills">${stack.map(t => {
+            const [bg, fg] = TECH_COLORS[t] || ['#f3f4f6','#374151'];
+            return `<span class="tech-pill" style="background:${bg};color:${fg}">${escHtml(t)}</span>`;
+          }).join('')}</div>`;
+        }
       }
     } catch(e) {}
 
@@ -873,11 +900,19 @@ function renderTable(leads) {
       ? `<div class="emailed-date">📅 ${lead.emailed_at.slice(0,10)}</div>` : '';
 
     const hasAnalysis = !!(lead.ai_analysis && lead.ai_analysis.length > 10);
+    const aiStyle = hasAnalysis
+      ? (outsourcedPlatform ? 'background:#fff7ed;color:#c2410c' : 'background:#d1fae5;color:#065f46')
+      : (outsourcedPlatform ? 'background:#fff7ed;color:#c2410c' : '');
+    const aiIcon = hasAnalysis
+      ? (outsourcedPlatform ? 'lightning-charge-fill' : 'check-circle-fill')
+      : (outsourcedPlatform ? 'lightning-charge' : 'stars');
+    const aiTitle = hasAnalysis
+      ? (outsourcedPlatform ? `✅ Pitch gotowy (${outsourcedPlatform}) — kliknij by otworzyć` : '✅ Analiza gotowa — kliknij by otworzyć')
+      : (outsourcedPlatform ? `💡 Generuj pitch sprzedażowy (${outsourcedPlatform})` : 'Uruchom analizę AI ✨');
     const aiBtn = lead.website_url
-      ? `<button class="btn-ai" title="${hasAnalysis ? '✅ Analiza gotowa — kliknij by otworzyć' : 'Uruchom analizę AI ✨'}"
-           style="${hasAnalysis ? 'background:#d1fae5;color:#065f46' : ''}"
+      ? `<button class="btn-ai" title="${aiTitle}" style="${aiStyle}"
            onclick="openAnalyzeModal(${lead.id}, '${escHtml(lead.business_name)}')">
-           <i class="bi bi-${hasAnalysis ? 'check-circle-fill' : 'stars'}"></i>
+           <i class="bi bi-${aiIcon}"></i>
          </button>`
       : '';
 
@@ -946,7 +981,7 @@ async function doSearch() {
 }
 
 // ── Email modal ──
-async function openEmailModal(leadId, businessName) {
+async function openEmailModal(leadId, businessName, myFeedback = '') {
   currentLeadId = leadId;
   document.getElementById('emailForBusiness').textContent = businessName;
   document.getElementById('emailLoadingState').classList.remove('d-none');
@@ -957,11 +992,18 @@ async function openEmailModal(leadId, businessName) {
 
   const leadRes = await fetch(`/api/lead/${leadId}`);
   const lead    = await leadRes.json();
-  let emailText = lead.generated_email;
+  currentLeadEmail = lead.email || null;
+  // If feedback provided always regenerate — user wants a fresh email with their input
+  let emailText = myFeedback ? null : lead.generated_email;
 
   if (!emailText) {
     try {
-      const res  = await fetch(`/api/lead/${leadId}/generate-email`, { method:'POST' });
+      const body = myFeedback ? JSON.stringify({ my_feedback: myFeedback }) : '{}';
+      const res  = await fetch(`/api/lead/${leadId}/generate-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       emailText = data.email;
@@ -984,6 +1026,18 @@ async function openEmailModal(leadId, businessName) {
   document.getElementById('emailLoadingState').classList.add('d-none');
   document.getElementById('emailContent').classList.remove('d-none');
   document.getElementById('emailFooter').style.removeProperty('display');
+}
+
+function openInGmail() {
+  const subject = document.getElementById('emailSubject').textContent;
+  const body    = document.getElementById('emailBody').value;
+  const params  = new URLSearchParams({
+    view: 'cm',
+    to:   currentLeadEmail || '',
+    su:   subject,
+    body: body,
+  });
+  window.open('https://mail.google.com/mail/?' + params.toString(), '_blank');
 }
 
 function copyEmail() {
@@ -1013,6 +1067,8 @@ async function openAnalyzeModal(leadId, businessName) {
   document.getElementById('analyzeContent').classList.add('d-none');
   document.getElementById('analyzeError').classList.add('d-none');
   document.getElementById('analyzeFooter').style.setProperty('display','none','important');
+  document.getElementById('myFeedbackBox').classList.add('d-none');
+  document.getElementById('myFeedback').value = '';
   resetSteps();
 
   new bootstrap.Modal(document.getElementById('analyzeModal')).show();
@@ -1055,7 +1111,7 @@ async function runAnalysis(leadId) {
   }
 }
 
-function showAnalysisResult(analysis, websiteData, fromCache) {
+async function showAnalysisResult(analysis, websiteData, fromCache) {
   document.getElementById('analyzeResult').innerHTML = renderMd(analysis);
 
   const wd     = websiteData || {};
@@ -1082,11 +1138,26 @@ function showAnalysisResult(analysis, websiteData, fromCache) {
   document.getElementById('analyzeLoadingState').classList.add('d-none');
   document.getElementById('analyzeContent').classList.remove('d-none');
 
-  // Footer: always show email button + regenerate if from cache
+  // Footer
   const footer = document.getElementById('analyzeFooter');
   footer.style.removeProperty('display');
-  document.getElementById('regenBtn').style.display = fromCache ? 'inline-flex' : 'none';
+  document.getElementById('regenBtn').style.display    = fromCache ? 'inline-flex' : 'none';
   document.getElementById('cachedBadge').style.display = fromCache ? 'inline-flex' : 'none';
+  document.getElementById('myFeedbackBox').classList.remove('d-none');
+
+  // Load saved observations for this lead
+  try {
+    const lead = await (await fetch(`/api/lead/${currentLeadId}`)).json();
+    const obs = lead.observations || [];
+    const histEl = document.getElementById('obsHistory');
+    if (obs.length) {
+      histEl.innerHTML = obs.map(o =>
+        `<span class="obs-chip" onclick="document.getElementById('myFeedback').value='${escHtml(o).replace(/'/g,"\\'")}'">${escHtml(o)}</span>`
+      ).join('');
+    } else {
+      histEl.innerHTML = '';
+    }
+  } catch(e) {}
 
   // Refresh table so the button turns green
   loadLeads();
@@ -1110,9 +1181,11 @@ function animateStep(id, delay) {
   });
 }
 
+
 function generateEmailFromAnalysis() {
+  const feedback = document.getElementById('myFeedback').value.trim();
   bootstrap.Modal.getInstance(document.getElementById('analyzeModal')).hide();
-  setTimeout(() => openEmailModal(currentLeadId, document.getElementById('analyzeForBusiness').textContent), 300);
+  setTimeout(() => openEmailModal(currentLeadId, document.getElementById('analyzeForBusiness').textContent, feedback), 300);
 }
 
 // ── Status / notes / delete ──

@@ -36,6 +36,9 @@ def _migrate(conn):
     for col, definition in [
         ("ai_analysis",    "TEXT DEFAULT ''"),
         ("website_checks", "TEXT DEFAULT ''"),
+        ("mockup_html",    "TEXT DEFAULT ''"),
+        ("mockup_image",   "BLOB"),
+        ("observations",   "TEXT DEFAULT '[]'"),
     ]:
         try:
             conn.execute(f"ALTER TABLE leads ADD COLUMN {col} {definition}")

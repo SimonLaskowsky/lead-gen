@@ -60,9 +60,12 @@ def analyze_website_visually(lead: dict, screenshots: dict, website_data: dict |
     has_screenshots = bool(desktop_bytes or mobile_bytes)
 
     visual_instruction = (
-        "Masz przed sobą zrzuty ekranu tej strony (desktop i mobile). Przeprowadź szczegółowy audyt wzrokowy i techniczny."
+        "Masz przed sobą zrzuty ekranu tej strony (desktop i mobile). Przeprowadź szczegółowy audyt wzrokowy i techniczny.\n"
+        "WAŻNE: Dane tekstowe poniżej mogą być niekompletne jeśli strona używa JavaScript do renderowania treści. "
+        "Zrzuty ekranu są źródłem prawdy — jeśli na screenshocie widać treść której nie ma w danych tekstowych, ufaj screenshotowi."
         if has_screenshots else
-        "Nie masz zrzutów ekranu — przeprowadź audyt na podstawie danych technicznych i treści strony poniżej. Bądź równie konkretny i krytyczny."
+        "Nie masz zrzutów ekranu — przeprowadź audyt na podstawie danych technicznych i treści strony poniżej. Bądź równie konkretny i krytyczny.\n"
+        "UWAGA: Strona może używać JavaScript do renderowania treści — dane tekstowe mogą być niekompletne."
     )
 
     mobile_section = (
@@ -139,7 +142,7 @@ Pisz po polsku. Bądź szczery i konkretny — jak gdybyś płacił za ten audyt
     return message.content[0].text
 
 
-def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: str | None = None) -> str:
+def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: str | None = None, my_feedback: str | None = None) -> str:
     client = _client()
 
     business_name = lead.get("business_name", "")
@@ -152,9 +155,16 @@ def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: st
 Kim jest Szymon (nadawca emaila):
 - Młody web developer z Polski, robi strony dla lokalnych firm
 - Zrealizował kilka projektów dla firm w regionie, klienci są zadowoleni
-- Nie jest wielką agencją — jest to atut (szybko, tanio, bezpośredni kontakt)
-- Cena: 500 PLN za stronę 4-podstronową (to mocno poniżej rynku — agencje biorą 3000-8000 PLN za to samo)
+- Nie jest wielką agencją — jest to atut (szybko, tanio, bezpośredni kontakt, bez biurokracji)
 - Dostępny, odpowiada tego samego dnia
+
+Oferta (zawsze prezentuj Standard jako główną, Basic jako fallback):
+- Basic 500 PLN — 4 strony, responsywna, formularz kontaktowy, SSL
+- Standard 800 PLN (GŁÓWNA OFERTA) — to co wyżej + SEO (meta tagi, Google Search Console, Google Maps), 14 dni realizacji
+- Premium 1200 PLN — to co wyżej + copywriting, odświeżenie logo, miesiąc poprawek gratis
+
+Kotwica cenowa: agencje biorą 3000–8000 PLN za dokładnie to samo.
+Killer argument: PŁATNOŚĆ PO ODBIORZE — klient nie ryzykuje ani złotówki, płaci dopiero gdy strona mu się podoba.
 """
 
     # ── Proven statistics to use ──
@@ -170,6 +180,48 @@ Statystyki które można użyć (tylko te pasujące do konkretnych problemów te
 Używaj TYLKO 1-2 statystyk pasujących do problemów tej konkretnej firmy. Nie wymieniaj wszystkich.
 """
 
+    outsourced = (website_data or {}).get("outsourced_platform")
+    if outsourced:
+        pitch = (website_data or {}).get("outsourced_pitch", "korzystają z zewnętrznej platformy")
+        prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Szymona — web developera który oferuje własną stronę lokalnej firmie korzystającej z zewnętrznej platformy.
+
+{sender_context}
+
+=== DANE FIRMY ===
+Firma: {business_name}
+Typ biznesu: {business_type}
+Miasto: {city}
+Sytuacja: firma korzysta z **{outsourced}** zamiast własnej strony — {pitch}
+
+{stats_arsenal}
+
+=== ZADANIE ===
+Napisz cold email który SPRZEDAJE własną stronę jako alternatywę dla {outsourced}. Główny argument: prowizje/zależność od platformy kosztują ich pieniądze i kontrolę.
+
+Struktura emaila:
+1. TEMAT: konkretny — nawiązujący do {outsourced} i prowizji/zależności
+2. HOOK: "Widzę że {business_name} korzysta z {outsourced} — ile prowizji oddaliście w tym miesiącu?"
+3. KOSZT PLATFORMY: przetłumacz prowizje/opłaty na realne straty — np. przy 50 wizytach miesięcznie po X PLN prowizji = Y PLN rocznie wyrzuconych w błoto
+4. ALTERNATYWA: własna strona — Standard 800 PLN jednorazowo zamiast miesięcznych prowizji, własna marka, niezależność. Płatność po odbiorze — zero ryzyka.
+5. SOCIAL PROOF: inne firmy które odeszły od platform i zyskały
+6. CTA: jedno konkretne pytanie
+7. P.S.: "P.S. Przygotowałem już wstępny projekt strony dla [firma] — jeśli chce Pan/Pani zobaczyć, wystarczy odpisać."
+
+Zasady:
+- Maksymalnie 180 słów
+- Pisz jak człowiek, bezpośrednio
+- Pierwsza linia: Temat: [temat]
+- Podpisz się: Szymon
+- Nie używaj korporacyjnego języka
+- Zacznij od haka, nie od "Dzień dobry"
+"""
+        message = client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=800,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return message.content[0].text
+
     if not has_website:
         prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Szymona — web developera który oferuje zbudowanie strony lokalnej firmie.
 
@@ -180,6 +232,7 @@ Firma: {business_name}
 Typ biznesu: {business_type}
 Miasto: {city}
 Sytuacja: firma NIE MA strony internetowej w ogóle
+{f"Dodatkowe spostrzeżenia (wpleć naturalnie): {my_feedback}" if my_feedback else ""}
 
 {stats_arsenal}
 
@@ -191,7 +244,7 @@ Struktura emaila (nie pisz nagłówków, po prostu tak go zbuduj):
 2. HOOK (pierwsze zdanie): zaskakujący fakt lub pytanie które boli — np. "Szukałem dziś {business_type} w {city} na Google — Pana firmy nie ma."
 3. KOSZT BRAKU STRONY: przetłumacz brak strony na realne straty — ilu klientów szuka online i ich nie znajduje
 4. SOCIAL PROOF: wspomnij że inne podobne firmy w regionie już to zrobiły i co zyskały (ogólnie, nie fake)
-5. OFERTA + CENA: konkretnie — co dostaną, ile kosztuje, ile to trwa. Zakotwicz cenę (agencje biorą 5x więcej)
+5. OFERTA + CENA: Standard 800 PLN — responsywna strona, SEO, Google Maps, 14 dni. Agencje biorą 3000–8000 PLN za to samo. Płatność po odbiorze — płacą dopiero gdy strona im się podoba.
 6. CTA: jedno proste działanie — nie "proszę o kontakt" ale konkretne np. "Czy mogę pokazać Panu przykładowy projekt w tym tygodniu?"
 
 Zasady:
@@ -201,7 +254,9 @@ Zasady:
 - Pierwsza linia to: Temat: [temat]
 - Podpisz się: Szymon
 - Nie używaj słów: "pragnę", "uprzejmie", "niniejszym", "pozwalam sobie"
-- Nie zaczynaj od "Dzień dobry" — zacznij od haka"""
+- Nie zaczynaj od "Dzień dobry" — zacznij od haka
+- Zakończ P.S.: "P.S. Przygotowałem już wstępny projekt strony dla [firma] — jeśli chce Pan/Pani zobaczyć, wystarczy odpisać."
+"""
 
     else:
         # Build specific issues list
@@ -234,6 +289,9 @@ Zasady:
         else:
             site_context = "Strona wymaga modernizacji — przestarzały design, brak nowoczesnych elementów"
 
+        if my_feedback:
+            site_context += f"\n\nDodatkowe spostrzeżenia (wpleć naturalnie w email, nie wyróżniaj jako osobnej sekcji):\n{my_feedback}"
+
         prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Szymona — web developera który oferuje modernizację strony lokalnej firmie.
 
 {sender_context}
@@ -258,7 +316,7 @@ Struktura emaila (nie pisz nagłówków, po prostu tak go zbuduj):
 3. KOSZT PROBLEMU: przetłumacz ten problem na realne straty klientów/pieniędzy — użyj jednej trafnej statystyki
 4. RESZTA PROBLEMÓW: wymień 1-2 kolejne (skrótowo)
 5. SOCIAL PROOF: wspomnij że pomogłeś już innym firmom w podobnej sytuacji, efekty
-6. OFERTA: konkretnie — 4-podstronowa modernizacja, 500 PLN, 7-14 dni. Zakotwicz cenę vs agencje (3000-8000 PLN)
+6. OFERTA: Standard 800 PLN — modernizacja + SEO + Google Maps, 14 dni. Agencje: 3000–8000 PLN za to samo. Płatność po odbiorze — zero ryzyka dla klienta.
 7. CTA: jedno konkretne pytanie lub propozycja następnego kroku
 
 Zasady:
@@ -270,6 +328,7 @@ Zasady:
 - Podpisz się: Szymon
 - Nie używaj korporacyjnego języka
 - Zacznij od haka, nie od "Dzień dobry, nazywam się Szymon i..."
+- Zakończ P.S.: "P.S. Przygotowałem już wstępny projekt strony dla [firma] — jeśli chce Pan/Pani zobaczyć, wystarczy odpisać."
 """
 
     message = client.messages.create(
