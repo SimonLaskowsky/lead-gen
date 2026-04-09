@@ -150,21 +150,24 @@ def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: st
     city = lead.get("city", "")
     has_website = bool(lead.get("website_url"))
 
-    # ── Shared context: who Szymon is ──
+    # ── Shared context: who we are ──
     sender_context = """
-Kim jest Szymon (nadawca emaila):
-- Młody web developer z Polski, robi strony dla lokalnych firm
-- Zrealizował kilka projektów dla firm w regionie, klienci są zadowoleni
-- Nie jest wielką agencją — jest to atut (szybko, tanio, bezpośredni kontakt, bez biurokracji)
-- Dostępny, odpowiada tego samego dnia
+Kim jesteśmy (nadawcy emaila):
+- Sand'n Studio — dwuosobowy duet web developerów z Polski (Szymon + partner)
+- Robimy strony dla lokalnych firm, kilka zrealizowanych projektów w regionie, klienci zadowoleni
+- Nie jesteśmy korporacją — to atut: szybko, bez biurokracji, bezpośredni kontakt
+- Portfolio: https://sandnstudio.pl/
+- Odpowiadamy tego samego dnia
 
-Oferta (zawsze prezentuj Standard jako główną, Basic jako fallback):
-- Basic 500 PLN — 4 strony, responsywna, formularz kontaktowy, SSL
-- Standard 800 PLN (GŁÓWNA OFERTA) — to co wyżej + SEO (meta tagi, Google Search Console, Google Maps), 14 dni realizacji
-- Premium 1200 PLN — to co wyżej + copywriting, odświeżenie logo, miesiąc poprawek gratis
+Oferta (NIE wymieniaj wszystkich tierów — wspomnij tylko jeden pasujący do sytuacji):
+- Landing page: od 750 PLN — strona jednostronicowa, szybka realizacja
+- Strona wizytówka (GŁÓWNA): od 1250 PLN — do 4 podstron, responsywna, formularz, pomoc z domeną i hostingiem, 30 dni wsparcia
+- System rezerwacji: od 2000 PLN — WordPress + Bookly/Amelia, klienci umawiają się sami bez Twojego udziału
 
-Kotwica cenowa: agencje biorą 3000–8000 PLN za dokładnie to samo.
-Killer argument: PŁATNOŚĆ PO ODBIORZE — klient nie ryzykuje ani złotówki, płaci dopiero gdy strona mu się podoba.
+Kotwica cenowa: agencje biorą 3000–8000 PLN za to samo co my od 1250 PLN.
+Killer argument: PŁATNOŚĆ PO POŁOWIE — połowa na start, połowa dopiero gdy strona im się podoba. Zero ryzyka.
+
+Przy modernizacji istniejącej strony: cena do ustalenia indywidualnie — NIE podawaj konkretnej kwoty, wspomnij tylko "od 1250 PLN" i że płatność jest podzielona na dwie raty.
 """
 
     # ── Proven statistics to use ──
@@ -183,7 +186,7 @@ Używaj TYLKO 1-2 statystyk pasujących do problemów tej konkretnej firmy. Nie 
     outsourced = (website_data or {}).get("outsourced_platform")
     if outsourced:
         pitch = (website_data or {}).get("outsourced_pitch", "korzystają z zewnętrznej platformy")
-        prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Szymona — web developera który oferuje własną stronę lokalnej firmie korzystającej z zewnętrznej platformy.
+        prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Sand'n Studio — dwuosobowego studia web developerskiego które oferuje własną stronę lokalnej firmie korzystającej z zewnętrznej platformy.
 
 {sender_context}
 
@@ -202,18 +205,22 @@ Struktura emaila:
 1. TEMAT: konkretny — nawiązujący do {outsourced} i prowizji/zależności
 2. HOOK: "Widzę że {business_name} korzysta z {outsourced} — ile prowizji oddaliście w tym miesiącu?"
 3. KOSZT PLATFORMY: przetłumacz prowizje/opłaty na realne straty — np. przy 50 wizytach miesięcznie po X PLN prowizji = Y PLN rocznie wyrzuconych w błoto
-4. ALTERNATYWA: własna strona — Standard 800 PLN jednorazowo zamiast miesięcznych prowizji, własna marka, niezależność. Płatność po odbiorze — zero ryzyka.
+4. ALTERNATYWA: własna strona — od 1250 PLN jednorazowo zamiast miesięcznych prowizji. Połowa na start, połowa po oddaniu — zero ryzyka.
 5. SOCIAL PROOF: inne firmy które odeszły od platform i zyskały
 6. CTA: jedno konkretne pytanie
-7. P.S.: "P.S. Przygotowałem już wstępny projekt strony dla [firma] — jeśli chce Pan/Pani zobaczyć, wystarczy odpisać."
+7. P.S.: "P.S. Przygotowaliśmy już wstępny projekt strony dla [firma] — jeśli chce Pan/Pani zobaczyć, wystarczy odpisać."
 
 Zasady:
 - Maksymalnie 180 słów
-- Pisz jak człowiek, bezpośrednio
+- Pisz w formie "my" (jesteśmy dwuosobowym studiem)
+- NIE brzmij pouczająco — właściciele firm są wrażliwi na krytykę swojego biznesu
+  Zamiast: "Google nie wie komu Pana pokazać" → "Szkoda żeby tak dobra oferta uciekała przez brak jednego tagu"
+  Zamiast: "Pana strona jest nieresponsywna" → "Większość klientów szuka teraz na telefonie — warto to wykorzystać"
 - Pierwsza linia: Temat: [temat]
-- Podpisz się: Szymon
+- Podpisz się: Sand'n Studio (Szymon i [partner])
 - Nie używaj korporacyjnego języka
 - Zacznij od haka, nie od "Dzień dobry"
+- Wspomnij portfolio: sandnstudio.pl
 """
         message = client.messages.create(
             model="claude-opus-4-6",
@@ -223,7 +230,7 @@ Zasady:
         return message.content[0].text
 
     if not has_website:
-        prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Szymona — web developera który oferuje zbudowanie strony lokalnej firmie.
+        prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Sand'n Studio — dwuosobowego studia web developerskiego które oferuje zbudowanie strony lokalnej firmie.
 
 {sender_context}
 
@@ -244,18 +251,22 @@ Struktura emaila (nie pisz nagłówków, po prostu tak go zbuduj):
 2. HOOK (pierwsze zdanie): zaskakujący fakt lub pytanie które boli — np. "Szukałem dziś {business_type} w {city} na Google — Pana firmy nie ma."
 3. KOSZT BRAKU STRONY: przetłumacz brak strony na realne straty — ilu klientów szuka online i ich nie znajduje
 4. SOCIAL PROOF: wspomnij że inne podobne firmy w regionie już to zrobiły i co zyskały (ogólnie, nie fake)
-5. OFERTA + CENA: Standard 800 PLN — responsywna strona, SEO, Google Maps, 14 dni. Agencje biorą 3000–8000 PLN za to samo. Płatność po odbiorze — płacą dopiero gdy strona im się podoba.
-6. CTA: jedno proste działanie — nie "proszę o kontakt" ale konkretne np. "Czy mogę pokazać Panu przykładowy projekt w tym tygodniu?"
+5. OFERTA + CENA: strona wizytówka od 1250 PLN — responsywna, formularz, pomoc z domeną i hostingiem, 30 dni wsparcia. Agencje biorą 3000–8000 PLN za to samo. Połowa płatności na start, połowa po oddaniu.
+6. CTA: jedno proste działanie — konkretne, np. "Czy mogę pokazać Państwu przykładowy projekt w tym tygodniu?"
 
 Zasady:
 - Maksymalnie 180 słów (krótko = szanujemy czas)
-- Pisz jak człowiek, nie jak bot ani agencja marketingowa
+- Pisz w formie "my" (jesteśmy dwuosobowym studiem)
+- NIE brzmij pouczająco — właściciele firm są wrażliwi na krytykę
+  Zamiast oceniać wprost → pokaż że tracą szansę, nie że coś zepsuli
+  Przykład: "Szkoda żeby klienci szukający [branży] w Google trafiali do konkurencji zamiast do Państwa"
 - Jedna konkretna statystyka pasująca do branży
 - Pierwsza linia to: Temat: [temat]
-- Podpisz się: Szymon
+- Podpisz się: Sand'n Studio (Szymon i [partner])
 - Nie używaj słów: "pragnę", "uprzejmie", "niniejszym", "pozwalam sobie"
 - Nie zaczynaj od "Dzień dobry" — zacznij od haka
-- Zakończ P.S.: "P.S. Przygotowałem już wstępny projekt strony dla [firma] — jeśli chce Pan/Pani zobaczyć, wystarczy odpisać."
+- Wspomnij portfolio: sandnstudio.pl
+- Zakończ P.S.: "P.S. Przygotowaliśmy już wstępny projekt strony dla [firma] — jeśli chce Pan/Pani zobaczyć, wystarczy odpisać."
 """
 
     else:
@@ -292,7 +303,7 @@ Zasady:
         if my_feedback:
             site_context += f"\n\nDodatkowe spostrzeżenia (wpleć naturalnie w email, nie wyróżniaj jako osobnej sekcji):\n{my_feedback}"
 
-        prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Szymona — web developera który oferuje modernizację strony lokalnej firmie.
+        prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Sand'n Studio — dwuosobowego studia web developerskiego które oferuje modernizację strony lokalnej firmie.
 
 {sender_context}
 
@@ -316,19 +327,23 @@ Struktura emaila (nie pisz nagłówków, po prostu tak go zbuduj):
 3. KOSZT PROBLEMU: przetłumacz ten problem na realne straty klientów/pieniędzy — użyj jednej trafnej statystyki
 4. RESZTA PROBLEMÓW: wymień 1-2 kolejne (skrótowo)
 5. SOCIAL PROOF: wspomnij że pomogłeś już innym firmom w podobnej sytuacji, efekty
-6. OFERTA: Standard 800 PLN — modernizacja + SEO + Google Maps, 14 dni. Agencje: 3000–8000 PLN za to samo. Płatność po odbiorze — zero ryzyka dla klienta.
+6. OFERTA: modernizacja od 1250 PLN — do 4 podstron, responsywna, 30 dni wsparcia. Agencje: 3000–8000 PLN za to samo. Połowa na start, połowa po oddaniu — zero ryzyka.
 7. CTA: jedno konkretne pytanie lub propozycja następnego kroku
 
 Zasady:
 - Maksymalnie 200 słów
+- Pisz w formie "my" (jesteśmy dwuosobowym studiem)
 - KONKRETNY — odwołuj się do rzeczy które naprawdę znalazłeś na ich stronie
-- Pisz jak człowiek, bezpośrednio, po imieniu jeśli pasuje
+- NIE brzmij pouczająco — nie oceniaj strony wprost, pokaż szansę którą tracą
+  Źle: "Pana strona nie ma SSL" → Dobrze: "Szkoda żeby klienci widzieli 'Niezabezpieczona' zanim w ogóle zobaczą ofertę"
+  Źle: "Strona jest nieresponsywna" → Dobrze: "Większość klientów szuka teraz na telefonie — warto to wykorzystać"
 - Jedna konkretna statystyka (pasująca do głównego problemu)
 - Pierwsza linia: Temat: [temat]
-- Podpisz się: Szymon
+- Podpisz się: Sand'n Studio (Szymon i [partner])
 - Nie używaj korporacyjnego języka
-- Zacznij od haka, nie od "Dzień dobry, nazywam się Szymon i..."
-- Zakończ P.S.: "P.S. Przygotowałem już wstępny projekt strony dla [firma] — jeśli chce Pan/Pani zobaczyć, wystarczy odpisać."
+- Zacznij od haka, nie od "Dzień dobry"
+- Wspomnij portfolio: sandnstudio.pl
+- Zakończ P.S.: "P.S. Przygotowaliśmy już wstępny projekt strony dla [firma] — jeśli chce Pan/Pani zobaczyć, wystarczy odpisać."
 """
 
     message = client.messages.create(
