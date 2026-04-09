@@ -186,7 +186,14 @@ Używaj TYLKO 1-2 statystyk pasujących do problemów tej konkretnej firmy. Nie 
     outsourced = (website_data or {}).get("outsourced_platform")
     if outsourced:
         pitch = (website_data or {}).get("outsourced_pitch", "korzystają z zewnętrznej platformy")
-        prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Sand'n Studio — dwuosobowego studia web developerskiego które oferuje własną stronę lokalnej firmie korzystającej z zewnętrznej platformy.
+
+        # Booking platforms (Booksy, Fresha, Treatwell, Znany Lekarz) are marketplaces —
+        # don't suggest replacing them (they lose new customer flow). Instead: own site + keep the widget.
+        booking_platforms = {"Booksy", "Fresha", "Treatwell", "Znany Lekarz"}
+        is_booking_platform = outsourced in booking_platforms
+
+        if is_booking_platform:
+            prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Sand'n Studio — dwuosobowego studia web developerskiego.
 
 {sender_context}
 
@@ -194,30 +201,72 @@ Używaj TYLKO 1-2 statystyk pasujących do problemów tej konkretnej firmy. Nie 
 Firma: {business_name}
 Typ biznesu: {business_type}
 Miasto: {city}
-Sytuacja: firma korzysta z **{outsourced}** zamiast własnej strony — {pitch}
+Sytuacja: firma korzysta z **{outsourced}** jako swojej jedynej obecności w internecie — nie ma własnej strony
+
+=== KONTEKST STRATEGICZNY ===
+{outsourced} to marketplace — firma słusznie z niego korzysta bo dostaje nowych klientów z aplikacji.
+NIE proponuj zastąpienia {outsourced}. To błąd strategiczny który ich odstraszy.
+Właściwy kąt: mają świetne opinie na {outsourced}, ale brakuje im własnej strony która buduje markę premium i ściąga klientów z Google.
+Rozwiązanie: własna strona wizytówka + widget {outsourced} wbudowany w stronę (klient rezerwuje bez wychodzenia).
+Zyski: własna marka, SEO na Google, profesjonalny wizerunek, uniezależnienie się od jedynego kanału.
 
 {stats_arsenal}
 
 === ZADANIE ===
-Napisz cold email który SPRZEDAJE własną stronę jako alternatywę dla {outsourced}. Główny argument: prowizje/zależność od platformy kosztują ich pieniądze i kontrolę.
+Napisz cold email który SPRZEDAJE własną stronę jako UZUPEŁNIENIE {outsourced}, nie zamiennik.
 
 Struktura emaila:
-1. TEMAT: konkretny — nawiązujący do {outsourced} i prowizji/zależności
-2. HOOK: "Widzę że {business_name} korzysta z {outsourced} — ile prowizji oddaliście w tym miesiącu?"
-3. KOSZT PLATFORMY: przetłumacz prowizje/opłaty na realne straty — np. przy 50 wizytach miesięcznie po X PLN prowizji = Y PLN rocznie wyrzuconych w błoto
-4. ALTERNATYWA: własna strona — od 1250 PLN jednorazowo zamiast miesięcznych prowizji. Połowa na start, połowa po oddaniu — zero ryzyka.
-5. SOCIAL PROOF: inne firmy które odeszły od platform i zyskały
+1. TEMAT: konkretny — np. "Znalazłem {business_name} na {outsourced} — brakuje jednej rzeczy"
+2. HOOK: komplementuj — mają dobre opinie/profil na {outsourced}, ale Google ich nie pokazuje gdy ktoś szuka bezpośrednio
+3. PROBLEM: klienci którzy nie szukają przez {outsourced} (np. z polecenia, z Google) nie mają gdzie trafić — tracą część ruchu
+4. ROZWIĄZANIE: własna strona z widgetem {outsourced} wbudowanym — rezerwacje zostają, dochodzi SEO i marka premium
+5. OFERTA: od 1250 PLN jednorazowo, połowa na start, połowa po oddaniu
 6. CTA: jedno konkretne pytanie
-7. P.S.: "P.S. Przygotowaliśmy już wstępny projekt strony dla [firma] — jeśli chce Pan/Pani zobaczyć, wystarczy odpisać."
+7. P.S.: "P.S. Przygotowaliśmy już wstępny projekt strony dla {business_name} — jeśli chce Pan/Pani zobaczyć, wystarczy odpisać."
 
 Zasady:
 - Maksymalnie 180 słów
 - Pisz w formie "my" (jesteśmy dwuosobowym studiem)
-- NIE brzmij pouczająco — właściciele firm są wrażliwi na krytykę swojego biznesu
-  Zamiast: "Google nie wie komu Pana pokazać" → "Szkoda żeby tak dobra oferta uciekała przez brak jednego tagu"
-  Zamiast: "Pana strona jest nieresponsywna" → "Większość klientów szuka teraz na telefonie — warto to wykorzystać"
+- Doceniaj {outsourced} — nie atakuj go, firma słusznie go używa
+- NIE brzmij pouczająco — pokaż szansę którą tracą, nie że coś zepsuli
 - Pierwsza linia: Temat: [temat]
-- Podpisz się: Sand'n Studio (Szymon i [partner])
+- Podpisz się: Sand'n Studio (Szymon i Nikodem)
+- Nie używaj korporacyjnego języka
+- Zacznij od haka, nie od "Dzień dobry"
+- Wspomnij portfolio: sandnstudio.pl
+"""
+        else:
+            # Social/link platforms (Facebook, Instagram, Linktree, Google Sites) — these are weak presences,
+            # proposing a real website as replacement makes sense here.
+            prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Sand'n Studio — dwuosobowego studia web developerskiego które oferuje własną stronę lokalnej firmie.
+
+{sender_context}
+
+=== DANE FIRMY ===
+Firma: {business_name}
+Typ biznesu: {business_type}
+Miasto: {city}
+Sytuacja: firma używa **{outsourced}** zamiast własnej strony — {pitch}
+
+{stats_arsenal}
+
+=== ZADANIE ===
+Napisz cold email który SPRZEDAJE własną stronę zamiast {outsourced}. Argument: {outsourced} nie zastępuje prawdziwej strony — brak SEO, brak własnej marki, brak kontroli.
+
+Struktura emaila:
+1. TEMAT: konkretny — nawiązujący do braku własnej strony i tego co przez to tracą
+2. HOOK: zauważyłeś że ich jedyną obecnością w sieci jest profil na {outsourced} — Google ich nie pokazuje gdy ktoś szuka ich branży w mieście
+3. KOSZT BRAKU STRONY: klienci z Google trafiają do konkurencji, nie do nich
+4. ALTERNATYWA: własna strona od 1250 PLN jednorazowo — własna domena, SEO, marka premium. Połowa na start, połowa po oddaniu.
+5. CTA: jedno konkretne pytanie
+6. P.S.: "P.S. Przygotowaliśmy już wstępny projekt strony dla {business_name} — jeśli chce Pan/Pani zobaczyć, wystarczy odpisać."
+
+Zasady:
+- Maksymalnie 180 słów
+- Pisz w formie "my" (jesteśmy dwuosobowym studiem)
+- NIE brzmij pouczająco — pokaż szansę którą tracą
+- Pierwsza linia: Temat: [temat]
+- Podpisz się: Sand'n Studio (Szymon i Nikodem)
 - Nie używaj korporacyjnego języka
 - Zacznij od haka, nie od "Dzień dobry"
 - Wspomnij portfolio: sandnstudio.pl
@@ -262,7 +311,7 @@ Zasady:
   Przykład: "Szkoda żeby klienci szukający [branży] w Google trafiali do konkurencji zamiast do Państwa"
 - Jedna konkretna statystyka pasująca do branży
 - Pierwsza linia to: Temat: [temat]
-- Podpisz się: Sand'n Studio (Szymon i [partner])
+- Podpisz się: Sand'n Studio (Szymon i Nikodem)
 - Nie używaj słów: "pragnę", "uprzejmie", "niniejszym", "pozwalam sobie"
 - Nie zaczynaj od "Dzień dobry" — zacznij od haka
 - Wspomnij portfolio: sandnstudio.pl
@@ -339,7 +388,7 @@ Zasady:
   Źle: "Strona jest nieresponsywna" → Dobrze: "Większość klientów szuka teraz na telefonie — warto to wykorzystać"
 - Jedna konkretna statystyka (pasująca do głównego problemu)
 - Pierwsza linia: Temat: [temat]
-- Podpisz się: Sand'n Studio (Szymon i [partner])
+- Podpisz się: Sand'n Studio (Szymon i Nikodem)
 - Nie używaj korporacyjnego języka
 - Zacznij od haka, nie od "Dzień dobry"
 - Wspomnij portfolio: sandnstudio.pl
