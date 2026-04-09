@@ -153,7 +153,7 @@ def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: st
     # ── Shared context: who we are ──
     sender_context = """
 Kim jesteśmy (nadawcy emaila):
-- Sand'n Studio — dwuosobowy duet web developerów z Polski (Szymon + partner)
+- Sand'n Studio — dwuosobowy duet web developerów z Polski (Szymon i Nikodem)
 - Robimy strony dla lokalnych firm, kilka zrealizowanych projektów w regionie, klienci zadowoleni
 - Nie jesteśmy korporacją — to atut: szybko, bez biurokracji, bezpośredni kontakt
 - Portfolio: https://sandnstudio.pl/
@@ -167,7 +167,7 @@ Oferta (NIE wymieniaj wszystkich tierów — wspomnij tylko jeden pasujący do s
 Kotwica cenowa: agencje biorą 3000–8000 PLN za to samo co my od 1250 PLN.
 Killer argument: PŁATNOŚĆ PO POŁOWIE — połowa na start, połowa dopiero gdy strona im się podoba. Zero ryzyka.
 
-Przy modernizacji istniejącej strony: cena do ustalenia indywidualnie — NIE podawaj konkretnej kwoty, wspomnij tylko "od 1250 PLN" i że płatność jest podzielona na dwie raty.
+Przy modernizacji istniejącej strony: cena zależy od zakresu — NIE podawaj żadnej konkretnej kwoty. Powiedz tylko że "wyceniamy indywidualnie po rozmowie" i że płatność jest podzielona na dwie raty.
 """
 
     # ── Proven statistics to use ──
@@ -221,8 +221,7 @@ Struktura emaila:
 3. PROBLEM: klienci którzy nie szukają przez {outsourced} (np. z polecenia, z Google) nie mają gdzie trafić — tracą część ruchu
 4. ROZWIĄZANIE: własna strona z widgetem {outsourced} wbudowanym — rezerwacje zostają, dochodzi SEO i marka premium
 5. OFERTA: od 1250 PLN jednorazowo, połowa na start, połowa po oddaniu
-6. CTA: jedno konkretne pytanie
-7. P.S.: "P.S. Przygotowaliśmy już wstępny projekt strony dla {business_name} — jeśli chce Pan/Pani zobaczyć, wystarczy odpisać."
+6. CTA: "Mamy już gotowy szkic jak mogłaby wyglądać strona {business_name} — chce Pan/Pani zobaczyć?"
 
 Zasady:
 - Maksymalnie 180 słów
@@ -234,6 +233,7 @@ Zasady:
 - Nie używaj korporacyjnego języka
 - Zacznij od haka, nie od "Dzień dobry"
 - Wspomnij portfolio: sandnstudio.pl
+- NIE dodawaj P.S. — CTA w punkcie 6 jest wystarczające
 """
         else:
             # Social/link platforms (Facebook, Instagram, Linktree, Google Sites) — these are weak presences,
@@ -258,8 +258,7 @@ Struktura emaila:
 2. HOOK: zauważyłeś że ich jedyną obecnością w sieci jest profil na {outsourced} — Google ich nie pokazuje gdy ktoś szuka ich branży w mieście
 3. KOSZT BRAKU STRONY: klienci z Google trafiają do konkurencji, nie do nich
 4. ALTERNATYWA: własna strona od 1250 PLN jednorazowo — własna domena, SEO, marka premium. Połowa na start, połowa po oddaniu.
-5. CTA: jedno konkretne pytanie
-6. P.S.: "P.S. Przygotowaliśmy już wstępny projekt strony dla {business_name} — jeśli chce Pan/Pani zobaczyć, wystarczy odpisać."
+5. CTA: "Mamy już gotowy szkic jak mogłaby wyglądać strona {business_name} — chce Pan/Pani zobaczyć?"
 
 Zasady:
 - Maksymalnie 180 słów
@@ -270,6 +269,7 @@ Zasady:
 - Nie używaj korporacyjnego języka
 - Zacznij od haka, nie od "Dzień dobry"
 - Wspomnij portfolio: sandnstudio.pl
+- NIE dodawaj P.S. — CTA w punkcie 5 jest wystarczające
 """
         message = client.messages.create(
             model="claude-opus-4-6",
@@ -301,7 +301,7 @@ Struktura emaila (nie pisz nagłówków, po prostu tak go zbuduj):
 3. KOSZT BRAKU STRONY: przetłumacz brak strony na realne straty — ilu klientów szuka online i ich nie znajduje
 4. SOCIAL PROOF: wspomnij że inne podobne firmy w regionie już to zrobiły i co zyskały (ogólnie, nie fake)
 5. OFERTA + CENA: strona wizytówka od 1250 PLN — responsywna, formularz, pomoc z domeną i hostingiem, 30 dni wsparcia. Agencje biorą 3000–8000 PLN za to samo. Połowa płatności na start, połowa po oddaniu.
-6. CTA: jedno proste działanie — konkretne, np. "Czy mogę pokazać Państwu przykładowy projekt w tym tygodniu?"
+6. CTA: "Mamy już gotowy szkic strony dla [firma] — chce Pan/Pani zobaczyć jak mogłaby wyglądać?"
 
 Zasady:
 - Maksymalnie 180 słów (krótko = szanujemy czas)
@@ -315,7 +315,7 @@ Zasady:
 - Nie używaj słów: "pragnę", "uprzejmie", "niniejszym", "pozwalam sobie"
 - Nie zaczynaj od "Dzień dobry" — zacznij od haka
 - Wspomnij portfolio: sandnstudio.pl
-- Zakończ P.S.: "P.S. Przygotowaliśmy już wstępny projekt strony dla [firma] — jeśli chce Pan/Pani zobaczyć, wystarczy odpisać."
+- NIE dodawaj P.S. — CTA w punkcie 6 jest wystarczające
 """
 
     else:
@@ -368,7 +368,7 @@ URL: {lead.get('website_url', '')}
 {stats_arsenal}
 
 === ZADANIE ===
-Napisz cold email który SPRZEDAJE modernizację strony. Nie "zauważyłem kilka rzeczy" — "Twoja strona traci Ci klientów i wiem jak to naprawić za 500 PLN."
+Napisz cold email który SPRZEDAJE modernizację strony.
 
 Struktura emaila (nie pisz nagłówków, po prostu tak go zbuduj):
 1. TEMAT: konkretny i niepokojący — np. "Sprawdziłem stronę [firma] — jest jeden problem który kosztuje Cię klientów"
@@ -376,8 +376,8 @@ Struktura emaila (nie pisz nagłówków, po prostu tak go zbuduj):
 3. KOSZT PROBLEMU: przetłumacz ten problem na realne straty klientów/pieniędzy — użyj jednej trafnej statystyki
 4. RESZTA PROBLEMÓW: wymień 1-2 kolejne (skrótowo)
 5. SOCIAL PROOF: wspomnij że pomogłeś już innym firmom w podobnej sytuacji, efekty
-6. OFERTA: modernizacja od 1250 PLN — do 4 podstron, responsywna, 30 dni wsparcia. Agencje: 3000–8000 PLN za to samo. Połowa na start, połowa po oddaniu — zero ryzyka.
-7. CTA: jedno konkretne pytanie lub propozycja następnego kroku
+6. OFERTA: wspomnij że wyceniamy indywidualnie po rozmowie (bez podawania kwoty), płatność podzielona na dwie raty — połowa na start, reszta gdy strona się podoba. Agencje biorą 3000–8000 PLN, my znacznie mniej.
+7. CTA: "Mamy już gotową listę konkretnych zmian dla [firma] — chce Pan/Pani zobaczyć?"
 
 Zasady:
 - Maksymalnie 200 słów
@@ -392,7 +392,7 @@ Zasady:
 - Nie używaj korporacyjnego języka
 - Zacznij od haka, nie od "Dzień dobry"
 - Wspomnij portfolio: sandnstudio.pl
-- Zakończ P.S.: "P.S. Przygotowaliśmy już wstępny projekt strony dla [firma] — jeśli chce Pan/Pani zobaczyć, wystarczy odpisać."
+- NIE dodawaj P.S. — CTA w punkcie 7 jest wystarczające i mówi dokładnie to samo co P.S. by mówił. Jeden wyraźny hak na końcu wystarczy.
 """
 
     message = client.messages.create(
