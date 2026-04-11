@@ -327,17 +327,25 @@ def screenshot_website(url: str) -> dict[str, bytes | None]:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
 
-            # Desktop screenshot — use "load" + extra wait for JS-rendered sites
+            # Desktop screenshot — networkidle waits until no network requests for 500ms,
+            # catching lazy-loaded content and AJAX without a hardcoded delay.
+            # Falls back to "load" if networkidle times out (some sites never go fully idle).
             desktop_page = browser.new_page(viewport={"width": 1280, "height": 900})
-            desktop_page.goto(url, timeout=30000, wait_until="load")
-            desktop_page.wait_for_timeout(3000)
+            try:
+                desktop_page.goto(url, timeout=30000, wait_until="networkidle")
+            except Exception:
+                desktop_page.goto(url, timeout=30000, wait_until="load")
+                desktop_page.wait_for_timeout(3000)
             _dismiss_cookie_banner(desktop_page)
             results["desktop"] = desktop_page.screenshot(type="png")
 
             # Mobile screenshot (iPhone 12 size)
             mobile_page = browser.new_page(viewport={"width": 390, "height": 844})
-            mobile_page.goto(url, timeout=30000, wait_until="load")
-            mobile_page.wait_for_timeout(2000)
+            try:
+                mobile_page.goto(url, timeout=30000, wait_until="networkidle")
+            except Exception:
+                mobile_page.goto(url, timeout=30000, wait_until="load")
+                mobile_page.wait_for_timeout(2000)
             _dismiss_cookie_banner(mobile_page)
             results["mobile"] = mobile_page.screenshot(type="png")
 
