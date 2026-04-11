@@ -8,14 +8,15 @@ def _client():
     return anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 
-def _compress(png_bytes: bytes, max_width: int = 1100, quality: int = 72) -> bytes:
+def _compress(png_bytes: bytes, max_width: int = 1100, max_height: int = 2500, quality: int = 72) -> bytes:
     """Resize + convert PNG to JPEG to reduce payload size. Falls back to raw PNG if Pillow missing."""
     try:
         from PIL import Image
         img = Image.open(io.BytesIO(png_bytes))
-        if img.width > max_width:
-            ratio = max_width / img.width
-            img = img.resize((max_width, int(img.height * ratio)), Image.LANCZOS)
+        # Scale down to fit within max_width × max_height, preserving aspect ratio
+        ratio = min(max_width / img.width, max_height / img.height, 1.0)
+        if ratio < 1.0:
+            img = img.resize((int(img.width * ratio), int(img.height * ratio)), Image.LANCZOS)
         buf = io.BytesIO()
         img.convert("RGB").save(buf, format="JPEG", quality=quality, optimize=True)
         return buf.getvalue()

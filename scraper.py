@@ -337,7 +337,7 @@ def screenshot_website(url: str) -> dict[str, bytes | None]:
                 desktop_page.goto(url, timeout=30000, wait_until="load")
                 desktop_page.wait_for_timeout(3000)
             _dismiss_cookie_banner(desktop_page)
-            results["desktop"] = desktop_page.screenshot(type="png")
+            results["desktop"] = desktop_page.screenshot(type="png", full_page=True)
 
             # Mobile screenshot (iPhone 12 size)
             mobile_page = browser.new_page(viewport={"width": 390, "height": 844})
