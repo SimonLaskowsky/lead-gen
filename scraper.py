@@ -280,6 +280,44 @@ def _detect_tech(html: str, soup) -> list[str]:
     return tech
 
 
+def _dismiss_cookie_banner(page) -> None:
+    """Try to dismiss cookie/GDPR consent banners before screenshotting."""
+    # 1. Try clicking common accept/dismiss buttons by visible text
+    accept_texts = [
+        "Akceptuj", "Akceptuję", "Akceptuj wszystkie", "Akceptuj wszystko",
+        "Zgadzam się", "Zgoda", "Rozumiem", "Zatwierdź",
+        "Accept", "Accept all", "Accept cookies", "I agree", "OK", "Got it",
+        "Zamknij", "Close", "Odrzuć", "Reject all",
+    ]
+    for text in accept_texts:
+        try:
+            btn = page.get_by_role("button", name=text, exact=False).first
+            if btn.is_visible(timeout=300):
+                btn.click()
+                page.wait_for_timeout(600)
+                return
+        except Exception:
+            continue
+
+    # 2. CSS fallback — hide common cookie banner containers that weren't clickable
+    page.add_style_tag(content="""
+        #CybotCookiebotDialog, #cookiebanner, #cookie-banner, #cookie-notice,
+        #cookie-consent, #cookie_notice, #cookie_banner, #cookie-law-info-bar,
+        .cookie-banner, .cookie-notice, .cookie-consent, .cookie-bar,
+        .cookiebar, .cookiebanner, .cookie-overlay, .cookie-modal,
+        .cc-window, .cc-banner, .cc-overlay,
+        [id*="cookieConsent"], [class*="cookieConsent"],
+        [id*="cookie-popup"], [class*="cookie-popup"],
+        [id*="gdpr"], [class*="gdpr-banner"], [class*="gdpr-popup"],
+        [id*="consent-banner"], [class*="consent-banner"],
+        .pum-overlay, .pum-container,
+        div[class*="Overlay"][class*="cookie" i],
+        div[class*="consent" i][class*="modal" i] { display: none !important; }
+        body { overflow: auto !important; }
+    """)
+    page.wait_for_timeout(300)
+
+
 def screenshot_website(url: str) -> dict[str, bytes | None]:
     """Take desktop + mobile screenshots using Playwright. Returns dict with 'desktop' and 'mobile'."""
     results = {"desktop": None, "mobile": None}
@@ -293,12 +331,14 @@ def screenshot_website(url: str) -> dict[str, bytes | None]:
             desktop_page = browser.new_page(viewport={"width": 1280, "height": 900})
             desktop_page.goto(url, timeout=30000, wait_until="load")
             desktop_page.wait_for_timeout(3000)
+            _dismiss_cookie_banner(desktop_page)
             results["desktop"] = desktop_page.screenshot(type="png")
 
             # Mobile screenshot (iPhone 12 size)
             mobile_page = browser.new_page(viewport={"width": 390, "height": 844})
             mobile_page.goto(url, timeout=30000, wait_until="load")
             mobile_page.wait_for_timeout(2000)
+            _dismiss_cookie_banner(mobile_page)
             results["mobile"] = mobile_page.screenshot(type="png")
 
             browser.close()
