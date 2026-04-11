@@ -8,6 +8,38 @@ def _client():
     return anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 
+def _crop_above_fold(png_bytes: bytes, fold_height: int = 900, max_width: int = 1100, quality: int = 85) -> bytes | None:
+    """Crop full-page screenshot to above-the-fold portion at high resolution."""
+    try:
+        from PIL import Image
+        img = Image.open(io.BytesIO(png_bytes))
+        if img.height <= fold_height:
+            return None  # already fits viewport, no separate crop needed
+        cropped = img.crop((0, 0, img.width, fold_height))
+        ratio = min(max_width / cropped.width, 1.0)
+        if ratio < 1.0:
+            cropped = cropped.resize((int(cropped.width * ratio), int(cropped.height * ratio)), Image.LANCZOS)
+        buf = io.BytesIO()
+        cropped.convert("RGB").save(buf, format="JPEG", quality=quality, optimize=True)
+        return buf.getvalue()
+    except Exception:
+        return None
+
+
+def _parse_analysis(raw: str) -> dict:
+    """Extract SCORES: line from Claude response. Returns {"scores": {...}, "analysis": str}."""
+    scores = {}
+    analysis = raw
+    if raw.startswith("SCORES:"):
+        line, _, rest = raw.partition("\n")
+        analysis = rest.lstrip("\n")
+        for part in line[7:].strip().split():
+            if "=" in part:
+                k, _, v = part.partition("=")
+                scores[k.strip()] = int(v.strip()) if v.strip().isdigit() else None
+    return {"scores": scores, "analysis": analysis}
+
+
 def _compress(png_bytes: bytes, max_width: int = 1100, max_height: int = 2500, quality: int = 72) -> bytes:
     """Resize + convert PNG to JPEG to reduce payload size. Falls back to raw PNG if Pillow missing."""
     try:
@@ -24,8 +56,9 @@ def _compress(png_bytes: bytes, max_width: int = 1100, max_height: int = 2500, q
         return png_bytes  # Pillow not installed, send raw PNG
 
 
-def analyze_website_visually(lead: dict, screenshots: dict, website_data: dict | None = None) -> str:
-    """Full audit: desktop + mobile screenshots + scraped text → Claude deep analysis."""
+def analyze_website_visually(lead: dict, screenshots: dict, website_data: dict | None = None) -> dict:
+    """Full audit: desktop + mobile screenshots + scraped text → Claude deep analysis.
+    Returns {"scores": {"design":X,...}, "analysis": str}."""
     client = _client()
 
     # Build technical facts
@@ -49,10 +82,25 @@ def analyze_website_visually(lead: dict, screenshots: dict, website_data: dict |
             tech_facts.append(f"Tytuł strony: {website_data['title']}")
         if website_data.get("meta_description"):
             tech_facts.append(f"Meta desc: {website_data['meta_description'][:120]}")
+        # New checks
+        if not website_data.get("has_h1"):
+            tech_facts.append("H1: BRAK — Google nie wie jaka jest główna fraza strony")
+        elif website_data.get("h1_text"):
+            tech_facts.append(f"H1: {website_data['h1_text']}")
+        if not website_data.get("has_phone"):
+            tech_facts.append("Numer telefonu: NIE ZNALEZIONO na stronie")
+        img_count = website_data.get("image_count", 0)
+        missing_alt = website_data.get("images_missing_alt", 0)
+        if img_count > 0 and missing_alt > 0:
+            tech_facts.append(f"Zdjęcia bez alt text: {missing_alt}/{img_count} — problem dla SEO")
+        wc = website_data.get("word_count")
+        if wc is not None:
+            tech_facts.append(f"Liczba słów na stronie: {wc}{' — bardzo mało treści dla Google' if wc < 300 else ''}")
 
-    page_text = ""
-    if website_data and website_data.get("text_preview"):
-        page_text = f"\nTreść strony (fragment):\n{website_data['text_preview'][:1500]}"
+    # Prefer Playwright-rendered text (JS executed) over requests-scraped text
+    rendered_text = (screenshots or {}).get("rendered_text") or ""
+    text_source = rendered_text or (website_data or {}).get("text_preview") or ""
+    page_text = f"\nTreść strony (po renderowaniu JS):\n{text_source[:1500]}" if text_source else ""
 
     tech_block = "\n".join(tech_facts)
 
@@ -105,31 +153,39 @@ Czy jasno widać: co oferują, dla kogo, ile kosztuje, jak się skontaktować? C
 **5. Najważniejsze rzeczy do poprawy**
 Podaj 3-4 konkretne zmiany które miałyby największy wpływ na konwersję.
 
-Pisz po polsku. Bądź szczery i konkretny — jak gdybyś płacił za ten audyt. Używaj punktorów i nagłówków z powyższej struktury. Nie używaj emoji."""
+Pisz po polsku. Bądź szczery i konkretny — jak gdybyś płacił za ten audyt. Używaj punktorów i nagłówków z powyższej struktury. Nie używaj emoji.
 
-    # Build message content — add screenshots only if available
+=== FORMAT ODPOWIEDZI ===
+Zacznij odpowiedź od JEDNEJ linii z ocenami 1-10 (przed całą analizą):
+SCORES: design=X mobile=X seo=X cta=X speed=X
+(speed=null jeśli brak danych PageSpeed; null dla dowolnej kategorii jeśli nie możesz ocenić)
+Potem pusta linia i pełna analiza."""
+
+    # Build message content
     content = []
 
     if desktop_bytes:
-        content.append({"type": "text", "text": "**Zrzut ekranu — DESKTOP (1280px):**"})
+        fold_crop = _crop_above_fold(desktop_bytes)
+        if fold_crop:
+            content.append({"type": "text", "text": "**Zrzut ekranu — DESKTOP above-the-fold (pierwsze wrażenie, wysoka rozdzielczość):**"})
+            content.append({
+                "type": "image",
+                "source": {"type": "base64", "media_type": "image/jpeg",
+                           "data": base64.standard_b64encode(fold_crop).decode("utf-8")},
+            })
+        content.append({"type": "text", "text": "**Zrzut ekranu — DESKTOP pełna strona (struktura i układ):**"})
         content.append({
             "type": "image",
-            "source": {
-                "type": "base64",
-                "media_type": "image/jpeg",
-                "data": base64.standard_b64encode(_compress(desktop_bytes)).decode("utf-8"),
-            },
+            "source": {"type": "base64", "media_type": "image/jpeg",
+                       "data": base64.standard_b64encode(_compress(desktop_bytes)).decode("utf-8")},
         })
 
     if mobile_bytes:
         content.append({"type": "text", "text": "**Zrzut ekranu — MOBILE (390px):**"})
         content.append({
             "type": "image",
-            "source": {
-                "type": "base64",
-                "media_type": "image/jpeg",
-                "data": base64.standard_b64encode(_compress(mobile_bytes, max_width=600)).decode("utf-8"),
-            },
+            "source": {"type": "base64", "media_type": "image/jpeg",
+                       "data": base64.standard_b64encode(_compress(mobile_bytes, max_width=600)).decode("utf-8")},
         })
 
     content.append({"type": "text", "text": prompt})
@@ -140,7 +196,7 @@ Pisz po polsku. Bądź szczery i konkretny — jak gdybyś płacił za ten audyt
         messages=[{"role": "user", "content": content}],
     )
 
-    return message.content[0].text
+    return _parse_analysis(message.content[0].text)
 
 
 def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: str | None = None, my_feedback: str | None = None) -> str:

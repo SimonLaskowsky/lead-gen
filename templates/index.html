@@ -726,6 +726,8 @@
               <div class="analysis-output" id="analyzeResult"></div>
             </div>
             <div class="col-lg-4">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:10px">📊 Oceny AI (1-10)</div>
+              <div id="analyzeScores" style="display:none;margin-bottom:16px"></div>
               <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:10px">🔬 Sprawdzenia techniczne</div>
               <div class="check-grid" id="analyzeChecks"></div>
 
@@ -1078,7 +1080,7 @@ async function openAnalyzeModal(leadId, businessName) {
     const cached = await fetch(`/api/lead/${leadId}/analyze`);
     const cdata  = await cached.json();
     if (cdata.cached) {
-      showAnalysisResult(cdata.analysis, cdata.website_data, true);
+      showAnalysisResult(cdata.analysis, cdata.website_data, cdata.scores || {}, true);
       return;
     }
   } catch(_) {}
@@ -1102,7 +1104,7 @@ async function runAnalysis(leadId) {
     const res  = await fetch(`/api/lead/${leadId}/analyze`, { method:'POST' });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-    showAnalysisResult(data.analysis, data.website_data, false);
+    showAnalysisResult(data.analysis, data.website_data, data.scores || {}, false);
   } catch(e) {
     document.getElementById('analyzeLoadingState').classList.add('d-none');
     const err = document.getElementById('analyzeError');
@@ -1111,8 +1113,28 @@ async function runAnalysis(leadId) {
   }
 }
 
-async function showAnalysisResult(analysis, websiteData, fromCache) {
+async function showAnalysisResult(analysis, websiteData, scores, fromCache) {
   document.getElementById('analyzeResult').innerHTML = renderMd(analysis);
+
+  // Scorecard
+  const scoresEl = document.getElementById('analyzeScores');
+  const SCORE_LABELS = { design: 'Design', mobile: 'Mobile', seo: 'SEO', cta: 'CTA', speed: 'Szybkość' };
+  const scoreEntries = Object.entries(scores || {}).filter(([, v]) => v != null);
+  if (scoreEntries.length) {
+    scoresEl.style.display = 'grid';
+    scoresEl.style.gridTemplateColumns = 'repeat(auto-fill, minmax(80px, 1fr))';
+    scoresEl.style.gap = '6px';
+    scoresEl.innerHTML = scoreEntries.map(([k, v]) => {
+      const color = v >= 7 ? '#22c55e' : v >= 5 ? '#f59e0b' : '#ef4444';
+      const bg    = v >= 7 ? '#f0fdf4' : v >= 5 ? '#fffbeb' : '#fef2f2';
+      return `<div style="background:${bg};border:1.5px solid ${color};border-radius:8px;padding:6px 8px;text-align:center">
+        <div style="font-size:18px;font-weight:800;color:${color};line-height:1">${v}</div>
+        <div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-top:2px">${SCORE_LABELS[k] || k}</div>
+      </div>`;
+    }).join('');
+  } else {
+    scoresEl.style.display = 'none';
+  }
 
   const wd     = websiteData || {};
   const checks = [

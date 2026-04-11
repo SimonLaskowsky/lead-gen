@@ -139,6 +139,7 @@ def scrape_website(url: str) -> dict | None:
         meta_desc_tag = soup.find("meta", attrs={"name": "description"})
         viewport_tag = soup.find("meta", attrs={"name": "viewport"})
         og_image_tag = soup.find("meta", attrs={"property": "og:image"})
+        h1_tag = soup.find("h1")
 
         # Read title text now before head gets decomposed
         title = ""
@@ -202,6 +203,18 @@ def scrape_website(url: str) -> dict | None:
         )
 
         images = soup.find_all("img")
+        images_missing_alt = sum(1 for img in images if not (img.get("alt") or "").strip())
+
+        # Phone number presence — Polish mobile/landline patterns
+        phone_match = re.search(r'(\+48[\s\-]?)?\d[\d\s\-]{8,}\d', full_text)
+        has_phone = bool(phone_match)
+
+        # Content depth
+        word_count = len(clean_text.split())
+
+        # H1
+        has_h1 = h1_tag is not None
+        h1_text = h1_tag.get_text(strip=True)[:100] if h1_tag else ""
 
         # Try PageSpeed (non-blocking — returns None if fails/slow)
         pagespeed = get_pagespeed_score(url)
@@ -220,6 +233,11 @@ def scrape_website(url: str) -> dict | None:
             "has_legacy_ua": has_legacy_ua,
             "tech_stack": tech_stack,
             "image_count": len(images),
+            "images_missing_alt": images_missing_alt,
+            "has_phone": has_phone,
+            "word_count": word_count,
+            "has_h1": has_h1,
+            "h1_text": h1_text,
             "pagespeed_score": pagespeed.get("performance_score") if pagespeed else None,
             "pagespeed_fcp": pagespeed.get("first_contentful_paint") if pagespeed else None,
             "text_preview": clean_text,
@@ -336,8 +354,18 @@ def screenshot_website(url: str) -> dict[str, bytes | None]:
             except Exception:
                 desktop_page.goto(url, timeout=30000, wait_until="load")
                 desktop_page.wait_for_timeout(3000)
+            # Scroll to bottom to trigger lazy-loaded images, then back to top
+            desktop_page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            desktop_page.wait_for_timeout(1000)
+            desktop_page.evaluate("window.scrollTo(0, 0)")
+            desktop_page.wait_for_timeout(500)
             _dismiss_cookie_banner(desktop_page)
             results["desktop"] = desktop_page.screenshot(type="png", full_page=True)
+            # Grab rendered text after JS execution — better than requests-scraped HTML
+            try:
+                results["rendered_text"] = desktop_page.inner_text("body")[:5000]
+            except Exception:
+                pass
 
             # Mobile screenshot (iPhone 12 size)
             mobile_page = browser.new_page(viewport={"width": 390, "height": 844})

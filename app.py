@@ -154,15 +154,23 @@ def analyze_lead(lead_id):
 
     # GET — return cached result
     if request.method == "GET":
-        analysis = lead.get("ai_analysis", "") or ""
+        raw = lead.get("ai_analysis", "") or ""
         checks_raw = lead.get("website_checks", "") or ""
-        if not analysis:
+        if not raw:
             return jsonify({"cached": False})
         try:
             website_data = json.loads(checks_raw) if checks_raw else {}
         except Exception:
             website_data = {}
-        return jsonify({"cached": True, "analysis": analysis, "website_data": website_data})
+        # Support both new format (JSON with scores) and old plain-text records
+        try:
+            stored = json.loads(raw)
+            if isinstance(stored, dict) and "analysis" in stored:
+                return jsonify({"cached": True, "analysis": stored["analysis"],
+                                "scores": stored.get("scores", {}), "website_data": website_data})
+        except Exception:
+            pass
+        return jsonify({"cached": True, "analysis": raw, "scores": {}, "website_data": website_data})
 
     # POST — run fresh analysis
     if not lead.get("website_url"):
@@ -195,14 +203,14 @@ Zaproponuj prostą stronę z formularzem kontaktowym lub systemem rezerwacji. 50
     # screenshots may be empty if Playwright/Chromium is unavailable — fall back to text-only
 
     try:
-        analysis = analyzer.analyze_website_visually(lead, screenshots, website_data)
+        result = analyzer.analyze_website_visually(lead, screenshots, website_data)
         db.update_lead(
             lead_id,
-            ai_analysis=analysis,
+            ai_analysis=json.dumps(result),
             website_checks=json.dumps(website_data or {}),
             generated_email="",
         )
-        return jsonify({"analysis": analysis, "website_data": website_data})
+        return jsonify({"analysis": result["analysis"], "scores": result.get("scores", {}), "website_data": website_data})
     except Exception as e:
         import traceback
         traceback.print_exc()  # full traceback in Railway logs
