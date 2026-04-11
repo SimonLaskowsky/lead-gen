@@ -104,7 +104,7 @@ Czy jasno widać: co oferują, dla kogo, ile kosztuje, jak się skontaktować? C
 **5. Najważniejsze rzeczy do poprawy**
 Podaj 3-4 konkretne zmiany które miałyby największy wpływ na konwersję.
 
-Pisz po polsku. Bądź szczery i konkretny — jak gdybyś płacił za ten audyt. Używaj punktorów i nagłówków z powyższej struktury."""
+Pisz po polsku. Bądź szczery i konkretny — jak gdybyś płacił za ten audyt. Używaj punktorów i nagłówków z powyższej struktury. Nie używaj emoji."""
 
     # Build message content — add screenshots only if available
     content = []
@@ -135,7 +135,7 @@ Pisz po polsku. Bądź szczery i konkretny — jak gdybyś płacił za ten audyt
 
     message = client.messages.create(
         model="claude-opus-4-6",
-        max_tokens=1500,
+        max_tokens=4500,
         messages=[{"role": "user", "content": content}],
     )
 
@@ -225,7 +225,7 @@ Struktura emaila:
 
 Zasady:
 - Maksymalnie 180 słów
-- Pisz w formie "my" (jesteśmy dwuosobowym studiem)
+- Pisz w formie "my" — ZAWSZE liczba mnoga (jesteśmy dwuosobowym studiem). Nigdy "znalazłem/znalazłam/sprawdziłem" — tylko "znalezliśmy/sprawdziliśmy". Żadnych form pierwszej osoby liczby pojedynczej.
 - Doceniaj {outsourced} — nie atakuj go, firma słusznie go używa
 - NIE brzmij pouczająco — pokaż szansę którą tracą, nie że coś zepsuli
 - Pierwsza linia: Temat: [temat]
@@ -262,7 +262,7 @@ Struktura emaila:
 
 Zasady:
 - Maksymalnie 180 słów
-- Pisz w formie "my" (jesteśmy dwuosobowym studiem)
+- Pisz w formie "my" — ZAWSZE liczba mnoga (jesteśmy dwuosobowym studiem). Nigdy "znalazłem/znalazłam/sprawdziłem" — tylko "znalezliśmy/sprawdziliśmy". Żadnych form pierwszej osoby liczby pojedynczej.
 - NIE brzmij pouczająco — pokaż szansę którą tracą
 - Pierwsza linia: Temat: [temat]
 - Podpisz się: Sand'n Studio (Szymon i Nikodem)
@@ -305,7 +305,7 @@ Struktura emaila (nie pisz nagłówków, po prostu tak go zbuduj):
 
 Zasady:
 - Maksymalnie 180 słów (krótko = szanujemy czas)
-- Pisz w formie "my" (jesteśmy dwuosobowym studiem)
+- Pisz w formie "my" — ZAWSZE liczba mnoga (jesteśmy dwuosobowym studiem). Nigdy "znalazłem/znalazłam/sprawdziłem" — tylko "znalezliśmy/sprawdziliśmy". Żadnych form pierwszej osoby liczby pojedynczej.
 - NIE brzmij pouczająco — właściciele firm są wrażliwi na krytykę
   Zamiast oceniać wprost → pokaż że tracą szansę, nie że coś zepsuli
   Przykład: "Szkoda żeby klienci szukający [branży] w Google trafiali do konkurencji zamiast do Państwa"
@@ -381,7 +381,7 @@ Struktura emaila (nie pisz nagłówków, po prostu tak go zbuduj):
 
 Zasady:
 - Maksymalnie 200 słów
-- Pisz w formie "my" (jesteśmy dwuosobowym studiem)
+- Pisz w formie "my" — ZAWSZE liczba mnoga (jesteśmy dwuosobowym studiem). Nigdy "znalazłem/znalazłam/sprawdziłem" — tylko "znalezliśmy/sprawdziliśmy". Żadnych form pierwszej osoby liczby pojedynczej.
 - KONKRETNY — odwołuj się do rzeczy które naprawdę znalazłeś na ich stronie
 - NIE brzmij pouczająco — nie oceniaj strony wprost, pokaż szansę którą tracą
   Źle: "Pana strona nie ma SSL" → Dobrze: "Szkoda żeby klienci widzieli 'Niezabezpieczona' zanim w ogóle zobaczą ofertę"
