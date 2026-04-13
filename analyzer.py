@@ -418,9 +418,16 @@ Zasady:
                     issues.append(f"H1 \"{website_data['h1_text']}\" nie zawiera frazy kluczowej — marketingowy, ale SEO-neutralny")
 
         if ai_analysis:
-            site_context = f"Szczegółowa analiza AI strony:\n{ai_analysis[:1200]}"
+            site_context = (
+                f"Szczegółowa analiza AI strony:\n{ai_analysis[:1200]}\n\n"
+                f"Dane techniczne (mogą być niepełne dla stron JS-rendered — traktuj jako wskazówki, nie pewniki):\n"
+                + "\n".join(f"- {i}" for i in issues)
+            ) if issues else f"Szczegółowa analiza AI strony:\n{ai_analysis[:1200]}"
         elif issues:
-            site_context = "Konkretne problemy znalezione na stronie:\n" + "\n".join(f"- {i}" for i in issues)
+            site_context = (
+                "Dane techniczne (automatyczny skaner — mogą być niepełne dla stron z JavaScriptem):\n"
+                + "\n".join(f"- {i}" for i in issues)
+            )
         else:
             site_context = "Strona wymaga modernizacji — przestarzały design, brak nowoczesnych elementów"
 
@@ -447,12 +454,14 @@ Napisz cold email który SPRZEDAJE modernizację strony.
 
 Struktura emaila (nie pisz nagłówków, po prostu tak go zbuduj):
 1. TEMAT: konkretny i niepokojący — np. "Sprawdziłem stronę [firma] — jest jeden problem który kosztuje Cię klientów"
-2. HOOK: zacznij od JEDNEGO konkretnego problemu który znalazłeś — opisz go tak jakbyś właśnie wyszedł ze strony, bo to prawda
+2. HOOK + KOMPLEMENT: zacznij od jednego konkretnego problemu, ALE najpierw doceń jedną rzecz która jest zrobiona dobrze — to pokazuje że naprawdę weszłeś na stronę i nie jesteś robotem
+   Przykład: "Weszliśmy na [strona] — piękny design i świetne zdjęcia. Jedna rzecz jednak rzuca się w oczy: [konkretny problem]"
 3. KOSZT PROBLEMU: przetłumacz ten problem na realne straty klientów/pieniędzy — użyj jednej trafnej statystyki
 4. RESZTA PROBLEMÓW: wymień 1-2 kolejne — ZAWSZE z konkretnymi liczbami lub faktami z danych
    Źle: "SEO wymaga poprawek" → Dobrze: "8 z 14 zdjęć nie ma alt text — Google ich nie indeksuje"
    Źle: "mało treści" → Dobrze: "297 słów na stronie głównej — Google potrzebuje 3x więcej dla lokalnego SEO"
    Źle: "H1 jest nieoptymalne" → Dobrze: "H1 'Doświadcz Prawdziwego Relaksu' jest piękny marketingowo, ale Google szuka tu frazy 'masaż Katowice'"
+   WAŻNE: dane techniczne mogą być niepełne (JS-rendered strony). Jeśli AI analiza mówi że coś JEST (np. przycisk CTA), nie pisz w emailu że go BRAK. Analiza AI > dane automatyczne.
 5. SOCIAL PROOF: wspomnij że pomogłeś już innym firmom w podobnej sytuacji, efekty
 6. OFERTA: wspomnij że wyceniamy indywidualnie po rozmowie (bez podawania kwoty), płatność podzielona na dwie raty — połowa na start, reszta gdy strona się podoba. Agencje biorą 3000–8000 PLN, my znacznie mniej.
 7. CTA: "Mamy już gotową listę konkretnych zmian dla [firma] — chce Pan/Pani zobaczyć?"
