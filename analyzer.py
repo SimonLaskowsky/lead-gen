@@ -389,6 +389,8 @@ Zasady:
                 issues.append("brak przycisku CTA — klient nie wie co ma zrobić żeby się skontaktować")
             if not website_data.get("has_contact_form"):
                 issues.append("brak formularza — można tylko zadzwonić, połowa klientów woli pisać")
+            if not website_data.get("has_phone"):
+                issues.append("brak numeru telefonu na stronie — klienci nie mogą zadzwonić bez szukania")
             if website_data.get("uses_tables_layout"):
                 issues.append("układ tabelkowy — design rodem z 2008 roku, wygląda nieprofesjonalnie")
             if website_data.get("has_dead_analytics"):
@@ -398,6 +400,22 @@ Zasady:
                 issues.append(f"PageSpeed {score}/100 — strona ładuje się bardzo wolno, większość użytkowników mobilnych wychodzi")
             elif score is not None and score < 80:
                 issues.append(f"PageSpeed {score}/100 — strona ładuje się wolno na telefonie")
+            # SEO specifics with real numbers
+            missing_alt = website_data.get("images_missing_alt", 0)
+            img_count = website_data.get("image_count", 0)
+            if missing_alt > 0 and img_count > 0:
+                issues.append(f"{missing_alt} z {img_count} zdjęć nie ma alt text — stracona szansa na pozycjonowanie obrazków w Google")
+            wc = website_data.get("word_count")
+            if wc is not None and wc < 400:
+                issues.append(f"tylko {wc} słów treści na stronie — Google preferuje minimum 500-800 słów dla lokalnego SEO")
+            if not website_data.get("has_h1"):
+                issues.append("brak tagu H1 — Google nie wie jaka jest główna fraza strony")
+            elif website_data.get("h1_text") and business_type:
+                # Check if business type keywords appear in H1
+                bt_words = business_type.lower().split()
+                h1_lower = website_data["h1_text"].lower()
+                if not any(w in h1_lower for w in bt_words if len(w) > 3):
+                    issues.append(f"H1 \"{website_data['h1_text']}\" nie zawiera frazy kluczowej — marketingowy, ale SEO-neutralny")
 
         if ai_analysis:
             site_context = f"Szczegółowa analiza AI strony:\n{ai_analysis[:1200]}"
@@ -431,7 +449,10 @@ Struktura emaila (nie pisz nagłówków, po prostu tak go zbuduj):
 1. TEMAT: konkretny i niepokojący — np. "Sprawdziłem stronę [firma] — jest jeden problem który kosztuje Cię klientów"
 2. HOOK: zacznij od JEDNEGO konkretnego problemu który znalazłeś — opisz go tak jakbyś właśnie wyszedł ze strony, bo to prawda
 3. KOSZT PROBLEMU: przetłumacz ten problem na realne straty klientów/pieniędzy — użyj jednej trafnej statystyki
-4. RESZTA PROBLEMÓW: wymień 1-2 kolejne (skrótowo)
+4. RESZTA PROBLEMÓW: wymień 1-2 kolejne — ZAWSZE z konkretnymi liczbami lub faktami z danych
+   Źle: "SEO wymaga poprawek" → Dobrze: "8 z 14 zdjęć nie ma alt text — Google ich nie indeksuje"
+   Źle: "mało treści" → Dobrze: "297 słów na stronie głównej — Google potrzebuje 3x więcej dla lokalnego SEO"
+   Źle: "H1 jest nieoptymalne" → Dobrze: "H1 'Doświadcz Prawdziwego Relaksu' jest piękny marketingowo, ale Google szuka tu frazy 'masaż Katowice'"
 5. SOCIAL PROOF: wspomnij że pomogłeś już innym firmom w podobnej sytuacji, efekty
 6. OFERTA: wspomnij że wyceniamy indywidualnie po rozmowie (bez podawania kwoty), płatność podzielona na dwie raty — połowa na start, reszta gdy strona się podoba. Agencje biorą 3000–8000 PLN, my znacznie mniej.
 7. CTA: "Mamy już gotową listę konkretnych zmian dla [firma] — chce Pan/Pani zobaczyć?"
@@ -439,7 +460,7 @@ Struktura emaila (nie pisz nagłówków, po prostu tak go zbuduj):
 Zasady:
 - Maksymalnie 200 słów
 - Pisz w formie "my" — ZAWSZE liczba mnoga (jesteśmy dwuosobowym studiem). Nigdy "znalazłem/znalazłam/sprawdziłem" — tylko "znalezliśmy/sprawdziliśmy". Żadnych form pierwszej osoby liczby pojedynczej.
-- KONKRETNY — odwołuj się do rzeczy które naprawdę znalazłeś na ich stronie
+- KONKRETNY Z LICZBAMI — jeśli masz dane liczbowe (ile zdjęć, ile słów, jaki wynik PageSpeed), użyj ich. Ogólniki jak "SEO wymaga poprawek" są bezużyteczne i niszczą wiarygodność — właściciel wie że coś można poprawić, pytanie co konkretnie
 - NIE brzmij pouczająco — nie oceniaj strony wprost, pokaż szansę którą tracą
   Źle: "Pana strona nie ma SSL" → Dobrze: "Szkoda żeby klienci widzieli 'Niezabezpieczona' zanim w ogóle zobaczą ofertę"
   Źle: "Strona jest nieresponsywna" → Dobrze: "Większość klientów szuka teraz na telefonie — warto to wykorzystać"
