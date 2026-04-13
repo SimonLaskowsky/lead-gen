@@ -388,9 +388,9 @@ Zasady:
             if not website_data.get("has_cta"):
                 issues.append("brak przycisku CTA — klient nie wie co ma zrobić żeby się skontaktować")
             if not website_data.get("has_contact_form"):
-                issues.append("brak formularza — można tylko zadzwonić, połowa klientów woli pisać")
+                issues.append("brak formularza kontaktowego na stronie głównej (może być na podstronie kontakt) — połowa klientów woli napisać niż dzwonić")
             if not website_data.get("has_phone"):
-                issues.append("brak numeru telefonu na stronie — klienci nie mogą zadzwonić bez szukania")
+                issues.append("numer telefonu niewidoczny na stronie głównej (może być na podstronie) — klient mobilny który trafi z Google nie zadzwoni bez szukania")
             if website_data.get("uses_tables_layout"):
                 issues.append("układ tabelkowy — design rodem z 2008 roku, wygląda nieprofesjonalnie")
             if website_data.get("has_dead_analytics"):
@@ -462,6 +462,7 @@ Struktura emaila (nie pisz nagłówków, po prostu tak go zbuduj):
    Źle: "mało treści" → Dobrze: "297 słów na stronie głównej — Google potrzebuje 3x więcej dla lokalnego SEO"
    Źle: "H1 jest nieoptymalne" → Dobrze: "H1 'Doświadcz Prawdziwego Relaksu' jest piękny marketingowo, ale Google szuka tu frazy 'masaż Katowice'"
    WAŻNE: dane techniczne mogą być niepełne (JS-rendered strony). Jeśli AI analiza mówi że coś JEST (np. przycisk CTA), nie pisz w emailu że go BRAK. Analiza AI > dane automatyczne.
+   WAŻNE 2: nigdy nie mów "brak X" jeśli X może istnieć na podstronie (np. formularz na /kontakt). Mów "X niewidoczny od razu" lub "klient musi szukać X" — to uczciwe i nie podważa wiarygodności gdy właściciel widzi że X jednak jest.
 5. SOCIAL PROOF: wspomnij że pomogłeś już innym firmom w podobnej sytuacji, efekty
 6. OFERTA: wspomnij że wyceniamy indywidualnie po rozmowie (bez podawania kwoty), płatność podzielona na dwie raty — połowa na start, reszta gdy strona się podoba. Agencje biorą 3000–8000 PLN, my znacznie mniej.
 7. CTA: "Mamy już gotową listę konkretnych zmian dla [firma] — chce Pan/Pani zobaczyć?"
