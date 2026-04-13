@@ -81,7 +81,7 @@ def analyze_website_visually(lead: dict, screenshots: dict, website_data: dict |
         if website_data.get("title"):
             tech_facts.append(f"Tytuł strony: {website_data['title']}")
         if website_data.get("meta_description"):
-            tech_facts.append(f"Meta desc: {website_data['meta_description'][:120]}")
+            tech_facts.append(f"Meta desc: {website_data['meta_description']}")
         # New checks
         if not website_data.get("has_h1"):
             tech_facts.append("H1: BRAK — Google nie wie jaka jest główna fraza strony")
