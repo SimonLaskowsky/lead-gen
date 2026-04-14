@@ -449,38 +449,49 @@ URL: {lead.get('website_url', '')}
 
 {stats_arsenal}
 
+=== ZANIM ZACZNIESZ PISAĆ — zrób tę analizę w głowie ===
+Przeczytaj dane o stronie i odpowiedz sobie na jedno pytanie:
+"Co na tej konkretnej stronie NAJBARDZIEJ blokuje klienta przed rezerwacją/kontaktem?"
+
+To NIE jest zawsze brak H1 ani brak alt textów. Może to być:
+- strona główna która nie komunikuje co firma robi (klient się gubi i wychodzi)
+- brak opinii klientów (w branży beauty/usługowej to zabójcze — ludzie nie ufają bez recenzji)
+- formularz kontaktowy zakopany 3 scrolle w dół
+- hero który pokazuje voucher zamiast głównej oferty
+- strona która wygląda jak katalog a nie jak zaproszenie do rezerwacji
+
+Techniczne problemy (alt texty, word count) to WSPARCIE dla głównego argumentu, nie sam argument.
+Jeśli masz silny problem strategiczny — zacznij od niego. Alt texty wspomnij tylko jeśli nie ma nic ważniejszego.
+
 === ZADANIE ===
 Napisz cold email który SPRZEDAJE modernizację strony.
 
 Struktura emaila (nie pisz nagłówków, po prostu tak go zbuduj):
-1. TEMAT: konkretny i niepokojący — np. "Sprawdziłem stronę [firma] — jest jeden problem który kosztuje Cię klientów"
-2. HOOK + KOMPLEMENT: zacznij od jednego konkretnego problemu, ALE najpierw doceń jedną rzecz która jest zrobiona dobrze — to pokazuje że naprawdę weszłeś na stronę i nie jesteś robotem
-   Przykład: "Weszliśmy na [strona] — piękny design i świetne zdjęcia. Jedna rzecz jednak rzuca się w oczy: [konkretny problem]"
-3. KOSZT PROBLEMU: przetłumacz ten problem na realne straty klientów/pieniędzy — użyj jednej trafnej statystyki
-4. RESZTA PROBLEMÓW: wymień 1-2 kolejne — ZAWSZE z konkretnymi liczbami lub faktami z danych
-   Źle: "SEO wymaga poprawek" → Dobrze: "8 z 14 zdjęć nie ma alt text — Google ich nie indeksuje"
-   Źle: "mało treści" → Dobrze: "297 słów na stronie głównej — Google potrzebuje 3x więcej dla lokalnego SEO"
-   Źle: "H1 jest nieoptymalne" → Dobrze: "H1 'Doświadcz Prawdziwego Relaksu' jest piękny marketingowo, ale Google szuka tu frazy 'masaż Katowice'"
-   WAŻNE: dane techniczne mogą być niepełne (JS-rendered strony). Jeśli AI analiza mówi że coś JEST (np. przycisk CTA), nie pisz w emailu że go BRAK. Analiza AI > dane automatyczne.
-   WAŻNE 2: nigdy nie mów "brak X" jeśli X może istnieć na podstronie (np. formularz na /kontakt). Mów "X niewidoczny od razu" lub "klient musi szukać X" — to uczciwe i nie podważa wiarygodności gdy właściciel widzi że X jednak jest.
-5. SOCIAL PROOF: wspomnij że pomogłeś już innym firmom w podobnej sytuacji, efekty
-6. OFERTA: wspomnij że wyceniamy indywidualnie po rozmowie (bez podawania kwoty), płatność podzielona na dwie raty — połowa na start, reszta gdy strona się podoba. Agencje biorą 3000–8000 PLN, my znacznie mniej.
+1. TEMAT: konkretny — nazwij główny problem który znalazłeś, nie ogólne "kilka rzeczy"
+2. HOOK + KOMPLEMENT: najpierw doceń jedną rzecz która jest zrobiona dobrze (pokazuje że naprawdę weszłeś), potem JEDEN konkretny problem — ten najbardziej kosztowny dla tego biznesu
+   Przykład: "Weszliśmy na [strona] — piękny design, widać dbałość o estetykę. Jedna rzecz jednak rzuca się w oczy: [KONKRETNY PROBLEM KTÓRY BOLI TEN BIZNES]"
+3. KOSZT PROBLEMU: przetłumacz na realne straty — ilu klientów odchodzi, ile rezerwacji traci. Jedna trafna statystyka.
+4. DRUGI PROBLEM: wybierz ten który ma NAJWIĘKSZY wpływ na konwersję dla tego konkretnego biznesu i branży — nie ten który jest najłatwiejszy do wymienienia
+   - Dla salonu beauty: brak opinii/social proof > brak alt textów
+   - Dla hydraulika: brak numeru telefonu above fold > brak meta description
+   - Dla restauracji: brak menu na stronie głównej > brak H1
+   Jeśli używasz liczb (alt texty, word count) — to OK, ale tylko jeśli nie ma ważniejszego problemu biznesowego
+   WAŻNE: dane automatyczne mogą być niepełne dla stron JS. Analiza AI > dane ze scrapera gdy się różnią.
+   WAŻNE 2: nigdy "brak X" jeśli X może być na podstronie. Mów "X niewidoczny od razu".
+5. SOCIAL PROOF: pomogliśmy już podobnym firmom, efekty
+6. OFERTA: wyceniamy indywidualnie, płatność na pół, agencje 3000–8000 PLN my znacznie mniej
 7. CTA: "Mamy już gotową listę konkretnych zmian dla [firma] — chce Pan/Pani zobaczyć?"
 
 Zasady:
 - Maksymalnie 200 słów
-- Pisz w formie "my" — ZAWSZE liczba mnoga (jesteśmy dwuosobowym studiem). Nigdy "znalazłem/znalazłam/sprawdziłem" — tylko "znalezliśmy/sprawdziliśmy". Żadnych form pierwszej osoby liczby pojedynczej.
-- KONKRETNY Z LICZBAMI — jeśli masz dane liczbowe (ile zdjęć, ile słów, jaki wynik PageSpeed), użyj ich. Ogólniki jak "SEO wymaga poprawek" są bezużyteczne i niszczą wiarygodność — właściciel wie że coś można poprawić, pytanie co konkretnie
-- NIE brzmij pouczająco — nie oceniaj strony wprost, pokaż szansę którą tracą
-  Źle: "Pana strona nie ma SSL" → Dobrze: "Szkoda żeby klienci widzieli 'Niezabezpieczona' zanim w ogóle zobaczą ofertę"
-  Źle: "Strona jest nieresponsywna" → Dobrze: "Większość klientów szuka teraz na telefonie — warto to wykorzystać"
-- Jedna konkretna statystyka (pasująca do głównego problemu)
+- Pisz w formie "my" — ZAWSZE liczba mnoga. Nigdy "znalazłem/sprawdziłem" — tylko "znalezliśmy/sprawdziliśmy"
+- NIE zaczynaj od powitania ("Dzień dobry", "Cześć") — zacznij od treści
+- NIE brzmij pouczająco — pokaż szansę którą tracą, nie oceniaj strony
+- Jedna konkretna statystyka pasująca do głównego problemu
 - Pierwsza linia: Temat: [temat]
 - Podpisz się: Sand'n Studio (Szymon i Nikodem)
-- Nie używaj korporacyjnego języka
-- Zacznij od haka, nie od "Dzień dobry"
 - Wspomnij portfolio: sandnstudio.pl
-- NIE dodawaj P.S. — CTA w punkcie 7 jest wystarczające i mówi dokładnie to samo co P.S. by mówił. Jeden wyraźny hak na końcu wystarczy.
+- NIE dodawaj P.S.
 """
 
     message = client.messages.create(
