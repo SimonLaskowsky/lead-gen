@@ -123,7 +123,7 @@ def analyze_website_visually(lead: dict, screenshots: dict, website_data: dict |
         f"**3. Mobile**\nBrak meta viewport: {'TAK — strona NIE jest responsywna' if website_data and not website_data.get('has_mobile_viewport') else 'jest responsywna'}. Oceń konsekwencje."
     )
 
-    prompt = f"""Jesteś senior konsultantem ds. web designu i marketingu cyfrowego. Przeprowadzasz pełny audyt strony polskiego lokalnego biznesu.
+    prompt = f"""Jesteś bezwzględnym, ale genialnym dyrektorem ds. konwersji i psychologii sprzedaży w internecie. Przeprowadzasz brutalnie szczery audyt strony polskiego lokalnego biznesu, aby znaleźć powody, przez które firma traci klientów na rzecz konkurencji.
 
 === DANE FIRMY ===
 Firma: {lead.get('business_name', '')}
@@ -137,23 +137,25 @@ URL: {lead.get('website_url', '')}
 === TWOJE ZADANIE ===
 {visual_instruction}
 
-Oceń każdy punkt konkretnie — nie ogólnikowo:
+Przeprowadź analizę, skupiając się na psychologii klienta i konwersji. Unikaj ogólników typu "strona jest ładna/nieładna". Pisz szczerze, bezpośrednio i technicznie konstruktywnie.
 
-**1. Pierwsze wrażenie (3-5 sekund)**
-Czy strona od razu komunikuje czym się firma zajmuje? Czy wygląda profesjonalnie? Czy zachęca do zostania?
+Zastosuj poniższą strukturę:
 
-**2. Design i estetyka**
-Kolory, typografia, jakość zdjęć/grafik, spójność wizualna. Czy wygląda nowocześnie czy jak relikt lat 2010?
+**1. Analiza pierwszego ekranu (Above the fold) i pierwsze 3 sekundy**
+- Co widzi użytkownik zanim zacznie przewijać stronę? Czy w ciągu 3 sekund wie CZYM zajmuje się firma i w JAKIM mieście/rejonie działa?
+- Czy na pierwszym ekranie jest widoczny, bezpośredni i klikalny przycisk Call-To-Action (np. "Zadzwoń teraz", "Bezpłatna wycena")? Jeśli nie, opisz jak bardzo utrudnia to kontakt.
 
+**2. Krytyczne błędy techniczne i zaufanie (Trust Flags)**
+- Przeanalizuj wpływ braku SSL, błędów PageSpeed, braku nagłówka H1 lub martwego Google Analytics na biznes firmy.
+- Jak błędy techniczne wpływają na pozycję w Google (SEO) oraz na podświadome poczucie bezpieczeństwa klienta, który ma podać swoje dane lub zadzwonić?
+
+**3. Doświadczenie mobilne (Mobile UX)**
 {mobile_section}
 
-**4. Treść i komunikacja**
-Czy jasno widać: co oferują, dla kogo, ile kosztuje, jak się skontaktować? Czy są opinie klientów?
+**4. Lista 3 najważniejszych zmian o najwyższym ROI**
+- Wypisz dokładnie 3 konkretne, techniczne zmiany na stronie, które natychmiast podniosą liczbę telefonów i zapytań od klientów.
 
-**5. Najważniejsze rzeczy do poprawy**
-Podaj 3-4 konkretne zmiany które miałyby największy wpływ na konwersję.
-
-Pisz po polsku. Bądź szczery i konkretny — jak gdybyś płacił za ten audyt. Używaj punktorów i nagłówków z powyższej struktury. Nie używaj emoji.
+Pisz wyłącznie po polsku. Nie używaj emoji. Bądź precyzyjny.
 
 === FORMAT ODPOWIEDZI ===
 Zacznij odpowiedź od JEDNEJ linii z ocenami 1-10 (przed całą analizą):
@@ -434,65 +436,36 @@ Zasady:
         if my_feedback:
             site_context += f"\n\nDodatkowe spostrzeżenia (wpleć naturalnie w email, nie wyróżniaj jako osobnej sekcji):\n{my_feedback}"
 
-        prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Sand'n Studio — dwuosobowego studia web developerskiego które oferuje modernizację strony lokalnej firmie.
+        audit_text = site_context
 
-{sender_context}
+        prompt = f"""Jesteś genialnym copywriterem specjalizującym się w cold mailingu B2B do lokalnych firm handlowo-usługowych w Polsce. Twoim zadaniem jest napisanie otwierającej wiadomości e-mail na podstawie dostarczonego audytu strony internetowej.
 
 === DANE FIRMY ===
 Firma: {business_name}
 Typ biznesu: {business_type}
-Miasto: {city}
 URL: {lead.get('website_url', '')}
 
-=== CO ZNALAZŁ NA STRONIE ===
-{site_context}
+=== WYNIKI AUDYTU STRONY (ŹRÓDŁO WIEDZY) ===
+{audit_text}
 
-{stats_arsenal}
+=== WYTYCZNE DLA COLD MAILA ===
+1. Zwrot do adresata: "Dzień dobry" lub "Panie/Pani [imię jeśli znasz]". Pisz per Pan/Pani, szanując tradycyjne podejście lokalnych przedsiębiorców. Żadnego "Cześć" na start.
+2. Temat maila: Intrygujący, bezpośredni, nawiązujący do smartfona i konkretnego błędu ze źródłowego audytu (np. "Wszedłem na [domena] z telefonu — klienci mogą nie doczekać się wyceny").
+3. Wstęp: Wykorzystaj kontekst lokalny i psychologiczny (np. "Wyszukałem [Nazwa Firmy] na telefonie, udając klienta z [Miasto/Region], któremu pilnie potrzebna jest pomoc...").
+4. Rozwinięcie: Wybierz z dostarczonego audytu maksymalnie 2 najważniejsze, najbardziej bolesne błędy biznesowe (np. brak SSL, ukryty przycisk kontaktu, nakładający się baner). Wyjaśnij je prostym językiem korzyści (nie pisz o "responsywności", napisz o "klientach z telefonów, którzy uciekają z braku widocznego numeru").
+5. Kim jesteście: "Jesteśmy Sand'n Studio — dwuosobowy zespół programistów z Polski. Bierzemy na warsztat witryny lokalnych firm i sprawnie przebudowujemy je tak, aby generowały więcej telefonów. Nasze realizacje: sandnstudio.pl".
+6. Kotwica cenowa i warunki: Wskaż, że duże agencje biorą za to 3000-8000 PLN. U Was ceny poprawek i liftingu zaczynają się od 1900 PLN. Płatność dzielona 50/50 — reszta dopiero, gdy nowa wersja w pełni się podoba.
+7. Call to Action (Haczyk): Zaproponuj podrzucenie bezpłatnego, prostego podglądu (mockupu) ekranu głównego po optymalizacji. Zapytaj na końcu: "Czy mogę podesłać ten bezpłatny podgląd do rzucenia okiem?".
 
-=== ZANIM ZACZNIESZ PISAĆ — zrób tę analizę w głowie ===
-Przeczytaj dane o stronie i odpowiedz sobie na jedno pytanie:
-"Co na tej konkretnej stronie NAJBARDZIEJ blokuje klienta przed rezerwacją/kontaktem?"
+=== ZASADY STYLU ===
+- Pisz krótko, konkretnie, bez lania wody i bez marketingu korporacyjnego.
+- Mail ma wyglądać tak, jakby Szymon lub Nikodem napisali go ręcznie w 3 minuty po wejściu na stronę klienta.
+- Całkowity zakaz używania emoji.
+- Odpowiedz WYŁĄCZNIE gotową treścią maila (Temat + Treść), bez żadnych dodatkowych komentarzy od AI przed czy po tekście.
 
-To NIE jest zawsze brak H1 ani brak alt textów. Może to być:
-- strona główna która nie komunikuje co firma robi (klient się gubi i wychodzi)
-- brak opinii klientów (w branży beauty/usługowej to zabójcze — ludzie nie ufają bez recenzji)
-- formularz kontaktowy zakopany 3 scrolle w dół
-- hero który pokazuje voucher zamiast głównej oferty
-- strona która wygląda jak katalog a nie jak zaproszenie do rezerwacji
-
-Techniczne problemy (alt texty, word count) to WSPARCIE dla głównego argumentu, nie sam argument.
-Jeśli masz silny problem strategiczny — zacznij od niego. Alt texty wspomnij tylko jeśli nie ma nic ważniejszego.
-
-=== ZADANIE ===
-Napisz cold email który SPRZEDAJE modernizację strony.
-
-Struktura emaila (nie pisz nagłówków, po prostu tak go zbuduj):
-1. TEMAT: konkretny — nazwij główny problem który znalazłeś, nie ogólne "kilka rzeczy"
-2. HOOK + KOMPLEMENT: najpierw doceń jedną rzecz która jest zrobiona dobrze (pokazuje że naprawdę weszłeś), potem JEDEN konkretny problem — ten najbardziej kosztowny dla tego biznesu
-   Przykład: "Weszliśmy na [strona] — piękny design, widać dbałość o estetykę. Jedna rzecz jednak rzuca się w oczy: [KONKRETNY PROBLEM KTÓRY BOLI TEN BIZNES]"
-3. KOSZT PROBLEMU: przetłumacz na realne straty — ilu klientów odchodzi, ile rezerwacji traci. Jedna trafna statystyka.
-4. DRUGI PROBLEM: wybierz ten który ma NAJWIĘKSZY wpływ na konwersję dla tego konkretnego biznesu i branży — nie ten który jest najłatwiejszy do wymienienia
-   - Dla salonu beauty: brak opinii/social proof > brak alt textów
-   - Dla hydraulika: brak numeru telefonu above fold > brak meta description
-   - Dla restauracji: brak menu na stronie głównej > brak H1
-   Jeśli używasz liczb (alt texty, word count) — to OK, ale tylko jeśli nie ma ważniejszego problemu biznesowego
-   WAŻNE: dane automatyczne mogą być niepełne dla stron JS. Analiza AI > dane ze scrapera gdy się różnią.
-   WAŻNE 2: nigdy "brak X" jeśli X może być na podstronie. Mów "X niewidoczny od razu".
-5. SOCIAL PROOF: pomogliśmy już podobnym firmom, efekty
-6. OFERTA: wyceniamy indywidualnie, płatność na pół, agencje 3000–8000 PLN my znacznie mniej
-7. CTA: "Mamy już gotową listę konkretnych zmian dla [firma] — chce Pan/Pani zobaczyć?"
-
-Zasady:
-- Maksymalnie 200 słów
-- Pisz w formie "my" — ZAWSZE liczba mnoga. Nigdy "znalazłem/sprawdziłem" — tylko "znalezliśmy/sprawdziliśmy"
-- NIE zaczynaj od powitania ("Dzień dobry", "Cześć") — zacznij od treści
-- NIE brzmij pouczająco — pokaż szansę którą tracą, nie oceniaj strony
-- Jedna konkretna statystyka pasująca do głównego problemu
-- Pierwsza linia: Temat: [temat]
-- Podpisz się: Sand'n Studio (Szymon i Nikodem)
-- Wspomnij portfolio: sandnstudio.pl
-- NIE dodawaj P.S.
-"""
+Podpisz maila:
+Sand'n Studio
+Szymon i Nikodem"""
 
     message = client.messages.create(
         model="claude-opus-4-6",
