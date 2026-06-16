@@ -420,11 +420,20 @@ Zasady:
                     issues.append(f"H1 \"{website_data['h1_text']}\" nie zawiera frazy kluczowej — marketingowy, ale SEO-neutralny")
 
         if ai_analysis:
+            # ai_analysis may be a JSON blob ({"scores":..., "analysis":...}) — extract clean text
+            analysis_text = ai_analysis
+            try:
+                import json as _json
+                parsed = _json.loads(ai_analysis)
+                if isinstance(parsed, dict) and parsed.get("analysis"):
+                    analysis_text = parsed["analysis"]
+            except Exception:
+                pass
             site_context = (
-                f"Szczegółowa analiza AI strony:\n{ai_analysis[:1200]}\n\n"
+                f"Szczegółowa analiza AI strony:\n{analysis_text}\n\n"
                 f"Dane techniczne (mogą być niepełne dla stron JS-rendered — traktuj jako wskazówki, nie pewniki):\n"
                 + "\n".join(f"- {i}" for i in issues)
-            ) if issues else f"Szczegółowa analiza AI strony:\n{ai_analysis[:1200]}"
+            ) if issues else f"Szczegółowa analiza AI strony:\n{analysis_text}"
         elif issues:
             site_context = (
                 "Dane techniczne (automatyczny skaner — mogą być niepełne dla stron z JavaScriptem):\n"
@@ -452,14 +461,17 @@ URL: {lead.get('website_url', '')}
 1. Zwrot do adresata: "Dzień dobry" lub "Panie/Pani [imię jeśli znasz]". Pisz per Pan/Pani, szanując tradycyjne podejście lokalnych przedsiębiorców. Żadnego "Cześć" na start.
 2. Temat maila: Intrygujący, bezpośredni, nawiązujący do smartfona i konkretnego błędu ze źródłowego audytu (np. "Wszedłem na [domena] z telefonu — klienci mogą nie doczekać się wyceny").
 3. Wstęp: Wykorzystaj kontekst lokalny i psychologiczny (np. "Wyszukałem [Nazwa Firmy] na telefonie, udając klienta z [Miasto/Region], któremu pilnie potrzebna jest pomoc...").
-4. Rozwinięcie: Wybierz z dostarczonego audytu maksymalnie 2 najważniejsze, najbardziej bolesne błędy biznesowe (np. brak SSL, ukryty przycisk kontaktu, nakładający się baner). Wyjaśnij je prostym językiem korzyści (nie pisz o "responsywności", napisz o "klientach z telefonów, którzy uciekają z braku widocznego numeru").
-5. Kim jesteście: "Jesteśmy Sand'n Studio — dwuosobowy zespół programistów z Polski. Bierzemy na warsztat witryny lokalnych firm i sprawnie przebudowujemy je tak, aby generowały więcej telefonów. Nasze realizacje: sandnstudio.pl".
-6. Kotwica cenowa i warunki: Wskaż, że duże agencje biorą za to 3000-8000 PLN. U Was ceny poprawek i liftingu zaczynają się od 1900 PLN. Płatność dzielona 50/50 — reszta dopiero, gdy nowa wersja w pełni się podoba.
-7. Call to Action (Haczyk): Zaproponuj podrzucenie bezpłatnego, prostego podglądu (mockupu) ekranu głównego po optymalizacji. Zapytaj na końcu: "Czy mogę podesłać ten bezpłatny podgląd do rzucenia okiem?".
+4. Rozwinięcie (NAJWAŻNIEJSZE — tu pokazujesz głębię analizy): Z dostarczonego audytu wybierz 1 najboleśniejszy błąd biznesowy i rozwiń go najmocniej w 2-3 zdaniach językiem korzyści (nie "responsywność", lecz "klienci z telefonów uciekają, bo nie widzą numeru"). To Twój główny haczyk.
+5. Krótka lista "co jeszcze wyłapaliśmy": Zaraz po głównym problemie dorzuć zwięzłą wypunktowaną listę 3-4 KOLEJNYCH konkretnych usterek z audytu (np. brak SSL, martwy Google Analytics, brak nagłówka H1, wolne ładowanie, brak opinii, ukryty formularz). Każdy punkt jedno krótkie zdanie — chodzi o pokazanie, że naprawdę przeszliśmy stronę punkt po punkcie, a nie wysłaliśmy masówki. Wybieraj punkty REALNIE obecne w audycie, nie zmyślaj.
+6. Sygnał, że to dopiero wierzchołek: Po liście dodaj jedno zdanie w stylu "To tylko część tego, co znaleźliśmy — pełną listę z konkretnymi poprawkami mamy spisaną i chętnie prześlemy". Pokaż, że za mailem stoi solidny, obszerny audyt, a nie kilka ogólników.
+7. Kim jesteście: "Jesteśmy Sand'n Studio — dwuosobowy zespół programistów z Polski. Bierzemy na warsztat witryny lokalnych firm i sprawnie przebudowujemy je tak, aby generowały więcej telefonów. Nasze realizacje: sandnstudio.pl".
+8. Kotwica cenowa i warunki: Wskaż, że duże agencje biorą za to 3000-8000 PLN. U Was ceny poprawek i liftingu zaczynają się od 1900 PLN. Płatność dzielona 50/50 — reszta dopiero, gdy nowa wersja w pełni się podoba.
+9. Call to Action (Haczyk): Zaproponuj podrzucenie bezpłatnego, prostego podglądu (mockupu) ekranu głównego po optymalizacji. Zapytaj na końcu: "Czy mogę podesłać ten bezpłatny podgląd do rzucenia okiem?".
 
 === ZASADY STYLU ===
-- Pisz krótko, konkretnie, bez lania wody i bez marketingu korporacyjnego.
-- Mail ma wyglądać tak, jakby Szymon lub Nikodem napisali go ręcznie w 3 minuty po wejściu na stronę klienta.
+- Pisz zwięźle i konkretnie, bez lania wody i bez marketingu korporacyjnego — ale NIE skracaj listy usterek z punktu 5, ona ma robić wrażenie skrupulatności.
+- Mail ma wyglądać tak, jakby Szymon lub Nikodem napisali go ręcznie po dokładnym przejściu strony — ma czuć się jak realny, szczegółowy audyt, nie szablon.
+- Główny problem rozwiń, resztę usterek podaj telegraficznie w punktach — kontrast między głębią a listą buduje poczucie, że masz tego dużo więcej.
 - Całkowity zakaz używania emoji.
 - Odpowiedz WYŁĄCZNIE gotową treścią maila (Temat + Treść), bez żadnych dodatkowych komentarzy od AI przed czy po tekście.
 
@@ -469,7 +481,7 @@ Szymon i Nikodem"""
 
     message = client.messages.create(
         model="claude-opus-4-6",
-        max_tokens=800,
+        max_tokens=1200,
         messages=[{"role": "user", "content": prompt}],
     )
 
