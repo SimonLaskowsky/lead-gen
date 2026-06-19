@@ -165,6 +165,10 @@ def scrape_website(url: str) -> dict | None:
         # Get full text before decomposing tags (for email extraction)
         full_text = soup.get_text(separator=" ")
 
+        # Collect emails from mailto: links — cleanest source, often hidden in
+        # href attributes that never appear in visible text
+        mailto_emails = _mailto_emails(soup)
+
         # Decompose noise tags for clean AI text
         for tag in soup(["script", "style", "head"]):
             tag.decompose()
@@ -242,6 +246,7 @@ def scrape_website(url: str) -> dict | None:
             "pagespeed_fcp": pagespeed.get("first_contentful_paint") if pagespeed else None,
             "text_preview": clean_text,
             "full_text": full_text[:5000],
+            "mailto_emails": mailto_emails,
             "status_code": resp.status_code,
         }
     except requests.exceptions.SSLError:
@@ -420,11 +425,138 @@ def screenshot_html(html: str, width: int = 1280) -> bytes | None:
         return None
 
 
-def extract_email_from_website(website_data: dict | None) -> str:
+EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b")
+
+# Junk substrings — template/plugin/tracking addresses, never the business contact
+EMAIL_SKIP = [
+    "noreply", "no-reply", "wordpress", "example", "woocommerce", "schema",
+    "sentry", "@2x", "test@", "@sentry", "@example", "your-email", "youremail",
+    "domain.com", "email@", "name@", "@email", ".png", ".jpg", ".gif", ".webp",
+]
+
+# Local-parts that signal a real contact inbox — preferred over random hits
+ROLE_PREFIXES = (
+    "kontakt", "biuro", "info", "office", "recepcja", "salon", "rezerwacje",
+    "zapisy", "hello", "hi", "sekretariat", "sklep", "zamowienia", "poczta",
+)
+
+# Common contact subpages probed when the homepage yields no email
+CONTACT_PATHS = ["/kontakt", "/kontakt/", "/kontakt.html", "/contact", "/contact/", "/o-nas"]
+
+
+def _mailto_emails(soup) -> list[str]:
+    """Pull addresses out of <a href="mailto:..."> links."""
+    out = []
+    for a in soup.find_all("a", href=True):
+        href = a.get("href") or ""
+        if href.lower().startswith("mailto:"):
+            addr = href[7:].split("?")[0].strip()
+            if addr:
+                out.append(addr)
+    return out
+
+
+def _deobfuscate(text: str) -> str:
+    """Normalise common anti-scrape obfuscations into real @ / . characters."""
+    t = re.sub(r"\s*[\[\(\{]\s*(?:at|małpa|małpka|monkey)\s*[\]\)\}]\s*", "@", text, flags=re.I)
+    t = re.sub(r"\s*[\[\(\{]\s*(?:dot|kropka)\s*[\]\)\}]\s*", ".", t, flags=re.I)
+    return t
+
+
+def _domain_of(url: str) -> str:
+    """Registrable host of a URL, without www. — used to spot same-domain emails."""
+    try:
+        from urllib.parse import urlparse
+        return urlparse(url).netloc.lower().lstrip("www.")
+    except Exception:
+        return ""
+
+
+def _pick_best_email(mailto: list[str], text_emails: list[str], domain: str = "") -> str:
+    """Rank candidates: same-domain > mailto link > role inbox. Return the best."""
+    domain = (domain or "").lower().lstrip("www.")
+    scores: dict[str, int] = {}
+    for source, bonus in ((mailto, 50), (text_emails, 0)):
+        for raw in source:
+            e = raw.strip().strip(".").lower()
+            if not e or "@" not in e or any(s in e for s in EMAIL_SKIP):
+                continue
+            local, _, dom = e.partition("@")
+            score = bonus
+            if domain and (dom == domain or dom.endswith("." + domain)):
+                score += 100
+            if local in ROLE_PREFIXES or any(local.startswith(p) for p in ROLE_PREFIXES):
+                score += 10
+            scores[e] = max(scores.get(e, -1), score)
+    if not scores:
+        return ""
+    return max(scores, key=scores.get)
+
+
+def extract_email_from_website(website_data: dict | None, domain: str = "") -> str:
+    """Best contact email from already-scraped page data (mailto links + text)."""
     if not website_data or website_data.get("error"):
         return ""
     text = website_data.get("full_text", "") + " " + website_data.get("text_preview", "")
-    emails = re.findall(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b", text)
-    skip = ["noreply", "no-reply", "wordpress", "example", "woocommerce", "schema", "sentry", "@2x", "test@"]
-    emails = [e for e in emails if not any(s in e.lower() for s in skip)]
-    return emails[0] if emails else ""
+    text = text + " " + _deobfuscate(text)
+    text_emails = EMAIL_RE.findall(text)
+    return _pick_best_email(website_data.get("mailto_emails", []), text_emails, domain)
+
+
+def _emails_from_url(url: str, domain: str) -> str:
+    """Lightweight fetch of a single page (no PageSpeed/screenshots) for an email."""
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=8)
+        if resp.status_code >= 400:
+            return ""
+        soup = BeautifulSoup(resp.content, "html.parser")
+        data = {"mailto_emails": _mailto_emails(soup), "full_text": soup.get_text(separator=" ")}
+        return extract_email_from_website(data, domain)
+    except Exception:
+        return ""
+
+
+def _emails_via_browser(url: str, domain: str) -> str:
+    """Last resort: render a page with Playwright to catch JS-injected emails."""
+    try:
+        from playwright.sync_api import sync_playwright
+
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            try:
+                page.goto(url, timeout=30000, wait_until="networkidle")
+            except Exception:
+                page.goto(url, timeout=30000, wait_until="load")
+                page.wait_for_timeout(2000)
+            data = {
+                "full_text": page.inner_text("body"),
+                "mailto_emails": _mailto_emails(BeautifulSoup(page.content(), "html.parser")),
+            }
+            browser.close()
+        return extract_email_from_website(data, domain)
+    except Exception as e:
+        print(f"Browser email lookup failed for {url}: {e}")
+        return ""
+
+
+def find_contact_email(website_url: str, homepage_data: dict | None) -> str:
+    """Email from the homepage; if none, probe /kontakt subpages, then JS render."""
+    domain = _domain_of(website_url)
+    email = extract_email_from_website(homepage_data, domain)
+    if email or not website_url:
+        return email
+
+    from urllib.parse import urljoin
+    for path in CONTACT_PATHS:
+        email = _emails_from_url(urljoin(website_url, path), domain)
+        if email:
+            return email
+
+    # Static scraping found nothing — the email is likely injected by JavaScript.
+    # Render with a real browser as a last resort (homepage, then contact page).
+    for target in (website_url, urljoin(website_url, "/kontakt/")):
+        email = _emails_via_browser(target, domain)
+        if email:
+            return email
+    return ""

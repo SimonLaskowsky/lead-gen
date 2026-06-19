@@ -109,7 +109,7 @@ def search():
         website_data = None
         if lead.get("website_url"):
             website_data = scraper.scrape_website(lead["website_url"])
-            email = scraper.extract_email_from_website(website_data)
+            email = scraper.find_contact_email(lead["website_url"], website_data)
         else:
             email = ""
 
