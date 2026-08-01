@@ -6,19 +6,23 @@
   <title>Lead Gen</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; }
 
     :root {
-      --bg: #140c07;
-      --surface: rgba(35,22,14,0.86);
-      --border: #4a3220;
-      --text: #f2e2c4;
-      --muted: #b18a5c;
-      --primary: #c9922f;
-      --primary-soft: rgba(201,146,47,0.15);
-      --primary-dark: #e0ae4b;
+      --bg: #05070a;
+      --surface: rgba(12,17,23,0.92);
+      --panel-2: #080b10;
+      --border: rgba(125,160,180,0.16);
+      --text: #dde7ef;
+      --muted: #78899a;
+      --primary: #f6b23a;
+      --primary-soft: rgba(246,178,58,0.13);
+      --primary-dark: #ffc866;
+      --acid: #35e08a;
+      --font-display: 'Saira Condensed', 'Inter', sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, monospace;
       --success: #10b981;
       --success-soft: #d1fae5;
       --warning: #f59e0b;
@@ -506,161 +510,401 @@
     /* ── Scrollbar ── */
     * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
 
-    /* ══ Gabinet: mahoń, koniak, złoto ══ */
+    /* ══════════════════════════════════════════════════
+       COMMAND CENTER — tactical HUD layer
+    ══════════════════════════════════════════════════ */
     body {
       background:
-        radial-gradient(900px 500px at 15% -10%, rgba(201,146,47,0.16), transparent 60%),
-        radial-gradient(700px 400px at 95% 110%, rgba(140,40,25,0.20), transparent 60%),
-        repeating-linear-gradient(93deg, #1b100a 0 7px, #170e08 7px 14px),
+        radial-gradient(1100px 600px at 12% -15%, rgba(246,178,58,0.10), transparent 65%),
+        radial-gradient(900px 500px at 100% 105%, rgba(53,224,138,0.07), transparent 60%),
+        linear-gradient(rgba(125,160,180,0.045) 1px, transparent 1px) 0 0 / 100% 34px,
+        linear-gradient(90deg, rgba(125,160,180,0.045) 1px, transparent 1px) 0 0 / 34px 100%,
         var(--bg);
       background-attachment: fixed;
-      min-height: 100vh;
+      min-height: 100dvh;
     }
-    body::before { background: linear-gradient(90deg, #7a5312, var(--primary), #f0d27a, var(--primary), #7a5312); }
-    .topbar { background: linear-gradient(180deg, rgba(45,27,16,0.95), rgba(26,16,10,0.95)); backdrop-filter: blur(6px); border-bottom-color: var(--primary); }
-    .brand-icon, .modal-header::before { background: linear-gradient(135deg, #8a5c12, var(--primary), #f0d27a); }
-    .brand-name { text-shadow: 0 0 18px rgba(201,146,47,0.35); }
-    .btn-search { background: linear-gradient(135deg, var(--primary), #8a5c12); color: #1a0f07; box-shadow: 0 4px 18px rgba(201,146,47,0.3); }
-    .btn-search:hover { background: linear-gradient(135deg, #f0d27a, var(--primary)); color: #1a0f07; }
-    .btn-primary { background: linear-gradient(135deg, var(--primary), #8a5c12); border-color: var(--primary); color: #1a0f07; font-weight: 600; }
-    .btn-primary:hover { background: linear-gradient(135deg, #f0d27a, var(--primary)); border-color: #f0d27a; color: #1a0f07; }
-    .btn-ghost { background: rgba(201,146,47,0.08); color: var(--text); }
-    .btn-ghost:hover { background: var(--primary-soft); color: var(--primary-dark); }
+    body::before { background: linear-gradient(90deg, transparent, var(--primary) 20%, var(--acid) 50%, var(--primary) 80%, transparent); opacity: 0.9; }
 
-    .stat-card, .filter-bar, .table-card, .modal-content, .modal-header,
-    .modal-body, .loading-card, .app-toast, .btn-more, .form-control, .form-select {
-      background: var(--surface);
-      color: var(--text);
-      backdrop-filter: blur(3px);
-    }
-    .stat-card:hover, .filter-bar:focus-within { box-shadow: 0 0 0 1px var(--primary), 0 8px 30px rgba(0,0,0,0.5); }
-    .stat-card.active { background: rgba(201,146,47,0.16); }
-    .stat-number { text-shadow: 0 2px 12px rgba(0,0,0,0.6); }
-    .table-card, .modal-content { box-shadow: 0 10px 40px rgba(0,0,0,0.55); }
-    .table {
-      --bs-table-color: var(--text);
-      --bs-table-bg: transparent;
-      --bs-table-hover-color: var(--text);
-      --bs-table-hover-bg: rgba(201,146,47,0.10);
-      --bs-table-border-color: var(--border);
-    }
-    .table thead th { background: rgba(20,12,7,0.92); color: var(--primary); }
-    .table tbody tr:hover { background: rgba(201,146,47,0.10); }
-    .form-control::placeholder, .form-select { color: var(--muted); }
-    .form-control:focus, .form-select:focus,
-    .filter-bar .form-control:focus, .filter-bar .form-select:focus {
-      background: var(--surface); color: var(--text);
-      box-shadow: 0 0 0 3px rgba(201,146,47,0.22);
-    }
-    .form-select option { background: #201409; color: var(--text); }
-    .btn-close { filter: invert(1) sepia(1) saturate(3) hue-rotate(5deg); }
-    .modal-footer { background: rgba(20,12,7,0.95); }
-    .alert-info-soft { background: rgba(201,146,47,0.12); border-color: var(--primary); color: var(--primary-dark); }
-    .s-skipped { color: var(--muted); }
-    .obs-chip { background: rgba(201,146,47,0.10); }
-    .obs-chip:hover { background: var(--primary-soft); color: var(--primary-dark); border-color: var(--primary); }
-    .site-link:hover { background: rgba(201,146,47,0.28); color: var(--primary-dark); }
-    .email-cell a:hover, .brand-sub, .record-count { color: var(--muted); }
-    .loading-spinner { border-top-color: var(--primary); }
-
-    /* ── Latająca kasa ── */
-    .page { position: relative; z-index: 1; }
+    /* ── Overlays: kasa + skanline ── */
     .money { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
     .money span {
-      position: absolute;
-      bottom: -12vh;
-      font-size: 26px;
-      opacity: 0.5;
-      filter: drop-shadow(0 0 10px rgba(201,146,47,0.5));
+      position: absolute; bottom: -12vh; font-size: 24px; opacity: 0.22;
+      filter: drop-shadow(0 0 12px rgba(246,178,58,0.45));
       animation: rise linear infinite;
     }
     @keyframes rise {
       from { transform: translateY(0) rotate(0deg); }
-      to   { transform: translateY(-120vh) rotate(360deg); }
+      to   { transform: translateY(-125vh) rotate(360deg); }
+    }
+    .scan {
+      position: fixed; inset: 0; pointer-events: none; z-index: 3;
+      background: repeating-linear-gradient(rgba(255,255,255,0.022) 0 1px, transparent 1px 3px);
+      mix-blend-mode: overlay;
     }
     @media (prefers-reduced-motion: reduce) { .money { display: none; } }
+
+    /* ── Shell ── */
+    .hud {
+      position: relative; z-index: 1;
+      display: grid;
+      grid-template-columns: 246px minmax(0, 1fr);
+      gap: 18px;
+      max-width: 1680px;
+      margin: 0 auto;
+      padding: 18px;
+      align-items: start;
+    }
+
+    /* ── Left rail ── */
+    .rail {
+      position: sticky; top: 18px; min-height: calc(100dvh - 36px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      backdrop-filter: blur(8px);
+      padding: 16px 14px;
+      display: flex; flex-direction: column; gap: 18px;
+    }
+    .rail-brand { display: flex; align-items: center; gap: 11px; }
+    .rail-mark {
+      width: 38px; height: 38px; flex: none;
+      display: grid; place-items: center;
+      font-family: var(--font-display); font-weight: 700; font-size: 15px;
+      color: #0a0d12;
+      background: linear-gradient(140deg, var(--primary), #b8791a);
+      clip-path: polygon(0 0, 100% 0, 100% 72%, 72% 100%, 0 100%);
+      box-shadow: 0 0 22px rgba(246,178,58,0.35);
+    }
+    .rail-title {
+      font-family: var(--font-display); font-weight: 700; font-size: 19px;
+      letter-spacing: 0.06em; text-transform: uppercase; color: var(--text); line-height: 1;
+    }
+    .rail-sub { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
+    .rail-sec {
+      font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--muted); display: flex; align-items: center; gap: 8px; margin-bottom: -8px;
+    }
+    .rail-sec::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .rail-nav { display: flex; flex-direction: column; gap: 2px; }
+
+    /* status filters (JS toggles .active) */
+    .stat-card {
+      display: grid; grid-template-columns: 8px 1fr auto; align-items: center; gap: 10px;
+      background: transparent; border: 0; border-left: 2px solid transparent;
+      border-radius: 3px; padding: 9px 10px; width: 100%; text-align: left;
+      cursor: pointer; transition: background 0.16s ease, border-color 0.16s ease;
+    }
+    .stat-card:hover { background: rgba(125,160,180,0.06); }
+    .stat-card.active { background: var(--primary-soft); border-left-color: var(--primary); box-shadow: none; }
+    .stat-label {
+      font-family: var(--font-display); font-size: 14px; font-weight: 600; letter-spacing: 0.05em;
+      text-transform: uppercase; color: var(--muted); margin: 0;
+    }
+    .stat-card.active .stat-label, .stat-card:hover .stat-label { color: var(--text); }
+    .stat-number {
+      font-family: var(--font-mono); font-size: 12.5px; font-weight: 500;
+      font-variant-numeric: tabular-nums; color: var(--muted); letter-spacing: 0;
+    }
+    .stat-card.active .stat-number { color: var(--primary); }
+    .led { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; opacity: 0.85; }
+    .led-all { color: var(--primary); }
+    .led-new { color: #4aa8ff; }
+    .led-emailed { color: var(--primary); }
+    .led-replied { color: #b388ff; }
+    .led-converted { color: var(--acid); }
+    .led-skipped { color: #55636f; }
+
+    .rail-actions { display: flex; flex-direction: column; gap: 8px; }
+    .btn-op {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      font-family: var(--font-display); font-weight: 600; font-size: 14px;
+      letter-spacing: 0.07em; text-transform: uppercase;
+      padding: 11px 12px; border-radius: 3px; cursor: pointer;
+      border: 1px solid var(--border); background: rgba(125,160,180,0.05); color: var(--text);
+      transition: all 0.16s ease;
+    }
+    .btn-op:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
+    .btn-op-primary {
+      background: linear-gradient(135deg, var(--primary), #d0891c); border-color: transparent; color: #0a0d12;
+      box-shadow: 0 0 24px rgba(246,178,58,0.22);
+    }
+    .btn-op-primary:hover { background: linear-gradient(135deg, #ffc866, var(--primary)); color: #0a0d12; border-color: transparent; }
+    .rail-foot { margin-top: auto; border-top: 1px solid var(--border); padding-top: 12px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--muted); }
+    .sig { display: flex; align-items: center; gap: 7px; text-transform: uppercase; }
+    .sig .led { color: var(--acid); animation: pulse 2.4s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: 0.25; } }
+    .clock { color: var(--text); font-size: 15px; letter-spacing: 0.12em; margin-top: 6px; font-variant-numeric: tabular-nums; }
+
+    /* ── Command bar ── */
+    .ops { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+    .cmdbar {
+      display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+      backdrop-filter: blur(8px); padding: 16px 20px;
+    }
+    .cmd-eyebrow { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--primary); }
+    .cmd-title {
+      font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1;
+      letter-spacing: 0.04em; text-transform: uppercase; color: var(--text); margin: 6px 0 0;
+      text-shadow: 0 0 30px rgba(246,178,58,0.18);
+    }
+    .cmd-metrics { display: flex; gap: 26px; }
+    .metric { text-align: right; }
+    .metric-label { display: block; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+    .metric-val { font-family: var(--font-mono); font-size: 22px; font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
+    .metric-val.gold { color: var(--primary); }
+
+    /* ── Panels ── */
+    .filter-bar, .table-card, .modal-content, .loading-card, .app-toast {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+      backdrop-filter: blur(8px); color: var(--text);
+    }
+    .filter-bar { padding: 12px 14px; margin: 0; }
+    .table-card, .modal-content { position: relative; box-shadow: 0 24px 60px rgba(0,0,0,0.5); }
+    .table-card::before, .table-card::after, .modal-content::before, .modal-content::after {
+      content: ''; position: absolute; width: 13px; height: 13px; border: 1px solid var(--primary); pointer-events: none; z-index: 2;
+    }
+    .table-card::before, .modal-content::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+    .table-card::after, .modal-content::after { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+    .record-count {
+      font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--muted); background: transparent; padding: 0;
+    }
+
+    /* ── Table ── */
+    .table {
+      --bs-table-color: var(--text);
+      --bs-table-bg: transparent;
+      --bs-table-hover-color: var(--text);
+      --bs-table-hover-bg: rgba(246,178,58,0.05);
+      --bs-table-border-color: rgba(125,160,180,0.10);
+    }
+    .table thead th {
+      background: var(--panel-2); color: var(--muted);
+      font-family: var(--font-mono); font-size: 9.5px; font-weight: 500; letter-spacing: 0.18em;
+      border-bottom: 1px solid var(--border); padding: 11px 14px;
+    }
+    .table tbody tr { box-shadow: inset 2px 0 0 transparent; transition: box-shadow 0.15s, background 0.15s; }
+    .table tbody tr:hover { background: rgba(246,178,58,0.05); box-shadow: inset 2px 0 0 var(--primary); }
+    .table td { border-color: rgba(125,160,180,0.10); }
+    .biz-name { font-family: var(--font-display); font-size: 16px; font-weight: 600; letter-spacing: 0.02em; }
+    .biz-phone, .email-cell, .emailed-date, .biz-meta, .notes-cell { font-family: var(--font-mono); font-size: 11px; }
+    .biz-meta { text-transform: uppercase; letter-spacing: 0.08em; }
+    .email-cell a { color: var(--text); }
+    .email-cell a:hover { color: var(--primary); }
+    .site-link, .no-site {
+      font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; border-radius: 2px;
+      border: 1px solid transparent;
+    }
+    .site-link { background: rgba(246,178,58,0.10); border-color: rgba(246,178,58,0.3); color: var(--primary); }
+    .site-link:hover { background: rgba(246,178,58,0.2); color: var(--primary-dark); }
+    .no-site { background: rgba(255,92,92,0.10); border-color: rgba(255,92,92,0.3); color: #ff8a8a; }
+    .tech-pill, .platform-pill { font-family: var(--font-mono); border-radius: 2px; letter-spacing: 0.04em; filter: saturate(0.75) brightness(0.92); }
+
+    /* status chips */
+    .status-badge {
+      font-family: var(--font-mono); font-size: 9.5px; font-weight: 500; letter-spacing: 0.14em;
+      text-transform: uppercase; border-radius: 2px; padding: 4px 8px; border: 1px solid;
+    }
+    .s-new       { background: rgba(74,168,255,0.10); border-color: rgba(74,168,255,0.35); color: #7cc0ff; }
+    .s-emailed   { background: rgba(246,178,58,0.10); border-color: rgba(246,178,58,0.35); color: var(--primary); }
+    .s-replied   { background: rgba(179,136,255,0.10); border-color: rgba(179,136,255,0.35); color: #c4a6ff; }
+    .s-converted { background: rgba(53,224,138,0.10); border-color: rgba(53,224,138,0.35); color: var(--acid); }
+    .s-skipped   { background: rgba(125,160,180,0.08); border-color: var(--border); color: var(--muted); }
+    .status-badge .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 7px currentColor; flex: none; }
+    .table td:first-child { font-family: var(--font-mono); color: var(--muted); }
+
+    /* ── Row actions ── */
+    .btn-ai, .btn-email, .btn-more {
+      background: rgba(125,160,180,0.06); border: 1px solid var(--border); color: var(--muted); border-radius: 3px;
+    }
+    .btn-ai:hover, .btn-email:hover, .btn-more:hover { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
+    .dropdown-menu {
+      background: #0b0f14; border: 1px solid var(--border); border-radius: 4px; padding: 5px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    }
+    .dropdown-item { color: var(--text); font-size: 12.5px; border-radius: 3px; padding: 7px 10px; }
+    .dropdown-item:hover, .dropdown-item:focus { background: var(--primary-soft); color: var(--primary); }
+    .dropdown-item.text-danger:hover { background: rgba(255,92,92,0.12); color: #ff8a8a !important; }
+    .dropdown-divider { border-color: var(--border); }
+
+    /* ── Forms ── */
+    .form-control, .form-select, .filter-bar .form-control, .filter-bar .form-select {
+      background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+      border-radius: 3px; font-family: var(--font-mono); font-size: 12px;
+    }
+    .form-control::placeholder { color: #5b6a77; }
+    .form-control:focus, .form-select:focus,
+    .filter-bar .form-control:focus, .filter-bar .form-select:focus {
+      background: var(--panel-2); color: var(--text); border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(246,178,58,0.16);
+    }
+    .form-select option { background: #0b0f14; color: var(--text); }
+    .form-label { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.2em; color: var(--primary); }
+    .form-check-input { background-color: var(--panel-2); border-color: var(--border); }
+    .form-check-input:checked { background-color: var(--primary); border-color: var(--primary); }
+    .email-textarea, .analysis-output, .form-control[rows] { font-family: 'Inter', sans-serif; font-size: 13.5px; }
+
+    /* ── Buttons ── */
+    .btn-primary, .btn-ghost {
+      font-family: var(--font-display); font-weight: 600; letter-spacing: 0.07em;
+      text-transform: uppercase; font-size: 14px; border-radius: 3px;
+    }
+    .btn-primary { background: linear-gradient(135deg, var(--primary), #d0891c); border-color: transparent; color: #0a0d12; }
+    .btn-primary:hover { background: linear-gradient(135deg, #ffc866, var(--primary)); border-color: transparent; color: #0a0d12; }
+    .btn-ghost { background: rgba(125,160,180,0.05); border-color: var(--border); color: var(--text); }
+    .btn-ghost:hover { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
+
+    /* ── Modals ── */
+    .modal-header, .modal-body { background: var(--surface); }
+    .modal-header::before { background: linear-gradient(90deg, var(--primary), var(--acid)); }
+    .modal-title { font-family: var(--font-display); font-size: 18px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+    .modal-footer { background: var(--panel-2); border-top-color: var(--border); }
+    .modal-backdrop.show { opacity: 0.75; }
+    .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
+    .alert-info-soft {
+      background: rgba(246,178,58,0.08); border: 1px solid rgba(246,178,58,0.3); color: var(--primary);
+      font-family: var(--font-mono); font-size: 11px; border-radius: 3px;
+    }
+    .subject-pill { background: var(--panel-2); border-color: var(--border); border-radius: 3px; }
+    .obs-chip { background: rgba(125,160,180,0.06); border-color: var(--border); border-radius: 2px; font-family: var(--font-mono); font-size: 10px; }
+    .obs-chip:hover { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
+    .step { background: rgba(125,160,180,0.05); border-radius: 3px; font-family: var(--font-mono); font-size: 11px; }
+    .step.active { background: var(--primary-soft); color: var(--primary); }
+    .step.done { background: rgba(53,224,138,0.10); color: var(--acid); }
+    .analysis-h1, .analysis-h2, .analysis-h3 { font-family: var(--font-display); letter-spacing: 0.04em; text-transform: uppercase; }
+    .analysis-h2 { background: rgba(125,160,180,0.05); border-left-color: var(--primary); border-radius: 0; }
+    .check-pill { font-family: var(--font-mono); font-size: 10.5px; border-radius: 2px; }
+    .check-ok   { background: rgba(53,224,138,0.10); color: var(--acid); }
+    .check-warn { background: rgba(246,178,58,0.10); color: var(--primary); }
+    .check-bad  { background: rgba(255,92,92,0.10); color: #ff8a8a; }
+    .loading-card { border-radius: 4px; }
+    .loading-title { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.08em; font-size: 18px; }
+    .loading-sub, .empty-state p { font-family: var(--font-mono); font-size: 11px; }
+    .loading-spinner { border-color: var(--border); border-top-color: var(--primary); }
+    .empty-state h5 { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.08em; }
+
+    /* ── Responsive: rail → górny pasek ── */
+    @media (max-width: 1080px) {
+      .hud { grid-template-columns: 1fr; padding: 12px; gap: 12px; }
+      .rail { position: static; min-height: 0; }
+      .rail-nav { flex-direction: row; overflow-x: auto; padding-bottom: 4px; }
+      .stat-card { border-left: 0; border-bottom: 2px solid transparent; white-space: nowrap; }
+      .stat-card.active { border-left-color: transparent; border-bottom-color: var(--primary); }
+      .rail-actions { flex-direction: row; }
+      .btn-op { flex: 1; }
+      .cmd-title { font-size: 24px; }
+    }
   </style>
 </head>
 <body>
 
-<!-- Latająca kasa -->
+<!-- Overlaye: kasa + skanline -->
 <div class="money" id="money" aria-hidden="true"></div>
+<div class="scan" aria-hidden="true"></div>
 <script>
-  document.getElementById('money').innerHTML = Array.from({length: 22}, () => {
+  document.getElementById('money').innerHTML = Array.from({length: 16}, () => {
     const emoji = ['💵','💰','💸','🤑','💴'][Math.floor(Math.random() * 5)];
-    const style = `left:${Math.random()*100}%;font-size:${18 + Math.random()*26}px;` +
-                  `animation-duration:${14 + Math.random()*16}s;animation-delay:-${Math.random()*30}s;` +
-                  `opacity:${0.25 + Math.random()*0.4}`;
+    const style = `left:${Math.random()*100}%;font-size:${16 + Math.random()*22}px;` +
+                  `animation-duration:${16 + Math.random()*18}s;animation-delay:-${Math.random()*34}s;` +
+                  `opacity:${0.2 + Math.random()*0.25}`;
     return `<span style="${style}">${emoji}</span>`;
   }).join('');
 </script>
 
-<!-- Topbar -->
-<header class="topbar">
-  <div class="brand">
-    <div class="brand-icon">🌐</div>
-    <div>
-      <div class="brand-name">Lead Gen</div>
-      <div class="brand-sub">cold email tool</div>
-    </div>
-  </div>
-  <div style="display:flex;gap:8px">
-    <button class="btn btn-ghost" data-bs-toggle="modal" data-bs-target="#manualModal">
-      <i class="bi bi-plus-lg" style="font-size:12px"></i> Dodaj ręcznie
-    </button>
-    <button class="btn-search" data-bs-toggle="modal" data-bs-target="#searchModal">
-      <i class="bi bi-search" style="font-size:12px"></i> Szukaj leadów
-    </button>
-  </div>
-</header>
+<div class="hud">
 
-<div class="page">
+  <!-- ── Szyna dowodzenia ── -->
+  <aside class="rail">
+    <div class="rail-brand">
+      <div class="rail-mark">LG</div>
+      <div>
+        <div class="rail-title">Lead//Gen</div>
+        <div class="rail-sub">outreach ops</div>
+      </div>
+    </div>
 
-  <!-- Stats -->
-  <div class="stats-grid">
-    <div class="stat-card active" onclick="filterByStatus('all')" id="stat-all">
-      <span class="stat-emoji">📊</span>
-      <div class="stat-number" id="count-total">{{ stats.total }}</div>
-      <div class="stat-label">Wszystkie</div>
+    <div class="rail-sec">Sektory</div>
+    <nav class="rail-nav">
+      <button class="stat-card active" onclick="filterByStatus('all')" id="stat-all">
+        <span class="led led-all"></span>
+        <span class="stat-label">Wszystkie</span>
+        <span class="stat-number" id="count-total">{{ stats.total }}</span>
+      </button>
+      <button class="stat-card" onclick="filterByStatus('new')" id="stat-new">
+        <span class="led led-new"></span>
+        <span class="stat-label">Nowe</span>
+        <span class="stat-number" id="count-new">{{ stats.new }}</span>
+      </button>
+      <button class="stat-card" onclick="filterByStatus('emailed')" id="stat-emailed">
+        <span class="led led-emailed"></span>
+        <span class="stat-label">Wysłane</span>
+        <span class="stat-number" id="count-emailed">{{ stats.emailed }}</span>
+      </button>
+      <button class="stat-card" onclick="filterByStatus('replied')" id="stat-replied">
+        <span class="led led-replied"></span>
+        <span class="stat-label">Odpowiedzi</span>
+        <span class="stat-number" id="count-replied">{{ stats.replied }}</span>
+      </button>
+      <button class="stat-card" onclick="filterByStatus('converted')" id="stat-converted">
+        <span class="led led-converted"></span>
+        <span class="stat-label">Klienci</span>
+        <span class="stat-number" id="count-converted">{{ stats.converted }}</span>
+      </button>
+      <button class="stat-card" onclick="filterByStatus('skipped')" id="stat-skipped">
+        <span class="led led-skipped"></span>
+        <span class="stat-label">Pominięte</span>
+        <span class="stat-number" id="count-skipped">{{ stats.skipped }}</span>
+      </button>
+    </nav>
+
+    <div class="rail-sec">Operacje</div>
+    <div class="rail-actions">
+      <button class="btn-op btn-op-primary" data-bs-toggle="modal" data-bs-target="#searchModal">
+        <i class="bi bi-crosshair"></i> Rekonesans
+      </button>
+      <button class="btn-op" data-bs-toggle="modal" data-bs-target="#manualModal">
+        <i class="bi bi-plus-lg"></i> Dodaj cel
+      </button>
     </div>
-    <div class="stat-card" onclick="filterByStatus('new')" id="stat-new">
-      <span class="stat-emoji">🆕</span>
-      <div class="stat-number" style="color:#7fb2ff" id="count-new">{{ stats.new }}</div>
-      <div class="stat-label">Nowe</div>
+
+    <div class="rail-foot">
+      <div class="sig"><span class="led"></span> System online</div>
+      <div class="clock" id="clock">--:--:--</div>
     </div>
-    <div class="stat-card" onclick="filterByStatus('emailed')" id="stat-emailed">
-      <span class="stat-emoji">📤</span>
-      <div class="stat-number" style="color:#f0b429" id="count-emailed">{{ stats.emailed }}</div>
-      <div class="stat-label">Wysłane</div>
-    </div>
-    <div class="stat-card" onclick="filterByStatus('replied')" id="stat-replied">
-      <span class="stat-emoji">💬</span>
-      <div class="stat-number" style="color:#c4a3ff" id="count-replied">{{ stats.replied }}</div>
-      <div class="stat-label">Odpowiedzi</div>
-    </div>
-    <div class="stat-card" onclick="filterByStatus('converted')" id="stat-converted">
-      <span class="stat-emoji">⭐</span>
-      <div class="stat-number" style="color:#5fd3a0" id="count-converted">{{ stats.converted }}</div>
-      <div class="stat-label">Klienci</div>
-    </div>
-    <div class="stat-card" onclick="filterByStatus('skipped')" id="stat-skipped">
-      <span class="stat-emoji">⏭️</span>
-      <div class="stat-number" style="color:#a08b73" id="count-skipped">{{ stats.skipped }}</div>
-      <div class="stat-label">Pominięte</div>
-    </div>
-  </div>
+  </aside>
+
+  <!-- ── Panel operacyjny ── -->
+  <main class="ops">
+
+    <header class="cmdbar">
+      <div>
+        <div class="cmd-eyebrow">Sektor operacyjny · PL</div>
+        <h1 class="cmd-title">Baza celów</h1>
+      </div>
+      <div class="cmd-metrics">
+        <div class="metric">
+          <span class="metric-label">W bazie</span>
+          <span class="metric-val" id="metric-total">{{ stats.total }}</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Klienci</span>
+          <span class="metric-val gold" id="metric-converted">{{ stats.converted }}</span>
+        </div>
+      </div>
+    </header>
 
   <!-- Filter bar -->
   <div class="filter-bar">
-    <input type="text" id="searchInput" class="form-control" style="max-width:210px" placeholder="🔍  Szukaj firmy..." oninput="debounceLoad()" />
-    <select id="cityFilter" class="form-select" style="max-width:150px" onchange="loadLeads()">
-      <option value="">📍 Wszystkie miasta</option>
+    <input type="text" id="searchInput" class="form-control" style="max-width:230px" placeholder="Szukaj firmy..." oninput="debounceLoad()" />
+    <select id="cityFilter" class="form-select" style="max-width:170px" onchange="loadLeads()">
+      <option value="">Wszystkie miasta</option>
       {% for city in cities %}
       <option value="{{ city }}">{{ city }}</option>
       {% endfor %}
     </select>
-    <select id="typeFilter" class="form-select" style="max-width:170px" onchange="loadLeads()">
-      <option value="">🏪 Wszystkie typy</option>
+    <select id="typeFilter" class="form-select" style="max-width:190px" onchange="loadLeads()">
+      <option value="">Wszystkie typy</option>
       {% for bt in business_types %}
       <option value="{{ bt }}">{{ bt }}</option>
       {% endfor %}
@@ -674,11 +918,11 @@
       <table class="table table-hover mb-0">
         <thead>
           <tr>
-            <th style="width:36px">#</th>
-            <th>Firma</th>
-            <th>Typ / Miasto</th>
+            <th style="width:44px">ID</th>
+            <th>Cel</th>
+            <th>Branża / Sektor</th>
             <th>Strona</th>
-            <th>Email</th>
+            <th>Kontakt</th>
             <th>Status</th>
             <th>Notatki</th>
             <th style="width:108px">Akcje</th>
@@ -691,6 +935,7 @@
     </div>
   </div>
 
+  </main>
 </div>
 
 <!-- Loading Overlay -->
@@ -712,7 +957,7 @@
   <div class="modal-dialog modal-dialog-centered" style="max-width:440px">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">➕ Dodaj leada ręcznie</h5>
+        <h5 class="modal-title"><i class="bi bi-plus-square me-2" style="color:var(--primary)"></i>Dodaj cel</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
@@ -762,7 +1007,7 @@
   <div class="modal-dialog modal-dialog-centered" style="max-width:440px">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">🔍 Szukaj nowych leadów</h5>
+        <h5 class="modal-title"><i class="bi bi-crosshair me-2" style="color:var(--primary)"></i>Rekonesans</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
@@ -810,7 +1055,7 @@
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">📧 Email — <span id="emailForBusiness"></span></h5>
+        <h5 class="modal-title"><i class="bi bi-envelope-paper me-2" style="color:var(--primary)"></i>Wiadomość — <span id="emailForBusiness"></span></h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
@@ -849,7 +1094,7 @@
   <div class="modal-dialog modal-dialog-centered modal-xl">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">✨ Analiza AI — <span id="analyzeForBusiness"></span></h5>
+        <h5 class="modal-title"><i class="bi bi-cpu me-2" style="color:var(--primary)"></i>Analiza AI — <span id="analyzeForBusiness"></span></h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
@@ -913,7 +1158,7 @@
   <div class="modal-dialog modal-dialog-centered" style="max-width:420px">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">📝 Notatka — <span id="notesForBusiness"></span></h5>
+        <h5 class="modal-title"><i class="bi bi-journal-text me-2" style="color:var(--primary)"></i>Notatka — <span id="notesForBusiness"></span></h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
@@ -943,11 +1188,11 @@ let debounceTimer = null;
 
 // ── Status badge HTML ──
 const STATUS_BADGES = {
-  new:       '<span class="status-badge s-new">🆕 Nowy</span>',
-  emailed:   '<span class="status-badge s-emailed">📤 Wysłany</span>',
-  replied:   '<span class="status-badge s-replied">💬 Odpowiedź</span>',
-  converted: '<span class="status-badge s-converted">⭐ Klient!</span>',
-  skipped:   '<span class="status-badge s-skipped">⏭️ Pominięty</span>',
+  new:       '<span class="status-badge s-new"><i class="dot"></i>Nowy</span>',
+  emailed:   '<span class="status-badge s-emailed"><i class="dot"></i>Wysłany</span>',
+  replied:   '<span class="status-badge s-replied"><i class="dot"></i>Odpowiedź</span>',
+  converted: '<span class="status-badge s-converted"><i class="dot"></i>Klient</span>',
+  skipped:   '<span class="status-badge s-skipped"><i class="dot"></i>Pominięty</span>',
 };
 
 // ── Simple markdown renderer ──
@@ -1424,6 +1669,8 @@ async function refreshStats() {
   document.getElementById('count-replied').textContent   = s.replied;
   document.getElementById('count-converted').textContent = s.converted;
   document.getElementById('count-skipped').textContent   = s.skipped;
+  document.getElementById('metric-total').textContent     = s.total;
+  document.getElementById('metric-converted').textContent = s.converted;
 }
 
 // ── Toasts ──
@@ -1444,6 +1691,11 @@ function showToast(message, type = 'success') {
 function escHtml(str) {
   return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
+
+// ── Zegar operacyjny ──
+setInterval(() => {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('pl-PL');
+}, 1000);
 
 // Init
 loadLeads();
