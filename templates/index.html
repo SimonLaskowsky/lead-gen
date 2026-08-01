@@ -518,9 +518,14 @@
       <div class="brand-sub">cold email tool</div>
     </div>
   </div>
-  <button class="btn-search" data-bs-toggle="modal" data-bs-target="#searchModal">
-    <i class="bi bi-search" style="font-size:12px"></i> Szukaj leadów
-  </button>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-ghost" data-bs-toggle="modal" data-bs-target="#manualModal">
+      <i class="bi bi-plus-lg" style="font-size:12px"></i> Dodaj ręcznie
+    </button>
+    <button class="btn-search" data-bs-toggle="modal" data-bs-target="#searchModal">
+      <i class="bi bi-search" style="font-size:12px"></i> Szukaj leadów
+    </button>
+  </div>
 </header>
 
 <div class="page">
@@ -613,6 +618,56 @@
 
 <!-- Toast Container -->
 <div class="toast-container" id="toastContainer"></div>
+
+<!-- ══════════════════════════════════════
+     MANUAL LEAD MODAL
+══════════════════════════════════════ -->
+<div class="modal fade" id="manualModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:440px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">➕ Dodaj leada ręcznie</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Nazwa firmy *</label>
+          <input type="text" id="manualName" class="form-control" placeholder="np. Pizzeria Roma" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Strona www</label>
+          <input type="text" id="manualUrl" class="form-control" placeholder="https://..." />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          <input type="text" id="manualEmail" class="form-control" placeholder="zostaw puste — poszukam na stronie" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Telefon</label>
+          <input type="text" id="manualPhone" class="form-control" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Typ biznesu</label>
+          <input type="text" id="manualType" class="form-control" placeholder="np. restauracja" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Miasto</label>
+          <input type="text" id="manualCity" class="form-control" placeholder="np. Kraków" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Notatki</label>
+          <textarea id="manualNotes" class="form-control" rows="2" placeholder="np. polecenie od Kasi"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-bs-dismiss="modal">Anuluj</button>
+        <button class="btn btn-primary" onclick="addManualLead()">
+          <i class="bi bi-plus-lg me-1"></i> Dodaj
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ══════════════════════════════════════
      SEARCH MODAL
@@ -986,6 +1041,31 @@ async function doSearch() {
       await refreshStats();
       location.reload();
     }
+  } catch(e) { showToast('Błąd połączenia: ' + e.message, 'danger'); }
+  finally    { document.getElementById('loadingOverlay').classList.add('d-none'); }
+}
+
+async function addManualLead() {
+  const body = {
+    business_name: document.getElementById('manualName').value.trim(),
+    website_url:   document.getElementById('manualUrl').value.trim(),
+    email:         document.getElementById('manualEmail').value.trim(),
+    phone:         document.getElementById('manualPhone').value.trim(),
+    business_type: document.getElementById('manualType').value.trim(),
+    city:          document.getElementById('manualCity').value.trim(),
+    notes:         document.getElementById('manualNotes').value.trim(),
+  };
+  if (!body.business_name) { showToast('Podaj nazwę firmy', 'warning'); return; }
+
+  bootstrap.Modal.getInstance(document.getElementById('manualModal')).hide();
+  document.getElementById('loadingText').textContent = `Dodaję: ${body.business_name}...`;
+  document.getElementById('loadingOverlay').classList.remove('d-none');
+
+  try {
+    const res  = await fetch('/api/lead/manual', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (data.error) { showToast('Błąd: ' + data.error, 'danger'); }
+    else { showToast('✅ Dodano leada' + (data.email ? ` (${data.email})` : ''), 'success'); location.reload(); }
   } catch(e) { showToast('Błąd połączenia: ' + e.message, 'danger'); }
   finally    { document.getElementById('loadingOverlay').classList.add('d-none'); }
 }

@@ -134,6 +134,35 @@ def search():
     return jsonify({"added": added, "skipped": skipped, "total_found": len(leads)})
 
 
+@app.route("/api/lead/manual", methods=["POST"])
+def add_manual_lead():
+    data = request.json or {}
+    name = data.get("business_name", "").strip()
+    if not name:
+        return jsonify({"error": "Podaj nazwę firmy"}), 400
+
+    url = data.get("website_url", "").strip()
+    email = data.get("email", "").strip()
+    website_data = scraper.scrape_website(url) if url else None
+    if url and not email:
+        email = scraper.find_contact_email(url, website_data)
+
+    lead_id = db.add_lead(
+        business_name=name,
+        email=email,
+        phone=data.get("phone", "").strip(),
+        website_url=url,
+        address=data.get("address", "").strip(),
+        business_type=data.get("business_type", "").strip(),
+        city=data.get("city", "").strip(),
+        notes=data.get("notes", "").strip(),
+        website_checks=json.dumps(website_data or {}),
+    )
+    if not lead_id:
+        return jsonify({"error": "Nie udało się dodać"}), 500
+    return jsonify({"id": lead_id, "email": email})
+
+
 @app.route("/api/lead/<int:lead_id>")
 def get_lead(lead_id):
     lead = db.get_lead(lead_id)
