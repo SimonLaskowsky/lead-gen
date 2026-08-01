@@ -11,14 +11,14 @@
     *, *::before, *::after { box-sizing: border-box; }
 
     :root {
-      --bg: #f5f6fa;
-      --surface: #ffffff;
-      --border: #e8eaf0;
-      --text: #1a1d2e;
-      --muted: #7c8098;
-      --primary: #6366f1;
-      --primary-soft: #eef2ff;
-      --primary-dark: #4f46e5;
+      --bg: #140c07;
+      --surface: rgba(35,22,14,0.86);
+      --border: #4a3220;
+      --text: #f2e2c4;
+      --muted: #b18a5c;
+      --primary: #c9922f;
+      --primary-soft: rgba(201,146,47,0.15);
+      --primary-dark: #e0ae4b;
       --success: #10b981;
       --success-soft: #d1fae5;
       --warning: #f59e0b;
@@ -27,7 +27,7 @@
       --purple-soft: #ede9fe;
       --danger: #ef4444;
       --danger-soft: #fee2e2;
-      --gray-soft: #f1f2f6;
+      --gray-soft: rgba(201,146,47,0.12);
       --shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
       --shadow-md: 0 4px 16px rgba(0,0,0,0.1), 0 1px 4px rgba(0,0,0,0.06);
       --radius: 14px;
@@ -505,9 +505,95 @@
 
     /* ── Scrollbar ── */
     * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+    /* ══ Gabinet: mahoń, koniak, złoto ══ */
+    body {
+      background:
+        radial-gradient(900px 500px at 15% -10%, rgba(201,146,47,0.16), transparent 60%),
+        radial-gradient(700px 400px at 95% 110%, rgba(140,40,25,0.20), transparent 60%),
+        repeating-linear-gradient(93deg, #1b100a 0 7px, #170e08 7px 14px),
+        var(--bg);
+      background-attachment: fixed;
+      min-height: 100vh;
+    }
+    body::before { background: linear-gradient(90deg, #7a5312, var(--primary), #f0d27a, var(--primary), #7a5312); }
+    .topbar { background: linear-gradient(180deg, rgba(45,27,16,0.95), rgba(26,16,10,0.95)); backdrop-filter: blur(6px); border-bottom-color: var(--primary); }
+    .brand-icon, .modal-header::before { background: linear-gradient(135deg, #8a5c12, var(--primary), #f0d27a); }
+    .brand-name { text-shadow: 0 0 18px rgba(201,146,47,0.35); }
+    .btn-search { background: linear-gradient(135deg, var(--primary), #8a5c12); color: #1a0f07; box-shadow: 0 4px 18px rgba(201,146,47,0.3); }
+    .btn-search:hover { background: linear-gradient(135deg, #f0d27a, var(--primary)); color: #1a0f07; }
+    .btn-primary { background: linear-gradient(135deg, var(--primary), #8a5c12); border-color: var(--primary); color: #1a0f07; font-weight: 600; }
+    .btn-primary:hover { background: linear-gradient(135deg, #f0d27a, var(--primary)); border-color: #f0d27a; color: #1a0f07; }
+    .btn-ghost { background: rgba(201,146,47,0.08); color: var(--text); }
+    .btn-ghost:hover { background: var(--primary-soft); color: var(--primary-dark); }
+
+    .stat-card, .filter-bar, .table-card, .modal-content, .modal-header,
+    .modal-body, .loading-card, .app-toast, .btn-more, .form-control, .form-select {
+      background: var(--surface);
+      color: var(--text);
+      backdrop-filter: blur(3px);
+    }
+    .stat-card:hover, .filter-bar:focus-within { box-shadow: 0 0 0 1px var(--primary), 0 8px 30px rgba(0,0,0,0.5); }
+    .stat-card.active { background: rgba(201,146,47,0.16); }
+    .stat-number { text-shadow: 0 2px 12px rgba(0,0,0,0.6); }
+    .table-card, .modal-content { box-shadow: 0 10px 40px rgba(0,0,0,0.55); }
+    .table {
+      --bs-table-color: var(--text);
+      --bs-table-bg: transparent;
+      --bs-table-hover-color: var(--text);
+      --bs-table-hover-bg: rgba(201,146,47,0.10);
+      --bs-table-border-color: var(--border);
+    }
+    .table thead th { background: rgba(20,12,7,0.92); color: var(--primary); }
+    .table tbody tr:hover { background: rgba(201,146,47,0.10); }
+    .form-control::placeholder, .form-select { color: var(--muted); }
+    .form-control:focus, .form-select:focus,
+    .filter-bar .form-control:focus, .filter-bar .form-select:focus {
+      background: var(--surface); color: var(--text);
+      box-shadow: 0 0 0 3px rgba(201,146,47,0.22);
+    }
+    .form-select option { background: #201409; color: var(--text); }
+    .btn-close { filter: invert(1) sepia(1) saturate(3) hue-rotate(5deg); }
+    .modal-footer { background: rgba(20,12,7,0.95); }
+    .alert-info-soft { background: rgba(201,146,47,0.12); border-color: var(--primary); color: var(--primary-dark); }
+    .s-skipped { color: var(--muted); }
+    .obs-chip { background: rgba(201,146,47,0.10); }
+    .obs-chip:hover { background: var(--primary-soft); color: var(--primary-dark); border-color: var(--primary); }
+    .site-link:hover { background: rgba(201,146,47,0.28); color: var(--primary-dark); }
+    .email-cell a:hover, .brand-sub, .record-count { color: var(--muted); }
+    .loading-spinner { border-top-color: var(--primary); }
+
+    /* ── Latająca kasa ── */
+    .page { position: relative; z-index: 1; }
+    .money { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .money span {
+      position: absolute;
+      bottom: -12vh;
+      font-size: 26px;
+      opacity: 0.5;
+      filter: drop-shadow(0 0 10px rgba(201,146,47,0.5));
+      animation: rise linear infinite;
+    }
+    @keyframes rise {
+      from { transform: translateY(0) rotate(0deg); }
+      to   { transform: translateY(-120vh) rotate(360deg); }
+    }
+    @media (prefers-reduced-motion: reduce) { .money { display: none; } }
   </style>
 </head>
 <body>
+
+<!-- Latająca kasa -->
+<div class="money" id="money" aria-hidden="true"></div>
+<script>
+  document.getElementById('money').innerHTML = Array.from({length: 22}, () => {
+    const emoji = ['💵','💰','💸','🤑','💴'][Math.floor(Math.random() * 5)];
+    const style = `left:${Math.random()*100}%;font-size:${18 + Math.random()*26}px;` +
+                  `animation-duration:${14 + Math.random()*16}s;animation-delay:-${Math.random()*30}s;` +
+                  `opacity:${0.25 + Math.random()*0.4}`;
+    return `<span style="${style}">${emoji}</span>`;
+  }).join('');
+</script>
 
 <!-- Topbar -->
 <header class="topbar">
@@ -539,27 +625,27 @@
     </div>
     <div class="stat-card" onclick="filterByStatus('new')" id="stat-new">
       <span class="stat-emoji">🆕</span>
-      <div class="stat-number" style="color:#1d4ed8" id="count-new">{{ stats.new }}</div>
+      <div class="stat-number" style="color:#7fb2ff" id="count-new">{{ stats.new }}</div>
       <div class="stat-label">Nowe</div>
     </div>
     <div class="stat-card" onclick="filterByStatus('emailed')" id="stat-emailed">
       <span class="stat-emoji">📤</span>
-      <div class="stat-number" style="color:#b45309" id="count-emailed">{{ stats.emailed }}</div>
+      <div class="stat-number" style="color:#f0b429" id="count-emailed">{{ stats.emailed }}</div>
       <div class="stat-label">Wysłane</div>
     </div>
     <div class="stat-card" onclick="filterByStatus('replied')" id="stat-replied">
       <span class="stat-emoji">💬</span>
-      <div class="stat-number" style="color:#6d28d9" id="count-replied">{{ stats.replied }}</div>
+      <div class="stat-number" style="color:#c4a3ff" id="count-replied">{{ stats.replied }}</div>
       <div class="stat-label">Odpowiedzi</div>
     </div>
     <div class="stat-card" onclick="filterByStatus('converted')" id="stat-converted">
       <span class="stat-emoji">⭐</span>
-      <div class="stat-number" style="color:#065f46" id="count-converted">{{ stats.converted }}</div>
+      <div class="stat-number" style="color:#5fd3a0" id="count-converted">{{ stats.converted }}</div>
       <div class="stat-label">Klienci</div>
     </div>
     <div class="stat-card" onclick="filterByStatus('skipped')" id="stat-skipped">
       <span class="stat-emoji">⏭️</span>
-      <div class="stat-number" style="color:#6b7280" id="count-skipped">{{ stats.skipped }}</div>
+      <div class="stat-number" style="color:#a08b73" id="count-skipped">{{ stats.skipped }}</div>
       <div class="stat-label">Pominięte</div>
     </div>
   </div>
