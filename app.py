@@ -90,12 +90,13 @@ def search():
     business_type = data.get("business_type", "").strip()
     city = data.get("city", "").strip()
     max_results = min(int(data.get("max_results", 10)), 60)
+    no_website = bool(data.get("no_website"))
 
     if not business_type or not city:
         return jsonify({"error": "Podaj typ biznesu i miasto"}), 400
 
     try:
-        leads = scraper.search_leads(business_type, city, max_results)
+        leads = scraper.search_leads(business_type, city, max_results, no_website=no_website)
     except ValueError as e:
         return jsonify({"error": str(e)}), 500
     except Exception as e:

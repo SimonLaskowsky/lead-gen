@@ -641,6 +641,13 @@
             <option value="20">20 firm</option>
           </select>
         </div>
+        <div class="form-check mb-3">
+          <input type="checkbox" id="searchNoWebsite" class="form-check-input" />
+          <label class="form-check-label" for="searchNoWebsite" style="font-size:13px">
+            Tylko bez własnej strony
+            <span style="color:var(--muted)">— brak strony lub tylko Instagram / Facebook / Booksy</span>
+          </label>
+        </div>
         <div class="alert-info-soft">
           💡 Firmy już w bazie zostaną automatycznie pominięte.
         </div>
@@ -962,6 +969,7 @@ async function doSearch() {
   const business_type = document.getElementById('searchType').value.trim();
   const city          = document.getElementById('searchCity').value.trim();
   const max_results   = document.getElementById('searchMax').value;
+  const no_website    = document.getElementById('searchNoWebsite').checked;
 
   if (!business_type || !city) { showToast('Podaj typ biznesu i miasto', 'warning'); return; }
 
@@ -970,7 +978,7 @@ async function doSearch() {
   document.getElementById('loadingOverlay').classList.remove('d-none');
 
   try {
-    const res  = await fetch('/api/search', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({business_type, city, max_results}) });
+    const res  = await fetch('/api/search', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({business_type, city, max_results, no_website}) });
     const data = await res.json();
     if (data.error) { showToast('Błąd: ' + data.error, 'danger'); }
     else {

@@ -49,7 +49,7 @@ def _attr(tag, key, default=""):
         return default
 
 
-def search_leads(business_type: str, city: str, max_results: int = 10) -> list[dict]:
+def search_leads(business_type: str, city: str, max_results: int = 10, no_website: bool = False) -> list[dict]:
     api_key = os.getenv("GOOGLE_MAPS_API_KEY")
     if not api_key:
         raise ValueError("GOOGLE_MAPS_API_KEY not set in .env")
@@ -77,11 +77,15 @@ def search_leads(business_type: str, city: str, max_results: int = 10) -> list[d
                     place["place_id"],
                     fields=["name", "formatted_phone_number", "website", "formatted_address"],
                 )["result"]
+                site = details.get("website", "")
+                # "bez strony" = brak URL albo tylko profil na platformie (Instagram, Booksy, FB...)
+                if no_website and site and not detect_outsourced_platform(site):
+                    continue
                 leads.append(
                     {
                         "business_name": details.get("name", ""),
                         "phone": details.get("formatted_phone_number", ""),
-                        "website_url": details.get("website", ""),
+                        "website_url": site,
                         "address": details.get("formatted_address", ""),
                     }
                 )
