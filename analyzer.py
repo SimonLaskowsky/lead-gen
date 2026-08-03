@@ -246,9 +246,10 @@ Używaj TYLKO 1-2 statystyk pasujących do problemów tej konkretnej firmy. Nie 
     # ── Style rules shared by every branch ──
     style_rules = """
 === ZASADY STYLU (bezwzgledne) ===
-1. ZAKAZ MYSLNIKOW. Nie wolno uzyc znaku "," (em dash) ani "–" (en dash) ani "-" jako pauzy
-   w zdaniu. Zero wyjatkow. Zamiast pauzy uzyj przecinka, dwukropka albo rozbij na dwa zdania.
-   Lacznik w wyrazach zlozonych ("e-mail", "dwuosobowy") jest OK, pauza miedzy myslami NIE.
+1. ZAKAZ MYSLNIKOW. Nie wolno uzyc pauzy: ani em dash (unicode U+2014), ani en dash (U+2013),
+   ani zwyklego minusa uzytego jako pauza w zdaniu. Zero wyjatkow. Zamiast pauzy uzyj przecinka,
+   dwukropka albo rozbij na dwa zdania.
+   Lacznik wewnatrz wyrazu ("e-mail", "biało-czerwony") jest OK, pauza miedzy myslami NIE.
 2. Nadawcami sa DWAJ MEZCZYZNI, Szymon i Nikodem. Wszystkie czasowniki w rodzaju MESKOOSOBOWYM
    liczby mnogiej: "szukalismy", "trafilismy", "zrobilismy", "jestesmy".
    NIGDY w rodzaju zenskim ("szukalysmy", "trafilysmy") nawet gdy piszesz do kobiety
@@ -259,6 +260,18 @@ Używaj TYLKO 1-2 statystyk pasujących do problemów tej konkretnej firmy. Nie 
 4. Nie obiecuj rzeczy, ktorych nie ma. Szkic strony wspominamy jako propozycje do zrobienia,
    nie jako gotowy plik czekajacy w folderze.
 5. Bez P.S., bez emoji, bez wykrzyknikow, bez pogrubien i naglowkow sekcji.
+6. TON: piszemy do wlasciciela dobrze prosperujacej firmy, nie wystawiamy mu diagnozy.
+   Braku strony NIGDY nie stawiaj jako werdyktu w osobnym, uciętym zdaniu.
+   ZAKAZANE sformulowania: "Wlasnej strony internetowej brak.", "Strony brak.",
+   "wizytowka to jedyne miejsce, gdzie mozna go zobaczyc", "nie maja Panstwo strony".
+   Brzmia jak protokol z kontroli i od razu ustawiaja odbiorce w defensywie.
+   Zamiast tego wplec to mimochodem w zdanie o mozliwosci, np. "wizytowka wyglada dobrze,
+   a wlasna strona pozwolilaby pokazac wnetrze i realizacje w jednym miejscu".
+   Zasada: jedno zdanie ma jednoczesnie nazywac sytuacje i pokazywac, co mozna zyskac.
+   Nigdy samo wytkniecie braku.
+7. Zaczynaj od czegos pozytywnego o firmie, zanim przejdziesz do propozycji.
+   Wizytowka, opinie, zdjecia, cokolwiek widac w Google. Komplement ma byc konkretny,
+   nie ogolnikowe "widac, ze dbaja Panstwo o klientow".
 """
 
     outsourced = (website_data or {}).get("outsourced_platform")
@@ -377,8 +390,10 @@ Napisz krotki cold email sprzedazowy. Ma doprowadzic do odpowiedzi, nie do wycen
 
 Struktura (nie pisz numerow ani naglowkow):
 1. TEMAT: konkretny, bez obietnic i bez strachu. Nazwij sytuacje, dodaj lekka luke informacyjna.
-2. OTWARCIE: "Dzien dobry," a potem od razu obserwacja. Wizytowka w Google jest, strony brak.
-3. DLACZEGO TO BOLI: jedno zdanie o kliencie, ktory porownuje kilka firm z branzy.
+2. OTWARCIE: "Dzien dobry," a potem zyczliwa obserwacja. Zauwazamy cos dobrego w ich wizytowce
+   (opinie, zdjecia, ocena) i dopiero przy okazji wspominamy, ze wlasnej strony jeszcze nie maja.
+   Ma to brzmiec jak zauwazona szansa, nie jak wytkniety brak.
+3. CO MOZNA ZYSKAC: jedno zdanie o kliencie, ktory porownuje kilka firm z branzy.
    Bez statystyk, bez procentow, bez pouczania.
 4. KIM JESTESMY: dwuosobowe studio z regionu, Szymon i Nikodem, robimy strony dla lokalnych firm.
 5. CTA: proponujemy BEZPLATNY projekt graficzny strony wraz z wycena, bez zobowiazan.
