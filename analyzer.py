@@ -212,7 +212,7 @@ def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: st
     # ── Shared context: who we are ──
     sender_context = """
 Kim jesteśmy (nadawcy emaila):
-- Sand'n Studio, dwuosobowy duet web developerów z Polski (Szymon i Nikodem)
+- S&N Studio, dwuosobowy duet web developerów z Polski (Szymon i Nikodem)
 - Robimy strony dla lokalnych firm, kilka zrealizowanych projektów w regionie, klienci zadowoleni
 - Nie jesteśmy korporacją, to atut: szybko, bez biurokracji, bezpośredni kontakt
 - Portfolio: https://sandnstudio.pl/
@@ -271,7 +271,7 @@ Używaj TYLKO 1-2 statystyk pasujących do problemów tej konkretnej firmy. Nie 
         is_booking_platform = outsourced in booking_platforms
 
         if is_booking_platform:
-            prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Sand'n Studio, dwuosobowego studia web developerskiego.
+            prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla S&N Studio, dwuosobowego studia web developerskiego.
 
 {sender_context}
 
@@ -308,7 +308,7 @@ Zasady:
 - Doceniaj {outsourced}, nie atakuj go, firma słusznie go używa
 - NIE brzmij pouczająco, pokaż szansę którą tracą, nie że coś zepsuli
 - Pierwsza linia: Temat: [temat]
-- Podpisz się: Sand'n Studio (Szymon i Nikodem)
+- Podpisz się: S&N Studio (Szymon i Nikodem)
 - Nie używaj korporacyjnego języka
 - Zacznij od haka, nie od "Dzień dobry"
 - Wspomnij portfolio: sandnstudio.pl
@@ -317,7 +317,7 @@ Zasady:
         else:
             # Social/link platforms (Facebook, Instagram, Linktree, Google Sites), these are weak presences,
             # proposing a real website as replacement makes sense here.
-            prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Sand'n Studio, dwuosobowego studia web developerskiego które oferuje własną stronę lokalnej firmie.
+            prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla S&N Studio, dwuosobowego studia web developerskiego które oferuje własną stronę lokalnej firmie.
 
 {sender_context}
 
@@ -345,7 +345,7 @@ Zasady:
 - Pisz w formie "my", ZAWSZE liczba mnoga (jesteśmy dwuosobowym studiem). Nigdy "znalazłem/znalazłam/sprawdziłem", tylko "znalezliśmy/sprawdziliśmy". Żadnych form pierwszej osoby liczby pojedynczej.
 - NIE brzmij pouczająco, pokaż szansę którą tracą
 - Pierwsza linia: Temat: [temat]
-- Podpisz się: Sand'n Studio (Szymon i Nikodem)
+- Podpisz się: S&N Studio (Szymon i Nikodem)
 - Nie używaj korporacyjnego języka
 - Zacznij od haka, nie od "Dzień dobry"
 - Wspomnij portfolio: sandnstudio.pl
@@ -359,7 +359,7 @@ Zasady:
         return message.content[0].text
 
     if not has_website:
-        prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Sand'n Studio, dwuosobowego studia web developerskiego które oferuje zbudowanie strony lokalnej firmie.
+        prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla S&N Studio, dwuosobowego studia web developerskiego które oferuje zbudowanie strony lokalnej firmie.
 
 {sender_context}
 
@@ -383,7 +383,7 @@ Struktura (nie pisz numerow ani naglowkow):
 4. KIM JESTESMY: dwuosobowe studio z regionu, Szymon i Nikodem, robimy strony dla lokalnych firm.
 5. CTA: proponujemy BEZPLATNY projekt graficzny strony wraz z wycena, bez zobowiazan.
    To jest jedyna rzecz, o ktora prosimy w tym mailu.
-6. Podpis: Sand'n Studio · sandnstudio.pl
+6. Podpis: S&N Studio · sandnstudio.pl
 
 Zasady:
 - Maksymalnie 110 slow razem z tematem. Krotszy mail wygrywa.
@@ -495,7 +495,7 @@ URL: {lead.get('website_url', '')}
 4. Rozwinięcie (NAJWAŻNIEJSZE, tu pokazujesz głębię analizy): Z dostarczonego audytu wybierz 1 najboleśniejszy błąd biznesowy i rozwiń go najmocniej w 2-3 zdaniach językiem korzyści (nie "responsywność", lecz "klienci z telefonów uciekają, bo nie widzą numeru"). To Twój główny haczyk.
 5. Krótka lista "co jeszcze wyłapaliśmy": Zaraz po głównym problemie dorzuć zwięzłą wypunktowaną listę 3-4 KOLEJNYCH konkretnych usterek z audytu (np. brak SSL, martwy Google Analytics, brak nagłówka H1, wolne ładowanie, brak opinii, ukryty formularz). Każdy punkt jedno krótkie zdanie, chodzi o pokazanie, że naprawdę przeszliśmy stronę punkt po punkcie, a nie wysłaliśmy masówki. Wybieraj punkty REALNIE obecne w audycie, nie zmyślaj.
 6. Sygnał, że to dopiero wierzchołek: Po liście dodaj jedno zdanie w stylu "To tylko część tego, co znaleźliśmy, pełną listę z konkretnymi poprawkami mamy spisaną i chętnie prześlemy". Pokaż, że za mailem stoi solidny, obszerny audyt, a nie kilka ogólników.
-7. Kim jesteście: "Jesteśmy Sand'n Studio, dwuosobowy zespół programistów z Polski. Bierzemy na warsztat witryny lokalnych firm i sprawnie przebudowujemy je tak, aby generowały więcej telefonów. Nasze realizacje: sandnstudio.pl".
+7. Kim jesteście: "Jesteśmy S&N Studio, dwuosobowy zespół programistów z Polski. Bierzemy na warsztat witryny lokalnych firm i sprawnie przebudowujemy je tak, aby generowały więcej telefonów. Nasze realizacje: sandnstudio.pl".
 8. Wycena: to sa ULEPSZENIA istniejacej strony, a nie budowa nowej, wiec zakres i cena sa zawsze indywidualne. NIE podawaj ZADNEJ kwoty, ani widelek, ani stawek agencji, ani warunkow platnosci. Napisz tylko, ze wycene przygotowujemy indywidualnie po obejrzeniu zakresu i ze dolaczamy ja do bezplatnego podgladu.
 9. Call to Action (Haczyk): Zaproponuj podrzucenie bezpłatnego, prostego podglądu (mockupu) ekranu głównego po optymalizacji. Zapytaj na końcu: "Czy mogę podesłać ten bezpłatny podgląd do rzucenia okiem?".
 
@@ -507,7 +507,7 @@ URL: {lead.get('website_url', '')}
 - Odpowiedz WYŁĄCZNIE gotową treścią maila (Temat + Treść), bez żadnych dodatkowych komentarzy od AI przed czy po tekście.
 
 Podpisz maila:
-Sand'n Studio
+S&N Studio
 Szymon i Nikodem"""
 
     message = client.messages.create(
