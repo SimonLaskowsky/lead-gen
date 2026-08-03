@@ -212,47 +212,68 @@ def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: st
     # ── Shared context: who we are ──
     sender_context = """
 Kim jesteśmy (nadawcy emaila):
-- Sand'n Studio — dwuosobowy duet web developerów z Polski (Szymon i Nikodem)
+- Sand'n Studio, dwuosobowy duet web developerów z Polski (Szymon i Nikodem)
 - Robimy strony dla lokalnych firm, kilka zrealizowanych projektów w regionie, klienci zadowoleni
-- Nie jesteśmy korporacją — to atut: szybko, bez biurokracji, bezpośredni kontakt
+- Nie jesteśmy korporacją, to atut: szybko, bez biurokracji, bezpośredni kontakt
 - Portfolio: https://sandnstudio.pl/
 - Odpowiadamy tego samego dnia
 
-Oferta (NIE wymieniaj wszystkich tierów — wspomnij tylko jeden pasujący do sytuacji):
-- Landing page: od 750 PLN — strona jednostronicowa, szybka realizacja
-- Strona wizytówka (GŁÓWNA): od 1250 PLN — do 4 podstron, responsywna, formularz, pomoc z domeną i hostingiem, 30 dni wsparcia
-- System rezerwacji: od 2000 PLN — WordPress + Bookly/Amelia, klienci umawiają się sami bez Twojego udziału
+Oferta. To sa DWIE ROZNE rzeczy i nigdy nie wolno ich mieszac ani wyceniac tak samo:
 
-Kotwica cenowa: agencje biorą 3000–8000 PLN za to samo co my od 1250 PLN.
-Killer argument: PŁATNOŚĆ PO POŁOWIE — połowa na start, połowa dopiero gdy strona im się podoba. Zero ryzyka.
+1. NOWA STRONA (landing page, strona wizytowka) czyli budowa od zera: od 3000 PLN.
+2. ULEPSZENIA istniejacej strony (poprawki, modernizacja, redesign): to NIE jest budowa nowej strony.
+   Zakres bywa rozny, wiec cena jest zawsze inna niz przy nowej stronie i ustalana indywidualnie.
 
-Przy modernizacji istniejącej strony: cena zależy od zakresu — NIE podawaj żadnej konkretnej kwoty. Powiedz tylko że "wyceniamy indywidualnie po rozmowie" i że płatność jest podzielona na dwie raty.
+ZASADA CENOWA W MAILU: domyslnie NIE podawaj zadnej kwoty. Cold mail ma doprowadzic do rozmowy,
+nie do wyceny. Kwote 3000 PLN wymieniaj tylko wtedy, gdy bez niej mail traci sens.
+Przy ulepszeniach istniejacej strony NIGDY nie podawaj kwoty, mow "wyceniamy indywidualnie po rozmowie".
+
+Killer argument (uzywaj go zamiast ceny): PLATNOSC PO POLOWIE, polowa na start,
+polowa dopiero gdy strona im sie podoba. Zero ryzyka.
 """
 
     # ── Proven statistics to use ──
     stats_arsenal = """
 Statystyki które można użyć (tylko te pasujące do konkretnych problemów tej firmy):
-- 60% ruchu w internecie pochodzi z telefonów — strona nieresponsywna traci ponad połowę odwiedzających
+- 60% ruchu w internecie pochodzi z telefonów, strona nieresponsywna traci ponad połowę odwiedzających
 - Strony ładujące się ponad 3 sekundy tracą 53% użytkowników mobilnych (Google)
 - 75% użytkowników ocenia wiarygodność firmy po wyglądzie strony
-- Strony z SSL konwertują o 85% lepiej — bez SSL przeglądarka wyświetla "Niezabezpieczona"
+- Strony z SSL konwertują o 85% lepiej, bez SSL przeglądarka wyświetla "Niezabezpieczona"
 - Firmy z profesjonalną stroną dostają średnio 3x więcej zapytań online
 - Brak CTA (przycisku "zadzwoń/napisz") to najczęstsza przyczyna ucieczki klientów ze strony
 - Strony z opiniami klientów konwertują o 270% lepiej niż bez opinii
 Używaj TYLKO 1-2 statystyk pasujących do problemów tej konkretnej firmy. Nie wymieniaj wszystkich.
 """
 
+    # ── Style rules shared by every branch ──
+    style_rules = """
+=== ZASADY STYLU (bezwzgledne) ===
+1. ZAKAZ MYSLNIKOW. Nie wolno uzyc znaku "," (em dash) ani "–" (en dash) ani "-" jako pauzy
+   w zdaniu. Zero wyjatkow. Zamiast pauzy uzyj przecinka, dwukropka albo rozbij na dwa zdania.
+   Lacznik w wyrazach zlozonych ("e-mail", "dwuosobowy") jest OK, pauza miedzy myslami NIE.
+2. Nadawcami sa DWAJ MEZCZYZNI, Szymon i Nikodem. Wszystkie czasowniki w rodzaju MESKOOSOBOWYM
+   liczby mnogiej: "szukalismy", "trafilismy", "zrobilismy", "jestesmy".
+   NIGDY w rodzaju zenskim ("szukalysmy", "trafilysmy") nawet gdy piszesz do kobiety
+   i nawet gdy w tekscie przewijaja sie "klientki".
+3. Zadnego twierdzenia, ktore odbiorca obali w 10 sekund. Firma MA wizytowke w Google,
+   bo wlasnie stamtad mamy jej dane. Nie pisz, ze "nie ma jej w Google" ani ze "nie wyskakuje
+   w wyszukiwarce". Brak strony WWW to co innego niz brak obecnosci w Google.
+4. Nie obiecuj rzeczy, ktorych nie ma. Szkic strony wspominamy jako propozycje do zrobienia,
+   nie jako gotowy plik czekajacy w folderze.
+5. Bez P.S., bez emoji, bez wykrzyknikow, bez pogrubien i naglowkow sekcji.
+"""
+
     outsourced = (website_data or {}).get("outsourced_platform")
     if outsourced:
         pitch = (website_data or {}).get("outsourced_pitch", "korzystają z zewnętrznej platformy")
 
-        # Booking platforms (Booksy, Fresha, Treatwell, Znany Lekarz) are marketplaces —
+        # Booking platforms (Booksy, Fresha, Treatwell, Znany Lekarz) are marketplaces ,
         # don't suggest replacing them (they lose new customer flow). Instead: own site + keep the widget.
         booking_platforms = {"Booksy", "Fresha", "Treatwell", "Znany Lekarz"}
         is_booking_platform = outsourced in booking_platforms
 
         if is_booking_platform:
-            prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Sand'n Studio — dwuosobowego studia web developerskiego.
+            prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Sand'n Studio, dwuosobowego studia web developerskiego.
 
 {sender_context}
 
@@ -260,44 +281,45 @@ Używaj TYLKO 1-2 statystyk pasujących do problemów tej konkretnej firmy. Nie 
 Firma: {business_name}
 Typ biznesu: {business_type}
 Miasto: {city}
-Sytuacja: firma korzysta z **{outsourced}** jako swojej jedynej obecności w internecie — nie ma własnej strony
+Sytuacja: firma korzysta z **{outsourced}** jako swojej jedynej obecności w internecie, nie ma własnej strony
 
 === KONTEKST STRATEGICZNY ===
-{outsourced} to marketplace — firma słusznie z niego korzysta bo dostaje nowych klientów z aplikacji.
+{outsourced} to marketplace, firma słusznie z niego korzysta bo dostaje nowych klientów z aplikacji.
 NIE proponuj zastąpienia {outsourced}. To błąd strategiczny który ich odstraszy.
 Właściwy kąt: mają świetne opinie na {outsourced}, ale brakuje im własnej strony która buduje markę premium i ściąga klientów z Google.
 Rozwiązanie: własna strona wizytówka + widget {outsourced} wbudowany w stronę (klient rezerwuje bez wychodzenia).
 Zyski: własna marka, SEO na Google, profesjonalny wizerunek, uniezależnienie się od jedynego kanału.
 
 {stats_arsenal}
+{style_rules}
 
 === ZADANIE ===
 Napisz cold email który SPRZEDAJE własną stronę jako UZUPEŁNIENIE {outsourced}, nie zamiennik.
 
 Struktura emaila:
-1. TEMAT: konkretny — np. "Znalazłem {business_name} na {outsourced} — brakuje jednej rzeczy"
-2. HOOK: komplementuj — mają dobre opinie/profil na {outsourced}, ale Google ich nie pokazuje gdy ktoś szuka bezpośrednio
-3. PROBLEM: klienci którzy nie szukają przez {outsourced} (np. z polecenia, z Google) nie mają gdzie trafić — tracą część ruchu
-4. ROZWIĄZANIE: własna strona z widgetem {outsourced} wbudowanym — rezerwacje zostają, dochodzi SEO i marka premium
+1. TEMAT: konkretny, np. "Znalazłem {business_name} na {outsourced}, brakuje jednej rzeczy"
+2. HOOK: komplementuj, mają dobre opinie/profil na {outsourced}, ale Google ich nie pokazuje gdy ktoś szuka bezpośrednio
+3. PROBLEM: klienci którzy nie szukają przez {outsourced} (np. z polecenia, z Google) nie mają gdzie trafić, tracą część ruchu
+4. ROZWIĄZANIE: własna strona z widgetem {outsourced} wbudowanym, rezerwacje zostają, dochodzi SEO i marka premium
 5. OFERTA: od 1250 PLN jednorazowo, połowa na start, połowa po oddaniu
-6. CTA: "Mamy już gotowy szkic jak mogłaby wyglądać strona {business_name} — chce Pan/Pani zobaczyć?"
+6. CTA: "Mamy już gotowy szkic jak mogłaby wyglądać strona {business_name}, chce Pan/Pani zobaczyć?"
 
 Zasady:
 - Maksymalnie 180 słów
-- Pisz w formie "my" — ZAWSZE liczba mnoga (jesteśmy dwuosobowym studiem). Nigdy "znalazłem/znalazłam/sprawdziłem" — tylko "znalezliśmy/sprawdziliśmy". Żadnych form pierwszej osoby liczby pojedynczej.
-- Doceniaj {outsourced} — nie atakuj go, firma słusznie go używa
-- NIE brzmij pouczająco — pokaż szansę którą tracą, nie że coś zepsuli
+- Pisz w formie "my", ZAWSZE liczba mnoga (jesteśmy dwuosobowym studiem). Nigdy "znalazłem/znalazłam/sprawdziłem", tylko "znalezliśmy/sprawdziliśmy". Żadnych form pierwszej osoby liczby pojedynczej.
+- Doceniaj {outsourced}, nie atakuj go, firma słusznie go używa
+- NIE brzmij pouczająco, pokaż szansę którą tracą, nie że coś zepsuli
 - Pierwsza linia: Temat: [temat]
 - Podpisz się: Sand'n Studio (Szymon i Nikodem)
 - Nie używaj korporacyjnego języka
 - Zacznij od haka, nie od "Dzień dobry"
 - Wspomnij portfolio: sandnstudio.pl
-- NIE dodawaj P.S. — CTA w punkcie 6 jest wystarczające
+- NIE dodawaj P.S., CTA w punkcie 6 jest wystarczające
 """
         else:
-            # Social/link platforms (Facebook, Instagram, Linktree, Google Sites) — these are weak presences,
+            # Social/link platforms (Facebook, Instagram, Linktree, Google Sites), these are weak presences,
             # proposing a real website as replacement makes sense here.
-            prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Sand'n Studio — dwuosobowego studia web developerskiego które oferuje własną stronę lokalnej firmie.
+            prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Sand'n Studio, dwuosobowego studia web developerskiego które oferuje własną stronę lokalnej firmie.
 
 {sender_context}
 
@@ -305,30 +327,31 @@ Zasady:
 Firma: {business_name}
 Typ biznesu: {business_type}
 Miasto: {city}
-Sytuacja: firma używa **{outsourced}** zamiast własnej strony — {pitch}
+Sytuacja: firma używa **{outsourced}** zamiast własnej strony, {pitch}
 
 {stats_arsenal}
+{style_rules}
 
 === ZADANIE ===
-Napisz cold email który SPRZEDAJE własną stronę zamiast {outsourced}. Argument: {outsourced} nie zastępuje prawdziwej strony — brak SEO, brak własnej marki, brak kontroli.
+Napisz cold email który SPRZEDAJE własną stronę zamiast {outsourced}. Argument: {outsourced} nie zastępuje prawdziwej strony, brak SEO, brak własnej marki, brak kontroli.
 
 Struktura emaila:
-1. TEMAT: konkretny — nawiązujący do braku własnej strony i tego co przez to tracą
-2. HOOK: zauważyłeś że ich jedyną obecnością w sieci jest profil na {outsourced} — Google ich nie pokazuje gdy ktoś szuka ich branży w mieście
+1. TEMAT: konkretny, nawiązujący do braku własnej strony i tego co przez to tracą
+2. HOOK: zauważyłeś że ich jedyną obecnością w sieci jest profil na {outsourced}, Google ich nie pokazuje gdy ktoś szuka ich branży w mieście
 3. KOSZT BRAKU STRONY: klienci z Google trafiają do konkurencji, nie do nich
-4. ALTERNATYWA: własna strona od 1250 PLN jednorazowo — własna domena, SEO, marka premium. Połowa na start, połowa po oddaniu.
-5. CTA: "Mamy już gotowy szkic jak mogłaby wyglądać strona {business_name} — chce Pan/Pani zobaczyć?"
+4. ALTERNATYWA: własna strona od 1250 PLN jednorazowo, własna domena, SEO, marka premium. Połowa na start, połowa po oddaniu.
+5. CTA: "Mamy już gotowy szkic jak mogłaby wyglądać strona {business_name}, chce Pan/Pani zobaczyć?"
 
 Zasady:
 - Maksymalnie 180 słów
-- Pisz w formie "my" — ZAWSZE liczba mnoga (jesteśmy dwuosobowym studiem). Nigdy "znalazłem/znalazłam/sprawdziłem" — tylko "znalezliśmy/sprawdziliśmy". Żadnych form pierwszej osoby liczby pojedynczej.
-- NIE brzmij pouczająco — pokaż szansę którą tracą
+- Pisz w formie "my", ZAWSZE liczba mnoga (jesteśmy dwuosobowym studiem). Nigdy "znalazłem/znalazłam/sprawdziłem", tylko "znalezliśmy/sprawdziliśmy". Żadnych form pierwszej osoby liczby pojedynczej.
+- NIE brzmij pouczająco, pokaż szansę którą tracą
 - Pierwsza linia: Temat: [temat]
 - Podpisz się: Sand'n Studio (Szymon i Nikodem)
 - Nie używaj korporacyjnego języka
 - Zacznij od haka, nie od "Dzień dobry"
 - Wspomnij portfolio: sandnstudio.pl
-- NIE dodawaj P.S. — CTA w punkcie 5 jest wystarczające
+- NIE dodawaj P.S., CTA w punkcie 5 jest wystarczające
 """
         message = client.messages.create(
             model="claude-opus-4-6",
@@ -338,7 +361,7 @@ Zasady:
         return message.content[0].text
 
     if not has_website:
-        prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Sand'n Studio — dwuosobowego studia web developerskiego które oferuje zbudowanie strony lokalnej firmie.
+        prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla Sand'n Studio, dwuosobowego studia web developerskiego które oferuje zbudowanie strony lokalnej firmie.
 
 {sender_context}
 
@@ -349,32 +372,49 @@ Miasto: {city}
 Sytuacja: firma NIE MA strony internetowej w ogóle
 {f"Dodatkowe spostrzeżenia (wpleć naturalnie): {my_feedback}" if my_feedback else ""}
 
-{stats_arsenal}
+{style_rules}
 
 === ZADANIE ===
-Napisz cold email który SPRZEDAJE. Nie informacyjny — sprzedażowy.
+Napisz krotki cold email sprzedazowy. Ma doprowadzic do odpowiedzi, nie do wyceny.
 
-Struktura emaila (nie pisz nagłówków, po prostu tak go zbuduj):
-1. TEMAT: intrygujący, konkretny, nie "Propozycja strony" — coś co wywołuje ciekawość lub lekki strach przed stratą
-2. HOOK (pierwsze zdanie): zaskakujący fakt lub pytanie które boli — np. "Szukałem dziś {business_type} w {city} na Google — Pana firmy nie ma."
-3. KOSZT BRAKU STRONY: przetłumacz brak strony na realne straty — ilu klientów szuka online i ich nie znajduje
-4. SOCIAL PROOF: wspomnij że inne podobne firmy w regionie już to zrobiły i co zyskały (ogólnie, nie fake)
-5. OFERTA + CENA: strona wizytówka od 1250 PLN — responsywna, formularz, pomoc z domeną i hostingiem, 30 dni wsparcia. Agencje biorą 3000–8000 PLN za to samo. Połowa płatności na start, połowa po oddaniu.
-6. CTA: "Mamy już gotowy szkic strony dla [firma] — chce Pan/Pani zobaczyć jak mogłaby wyglądać?"
+Wzorzec, ktory dziala. Trzymaj sie tej dlugosci i rytmu, tresc dopasuj do branzy:
+
+    Temat: Salon w Katowicach bez wlasnej strony, kilka pytan
+
+    Dzien dobry,
+
+    Trafilismy na Pani salon w Google, wizytowka jest, ale wlasnej strony brakuje.
+    Dla klientki, ktora porownuje trzy salony, strona to czesto jedyna roznica.
+
+    Jestesmy dwuosobowym studiem z regionu (Szymon i Nikodem), robimy strony dla
+    lokalnych firm. Platnosc dzielimy na pol, druga polowa dopiero wtedy, gdy strona
+    sie Pani podoba.
+
+    Moglibysmy przygotowac szkic, jak taka strona moglaby wygladac. Zainteresowana?
+
+    Sand'n Studio · sandnstudio.pl
+
+Struktura (nie pisz numerow ani naglowkow):
+1. TEMAT: konkretny, bez obietnic i bez strachu. Nazwij sytuacje, dodaj lekka luke informacyjna.
+2. OTWARCIE: "Dzien dobry," a potem od razu obserwacja. Wizytowka w Google jest, strony brak.
+3. DLACZEGO TO BOLI: jedno zdanie o kliencie, ktory porownuje kilka firm z branzy.
+   Bez statystyk, bez procentow, bez pouczania.
+4. KIM JESTESMY plus platnosc po polowie. To jest nasz najmocniejszy argument, wiec ma byc tutaj.
+5. CTA: propozycja przygotowania szkicu, zakonczona krotkim pytaniem.
+6. Podpis: Sand'n Studio · sandnstudio.pl
 
 Zasady:
-- Maksymalnie 180 słów (krótko = szanujemy czas)
-- Pisz w formie "my" — ZAWSZE liczba mnoga (jesteśmy dwuosobowym studiem). Nigdy "znalazłem/znalazłam/sprawdziłem" — tylko "znalezliśmy/sprawdziliśmy". Żadnych form pierwszej osoby liczby pojedynczej.
-- NIE brzmij pouczająco — właściciele firm są wrażliwi na krytykę
-  Zamiast oceniać wprost → pokaż że tracą szansę, nie że coś zepsuli
-  Przykład: "Szkoda żeby klienci szukający [branży] w Google trafiali do konkurencji zamiast do Państwa"
-- Jedna konkretna statystyka pasująca do branży
+- Maksymalnie 110 slow razem z tematem. Krotszy mail wygrywa.
+- Cztery akapity, kazdy najwyzej dwa zdania.
+- ZADNEJ CENY. Nie pisz "od 3000 PLN", nie porownuj do agencji, nie podawaj widelek.
+  Platnosc po polowie owszem, konkretna kwota nie.
+- ZADNYCH STATYSTYK ani procentow. Brzmia jak wypelniacz i obnizaja wiarygodnosc.
+- Zwroty grzecznosciowe dopasuj do plci wlasciciela, jesli da sie ja wywnioskowac
+  z nazwy firmy ({business_name}). Jesli nie da sie, pisz bezosobowo albo "Panstwa".
+- Nie pisz "gotowy szkic". Piszemy, ze moglibysmy go przygotowac.
+- Zero social proof bez nazw. Nie pisz "kilka firm nam zaufalo", to nic nie znaczy.
 - Pierwsza linia to: Temat: [temat]
-- Podpisz się: Sand'n Studio (Szymon i Nikodem)
-- Nie używaj słów: "pragnę", "uprzejmie", "niniejszym", "pozwalam sobie"
-- Nie zaczynaj od "Dzień dobry" — zacznij od haka
-- Wspomnij portfolio: sandnstudio.pl
-- NIE dodawaj P.S. — CTA w punkcie 6 jest wystarczające
+- Nie uzywaj slow: "pragne", "uprzejmie", "niniejszym", "pozwalam sobie", "oferta"
 """
 
     else:
@@ -382,45 +422,45 @@ Zasady:
         issues = []
         if website_data and not website_data.get("error"):
             if not website_data.get("has_mobile_viewport"):
-                issues.append("brak responsywności — strona się psuje na telefonach")
+                issues.append("brak responsywności, strona się psuje na telefonach")
             if not website_data.get("has_ssl"):
-                issues.append("brak SSL — Chrome pokazuje 'Niezabezpieczona' zanim klient w ogóle zobaczy stronę")
+                issues.append("brak SSL, Chrome pokazuje 'Niezabezpieczona' zanim klient w ogóle zobaczy stronę")
             if not website_data.get("meta_description"):
-                issues.append("brak meta description — Google nie wie jak promować tę stronę")
+                issues.append("brak meta description, Google nie wie jak promować tę stronę")
             if not website_data.get("has_cta"):
-                issues.append("brak przycisku CTA — klient nie wie co ma zrobić żeby się skontaktować")
+                issues.append("brak przycisku CTA, klient nie wie co ma zrobić żeby się skontaktować")
             if not website_data.get("has_contact_form"):
-                issues.append("brak formularza kontaktowego na stronie głównej (może być na podstronie kontakt) — połowa klientów woli napisać niż dzwonić")
+                issues.append("brak formularza kontaktowego na stronie głównej (może być na podstronie kontakt), połowa klientów woli napisać niż dzwonić")
             if not website_data.get("has_phone"):
-                issues.append("numer telefonu niewidoczny na stronie głównej (może być na podstronie) — klient mobilny który trafi z Google nie zadzwoni bez szukania")
+                issues.append("numer telefonu niewidoczny na stronie głównej (może być na podstronie), klient mobilny który trafi z Google nie zadzwoni bez szukania")
             if website_data.get("uses_tables_layout"):
-                issues.append("układ tabelkowy — design rodem z 2008 roku, wygląda nieprofesjonalnie")
+                issues.append("układ tabelkowy, design rodem z 2008 roku, wygląda nieprofesjonalnie")
             if website_data.get("has_dead_analytics"):
-                issues.append("Google Analytics wyłączony od 2023 — właściciel nie widzi ilu klientów traci")
+                issues.append("Google Analytics wyłączony od 2023, właściciel nie widzi ilu klientów traci")
             score = website_data.get("pagespeed_score")
             if score is not None and score < 60:
-                issues.append(f"PageSpeed {score}/100 — strona ładuje się bardzo wolno, większość użytkowników mobilnych wychodzi")
+                issues.append(f"PageSpeed {score}/100, strona ładuje się bardzo wolno, większość użytkowników mobilnych wychodzi")
             elif score is not None and score < 80:
-                issues.append(f"PageSpeed {score}/100 — strona ładuje się wolno na telefonie")
+                issues.append(f"PageSpeed {score}/100, strona ładuje się wolno na telefonie")
             # SEO specifics with real numbers
             missing_alt = website_data.get("images_missing_alt", 0)
             img_count = website_data.get("image_count", 0)
             if missing_alt > 0 and img_count > 0:
-                issues.append(f"{missing_alt} z {img_count} zdjęć nie ma alt text — stracona szansa na pozycjonowanie obrazków w Google")
+                issues.append(f"{missing_alt} z {img_count} zdjęć nie ma alt text, stracona szansa na pozycjonowanie obrazków w Google")
             wc = website_data.get("word_count")
             if wc is not None and wc < 400:
-                issues.append(f"tylko {wc} słów treści na stronie — Google preferuje minimum 500-800 słów dla lokalnego SEO")
+                issues.append(f"tylko {wc} słów treści na stronie, Google preferuje minimum 500-800 słów dla lokalnego SEO")
             if not website_data.get("has_h1"):
-                issues.append("brak tagu H1 — Google nie wie jaka jest główna fraza strony")
+                issues.append("brak tagu H1, Google nie wie jaka jest główna fraza strony")
             elif website_data.get("h1_text") and business_type:
                 # Check if business type keywords appear in H1
                 bt_words = business_type.lower().split()
                 h1_lower = website_data["h1_text"].lower()
                 if not any(w in h1_lower for w in bt_words if len(w) > 3):
-                    issues.append(f"H1 \"{website_data['h1_text']}\" nie zawiera frazy kluczowej — marketingowy, ale SEO-neutralny")
+                    issues.append(f"H1 \"{website_data['h1_text']}\" nie zawiera frazy kluczowej, marketingowy, ale SEO-neutralny")
 
         if ai_analysis:
-            # ai_analysis may be a JSON blob ({"scores":..., "analysis":...}) — extract clean text
+            # ai_analysis may be a JSON blob ({"scores":..., "analysis":...}), extract clean text
             analysis_text = ai_analysis
             try:
                 import json as _json
@@ -431,16 +471,16 @@ Zasady:
                 pass
             site_context = (
                 f"Szczegółowa analiza AI strony:\n{analysis_text}\n\n"
-                f"Dane techniczne (mogą być niepełne dla stron JS-rendered — traktuj jako wskazówki, nie pewniki):\n"
+                f"Dane techniczne (mogą być niepełne dla stron JS-rendered, traktuj jako wskazówki, nie pewniki):\n"
                 + "\n".join(f"- {i}" for i in issues)
             ) if issues else f"Szczegółowa analiza AI strony:\n{analysis_text}"
         elif issues:
             site_context = (
-                "Dane techniczne (automatyczny skaner — mogą być niepełne dla stron z JavaScriptem):\n"
+                "Dane techniczne (automatyczny skaner, mogą być niepełne dla stron z JavaScriptem):\n"
                 + "\n".join(f"- {i}" for i in issues)
             )
         else:
-            site_context = "Strona wymaga modernizacji — przestarzały design, brak nowoczesnych elementów"
+            site_context = "Strona wymaga modernizacji, przestarzały design, brak nowoczesnych elementów"
 
         if my_feedback:
             site_context += f"\n\nDodatkowe spostrzeżenia (wpleć naturalnie w email, nie wyróżniaj jako osobnej sekcji):\n{my_feedback}"
@@ -459,19 +499,19 @@ URL: {lead.get('website_url', '')}
 
 === WYTYCZNE DLA COLD MAILA ===
 1. Zwrot do adresata: "Dzień dobry" lub "Panie/Pani [imię jeśli znasz]". Pisz per Pan/Pani, szanując tradycyjne podejście lokalnych przedsiębiorców. Żadnego "Cześć" na start.
-2. Temat maila: Intrygujący, bezpośredni, nawiązujący do smartfona i konkretnego błędu ze źródłowego audytu (np. "Wszedłem na [domena] z telefonu — klienci mogą nie doczekać się wyceny").
+2. Temat maila: Intrygujący, bezpośredni, nawiązujący do smartfona i konkretnego błędu ze źródłowego audytu (np. "Wszedłem na [domena] z telefonu, klienci mogą nie doczekać się wyceny").
 3. Wstęp: Wykorzystaj kontekst lokalny i psychologiczny (np. "Wyszukałem [Nazwa Firmy] na telefonie, udając klienta z [Miasto/Region], któremu pilnie potrzebna jest pomoc...").
-4. Rozwinięcie (NAJWAŻNIEJSZE — tu pokazujesz głębię analizy): Z dostarczonego audytu wybierz 1 najboleśniejszy błąd biznesowy i rozwiń go najmocniej w 2-3 zdaniach językiem korzyści (nie "responsywność", lecz "klienci z telefonów uciekają, bo nie widzą numeru"). To Twój główny haczyk.
-5. Krótka lista "co jeszcze wyłapaliśmy": Zaraz po głównym problemie dorzuć zwięzłą wypunktowaną listę 3-4 KOLEJNYCH konkretnych usterek z audytu (np. brak SSL, martwy Google Analytics, brak nagłówka H1, wolne ładowanie, brak opinii, ukryty formularz). Każdy punkt jedno krótkie zdanie — chodzi o pokazanie, że naprawdę przeszliśmy stronę punkt po punkcie, a nie wysłaliśmy masówki. Wybieraj punkty REALNIE obecne w audycie, nie zmyślaj.
-6. Sygnał, że to dopiero wierzchołek: Po liście dodaj jedno zdanie w stylu "To tylko część tego, co znaleźliśmy — pełną listę z konkretnymi poprawkami mamy spisaną i chętnie prześlemy". Pokaż, że za mailem stoi solidny, obszerny audyt, a nie kilka ogólników.
-7. Kim jesteście: "Jesteśmy Sand'n Studio — dwuosobowy zespół programistów z Polski. Bierzemy na warsztat witryny lokalnych firm i sprawnie przebudowujemy je tak, aby generowały więcej telefonów. Nasze realizacje: sandnstudio.pl".
-8. Kotwica cenowa i warunki (framing "specjalnej wyceny"): Najpierw zakotwicz wysoko — duże agencje biorą za tego typu przebudowę 3000-8000 PLN, a standardowo prace poprawkowe i lifting strony zaczynają się u nas od 1900 PLN. Następnie zaznacz, że DLA PAŃSTWA możemy przygotować specjalną, indywidualną wycenę, która wyjdzie korzystniej niż ta standardowa stawka — bo zależy nam na współpracy z lokalnymi firmami (np. z {city}) i widzimy, że zakres jest konkretny. Cel: klient ma poczuć, że dostaje wyjątkową, dopasowaną cenę przygotowaną specjalnie pod niego, a nie cennik z półki. NIE podawaj dokładnej kwoty tej specjalnej wyceny — to ma być zachęta do rozmowy ("dopniemy szczegóły i podamy dokładną, niższą cenę"). Płatność dzielona 50/50 — reszta dopiero, gdy nowa wersja w pełni się podoba.
+4. Rozwinięcie (NAJWAŻNIEJSZE, tu pokazujesz głębię analizy): Z dostarczonego audytu wybierz 1 najboleśniejszy błąd biznesowy i rozwiń go najmocniej w 2-3 zdaniach językiem korzyści (nie "responsywność", lecz "klienci z telefonów uciekają, bo nie widzą numeru"). To Twój główny haczyk.
+5. Krótka lista "co jeszcze wyłapaliśmy": Zaraz po głównym problemie dorzuć zwięzłą wypunktowaną listę 3-4 KOLEJNYCH konkretnych usterek z audytu (np. brak SSL, martwy Google Analytics, brak nagłówka H1, wolne ładowanie, brak opinii, ukryty formularz). Każdy punkt jedno krótkie zdanie, chodzi o pokazanie, że naprawdę przeszliśmy stronę punkt po punkcie, a nie wysłaliśmy masówki. Wybieraj punkty REALNIE obecne w audycie, nie zmyślaj.
+6. Sygnał, że to dopiero wierzchołek: Po liście dodaj jedno zdanie w stylu "To tylko część tego, co znaleźliśmy, pełną listę z konkretnymi poprawkami mamy spisaną i chętnie prześlemy". Pokaż, że za mailem stoi solidny, obszerny audyt, a nie kilka ogólników.
+7. Kim jesteście: "Jesteśmy Sand'n Studio, dwuosobowy zespół programistów z Polski. Bierzemy na warsztat witryny lokalnych firm i sprawnie przebudowujemy je tak, aby generowały więcej telefonów. Nasze realizacje: sandnstudio.pl".
+8. Kotwica cenowa i warunki (framing "specjalnej wyceny"): Najpierw zakotwicz wysoko, duże agencje biorą za tego typu przebudowę 3000-8000 PLN, a standardowo prace poprawkowe i lifting strony zaczynają się u nas od 1900 PLN. Następnie zaznacz, że DLA PAŃSTWA możemy przygotować specjalną, indywidualną wycenę, która wyjdzie korzystniej niż ta standardowa stawka, bo zależy nam na współpracy z lokalnymi firmami (np. z {city}) i widzimy, że zakres jest konkretny. Cel: klient ma poczuć, że dostaje wyjątkową, dopasowaną cenę przygotowaną specjalnie pod niego, a nie cennik z półki. NIE podawaj dokładnej kwoty tej specjalnej wyceny, to ma być zachęta do rozmowy ("dopniemy szczegóły i podamy dokładną, niższą cenę"). Płatność dzielona 50/50, reszta dopiero, gdy nowa wersja w pełni się podoba.
 9. Call to Action (Haczyk): Zaproponuj podrzucenie bezpłatnego, prostego podglądu (mockupu) ekranu głównego po optymalizacji. Zapytaj na końcu: "Czy mogę podesłać ten bezpłatny podgląd do rzucenia okiem?".
 
 === ZASADY STYLU ===
-- Pisz zwięźle i konkretnie, bez lania wody i bez marketingu korporacyjnego — ale NIE skracaj listy usterek z punktu 5, ona ma robić wrażenie skrupulatności.
-- Mail ma wyglądać tak, jakby Szymon lub Nikodem napisali go ręcznie po dokładnym przejściu strony — ma czuć się jak realny, szczegółowy audyt, nie szablon.
-- Główny problem rozwiń, resztę usterek podaj telegraficznie w punktach — kontrast między głębią a listą buduje poczucie, że masz tego dużo więcej.
+- Pisz zwięźle i konkretnie, bez lania wody i bez marketingu korporacyjnego, ale NIE skracaj listy usterek z punktu 5, ona ma robić wrażenie skrupulatności.
+- Mail ma wyglądać tak, jakby Szymon lub Nikodem napisali go ręcznie po dokładnym przejściu strony, ma czuć się jak realny, szczegółowy audyt, nie szablon.
+- Główny problem rozwiń, resztę usterek podaj telegraficznie w punktach, kontrast między głębią a listą buduje poczucie, że masz tego dużo więcej.
 - Całkowity zakaz używania emoji.
 - Odpowiedz WYŁĄCZNIE gotową treścią maila (Temat + Treść), bez żadnych dodatkowych komentarzy od AI przed czy po tekście.
 
