@@ -209,6 +209,17 @@
     .table tbody tr:hover td:first-child::before { content: '>'; color: var(--green); margin-right: 4px; }
     .table tbody tr:last-child td { border-bottom: 0; }
     .table td:first-child { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+    /* Kolumna akcji przypięta z prawej, reszta tabeli scrolluje się pod nią */
+    .table th:last-child, .table td:last-child {
+      position: sticky; right: 0; z-index: 2;
+      background-color: var(--panel-solid);
+      border-left: 1px solid var(--green-dim);
+    }
+    .table thead th:last-child { background-color: #1fd472; z-index: 3; }
+    .table tbody tr:hover td:last-child { background-color: #04291a; }
+    /* wiersze "ładowanie"/"brak wyników" rozciagaja sie na cala szerokosc, nie przypinamy ich */
+    .table td[colspan] { position: static; border-left: 0; background-color: transparent; }
     .biz-name { display: block; font-weight: 700; color: var(--green); letter-spacing: 0.04em; text-transform: uppercase; font-size: 12.5px; text-decoration: none; }
     .biz-name:hover { color: var(--green); text-decoration: underline; }
     .biz-phone, .emailed-date { font-size: 10.5px; color: var(--muted); }
