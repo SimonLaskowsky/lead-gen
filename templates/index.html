@@ -721,6 +721,9 @@
         </div>
       </div>
       <div class="modal-footer" id="emailFooter" style="display:none!important">
+        <button class="btn btn-ghost btn-sm" onclick="regenerateEmail()" title="Wygeneruj zupełnie nową wersję">
+          <i class="bi bi-arrow-clockwise me-1"></i> Napisz od nowa
+        </button>
         <button class="btn btn-ghost btn-sm" onclick="copyEmail()">
           <i class="bi bi-clipboard me-1"></i> Kopiuj
         </button>
@@ -1051,7 +1054,11 @@ async function addManualLead() {
 }
 
 // ── Email modal ──
-async function openEmailModal(leadId, businessName, myFeedback = '') {
+function regenerateEmail() {
+  openEmailModal(currentLeadId, document.getElementById('emailForBusiness').textContent, '', true);
+}
+
+async function openEmailModal(leadId, businessName, myFeedback = '', forceRegen = false) {
   currentLeadId = leadId;
   document.getElementById('emailForBusiness').textContent = businessName;
   document.getElementById('emailLoadingState').classList.remove('d-none');
@@ -1063,8 +1070,8 @@ async function openEmailModal(leadId, businessName, myFeedback = '') {
   const leadRes = await fetch(`/api/lead/${leadId}`);
   const lead    = await leadRes.json();
   currentLeadEmail = lead.email || null;
-  // If feedback provided always regenerate — user wants a fresh email with their input
-  let emailText = myFeedback ? null : lead.generated_email;
+  // Feedback or explicit "napisz od nowa" skips the cached email and regenerates
+  let emailText = (myFeedback || forceRegen) ? null : lead.generated_email;
 
   if (!emailText) {
     try {
