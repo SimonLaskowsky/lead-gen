@@ -84,6 +84,52 @@ def get_stats():
     return jsonify(db.get_stats())
 
 
+# ponytail: stan ostatniego wywołania trzymany w pamięci procesu — znika po
+# restarcie i nie jest współdzielony między workerami. Wystarczy na panel LOG.
+LAST_CALL = {"google": None, "ai": None}
+
+
+def _mark(service, ok, detail=""):
+    LAST_CALL[service] = {
+        "ok": ok,
+        "detail": detail,
+        "at": datetime.now().strftime("%H:%M:%S"),
+    }
+
+
+def _service_status(service, env_key):
+    if not os.getenv(env_key):
+        return {"state": "no_key", "detail": f"brak {env_key}"}
+    last = LAST_CALL[service]
+    if not last:
+        return {"state": "idle", "detail": "klucz jest, brak wywołań"}
+    return {
+        "state": "ok" if last["ok"] else "error",
+        "detail": last["detail"],
+        "at": last["at"],
+    }
+
+
+@app.route("/api/health")
+def health():
+    return jsonify({
+        "google": _service_status("google", "GOOGLE_MAPS_API_KEY"),
+        "ai": _service_status("ai", "ANTHROPIC_API_KEY"),
+        "leads": db.get_stats()["total"],
+    })
+
+
+@app.route("/api/health/probe", methods=["POST"])
+def health_probe():
+    """Prawdziwe zapytanie do Google Maps — płatne, więc tylko na żądanie."""
+    try:
+        found = scraper.search_leads("kawiarnia", "Kraków", 1)
+        _mark("google", True, f"test ok, {len(found)} wynik(ów)")
+    except Exception as e:
+        _mark("google", False, str(e)[:140])
+    return health()
+
+
 @app.route("/api/search", methods=["POST"])
 def search():
     data = request.json or {}
@@ -97,9 +143,12 @@ def search():
 
     try:
         leads = scraper.search_leads(business_type, city, max_results, no_website=no_website)
+        _mark("google", True, f"{len(leads)} wyników: {business_type}, {city}")
     except ValueError as e:
+        _mark("google", False, str(e)[:140])
         return jsonify({"error": str(e)}), 500
     except Exception as e:
+        _mark("google", False, str(e)[:140])
         return jsonify({"error": f"Błąd Google Maps API: {e}"}), 500
 
     added = 0
@@ -234,6 +283,7 @@ Zaproponuj prostą stronę z formularzem kontaktowym lub systemem rezerwacji. 50
 
     try:
         result = analyzer.analyze_website_visually(lead, screenshots, website_data)
+        _mark("ai", True, f"analiza: {lead['business_name']}")
         db.update_lead(
             lead_id,
             ai_analysis=json.dumps(result),
@@ -242,6 +292,7 @@ Zaproponuj prostą stronę z formularzem kontaktowym lub systemem rezerwacji. 50
         )
         return jsonify({"analysis": result["analysis"], "scores": result.get("scores", {}), "website_data": website_data})
     except Exception as e:
+        _mark("ai", False, str(e)[:140])
         import traceback
         traceback.print_exc()  # full traceback in Railway logs
         return jsonify({"error": str(e)}), 500
@@ -262,6 +313,7 @@ def generate_email(lead_id):
 
     try:
         email_text = analyzer.generate_email(lead, website_data, ai_analysis=ai_analysis, my_feedback=my_feedback or None)
+        _mark("ai", True, f"email: {lead['business_name']}")
         updates = {"generated_email": email_text}
         if my_feedback:
             existing = json.loads(lead.get("observations") or "[]")
@@ -271,6 +323,7 @@ def generate_email(lead_id):
         db.update_lead(lead_id, **updates)
         return jsonify({"email": email_text})
     except Exception as e:
+        _mark("ai", False, str(e)[:140])
         return jsonify({"error": str(e)}), 500
 
 

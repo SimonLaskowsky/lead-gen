@@ -159,8 +159,19 @@
     .btn-op-danger { border-color: var(--red); color: var(--red); }
     .btn-op-danger:hover { background: var(--red); color: #100000; box-shadow: 0 0 22px rgba(255,59,48,0.4); }
 
-    .rail-log { font-size: 10px; color: var(--muted); letter-spacing: 0.06em; line-height: 1.9; }
+    .rail-log { font-size: 10px; color: var(--muted); letter-spacing: 0.06em; line-height: 1.9; word-break: break-word; }
     .rail-log b { color: var(--green); font-weight: 500; }
+    .rail-log .st-ok    { color: var(--green); }
+    .rail-log .st-error { color: var(--red); }
+    .rail-log .st-no_key{ color: var(--yellow); }
+    .rail-log .st-idle  { color: var(--muted); }
+    .rail-log .det { display: block; padding-left: 12px; opacity: 0.75; font-size: 9.5px; }
+    .bar-btn {
+      background: transparent; border: 1px solid #00160a; color: #00160a; cursor: pointer;
+      font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 0.18em;
+      text-transform: uppercase; padding: 0 6px; line-height: 15px;
+    }
+    .bar-btn:hover { background: #00160a; color: #1fd472; }
 
     /* ── Pasek narzędzi / filtry ── */
     .filter-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 12px; }
@@ -505,14 +516,13 @@
       </div>
 
       <div class="win rail-section">
-        <div class="win-bar"><span>log</span><span class="spacer"></span><span class="chips">▪▪</span></div>
+        <div class="win-bar">
+          <span>log</span>
+          <span class="spacer"></span>
+          <button class="bar-btn" onclick="probeApis()" title="Wyślij prawdziwe zapytanie do Google Maps (płatne)">test</button>
+        </div>
         <div class="win-body">
-          <div class="rail-log">
-            &gt; uplink: <b>ok</b><br>
-            &gt; google maps api: <b>gotowe</b><br>
-            &gt; silnik ai: <b>claude</b><br>
-            &gt; szyfrowanie: <b>aes-256</b>
-          </div>
+          <div class="rail-log" id="railLog">&gt; sprawdzam...</div>
         </div>
       </div>
     </aside>
@@ -568,9 +578,9 @@
   </div>
 
   <footer class="term-foot">
-    <span>połączenie: <span class="ok">szyfrowane</span></span>
-    <span>sesja: <span class="ok">aktywna</span></span>
-    <span>ping: <span class="ok">12 ms</span></span>
+    <span>połączenie: <span class="ok" id="footProto">—</span></span>
+    <span>baza: <span class="ok" id="footDb">—</span></span>
+    <span>ping: <span class="ok" id="footPing">—</span></span>
     <span style="margin-left:auto">gotowy <span class="caret"></span></span>
   </footer>
 </div>
@@ -1328,6 +1338,42 @@ function showToast(message, type = 'success') {
 function escHtml(str) {
   return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
+
+// ── Health: realny stan API ──
+const HEALTH_TEXT = { ok: 'ok', error: 'BŁĄD', no_key: 'BRAK KLUCZA', idle: 'bezczynne' };
+
+function healthLine(label, s) {
+  const when = s.at ? ` <span class="det">ostatnio ${s.at}</span>` : '';
+  const det  = s.detail ? `<span class="det">${escHtml(s.detail)}</span>` : '';
+  return `&gt; ${label}: <b class="st-${s.state}">${HEALTH_TEXT[s.state]}</b>${det}${when}`;
+}
+
+async function refreshHealth(probe = false) {
+  const log = document.getElementById('railLog');
+  if (probe) log.innerHTML = '&gt; testuję google maps api...';
+  const t0 = performance.now();
+  try {
+    const res = await fetch('/api/health' + (probe ? '/probe' : ''), probe ? { method: 'POST' } : {});
+    const h   = await res.json();
+    document.getElementById('footPing').textContent  = Math.round(performance.now() - t0) + ' ms';
+    document.getElementById('footDb').textContent    = h.leads + ' rek.';
+    document.getElementById('footProto').textContent = location.protocol === 'https:' ? 'szyfrowane' : 'http (lokalnie)';
+    log.innerHTML = [
+      healthLine('google maps', h.google),
+      healthLine('silnik ai', h.ai),
+    ].join('<br>');
+    if (probe) showToast(h.google.state === 'ok' ? '✅ Google Maps API działa' : '❌ ' + h.google.detail,
+                         h.google.state === 'ok' ? 'success' : 'danger');
+  } catch (e) {
+    log.innerHTML = `&gt; serwer: <b class="st-error">BRAK ODPOWIEDZI</b><span class="det">${escHtml(e.message)}</span>`;
+    document.getElementById('footPing').textContent = '—';
+  }
+}
+
+function probeApis() { refreshHealth(true); }
+
+refreshHealth();
+setInterval(() => refreshHealth(), 60000);
 
 // ── Zegar operacyjny ──
 setInterval(() => {
