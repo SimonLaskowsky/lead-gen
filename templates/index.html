@@ -209,7 +209,8 @@
     .table tbody tr:hover td:first-child::before { content: '>'; color: var(--green); margin-right: 4px; }
     .table tbody tr:last-child td { border-bottom: 0; }
     .table td:first-child { color: var(--muted); font-variant-numeric: tabular-nums; }
-    .biz-name { font-weight: 700; color: var(--green); letter-spacing: 0.04em; text-transform: uppercase; font-size: 12.5px; }
+    .biz-name { display: block; font-weight: 700; color: var(--green); letter-spacing: 0.04em; text-transform: uppercase; font-size: 12.5px; text-decoration: none; }
+    .biz-name:hover { color: var(--green); text-decoration: underline; }
     .biz-phone, .emailed-date { font-size: 10.5px; color: var(--muted); }
     .biz-meta { font-size: 11px; color: var(--text); text-transform: uppercase; letter-spacing: 0.06em; }
     .email-cell { font-size: 11px; }
@@ -961,7 +962,8 @@ function renderTable(leads) {
     return `<tr>
       <td style="color:var(--muted);font-size:12px">${lead.id}</td>
       <td>
-        <div class="biz-name">${escHtml(lead.business_name)}</div>
+        <a class="biz-name" target="_blank" rel="noopener" title="Zobacz wizytówkę w Google Maps"
+           href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([lead.business_name, lead.address, lead.city].filter(Boolean).join(' '))}">${escHtml(lead.business_name)}</a>
         ${lead.phone ? `<div class="biz-phone"><i class="bi bi-telephone" style="font-size:10px"></i> ${escHtml(lead.phone)}</div>` : ''}
       </td>
       <td class="biz-meta">${escHtml(lead.business_type)}<br>${escHtml(lead.city)}</td>
