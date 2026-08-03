@@ -730,6 +730,10 @@
         <button class="btn btn-ghost btn-sm" onclick="openInGmail()">
           <i class="bi bi-envelope-arrow-up me-1"></i> Otwórz w Gmail
         </button>
+        <button class="btn btn-ghost btn-sm" id="smsBtn" style="display:none" onclick="openInSms()"
+                title="Otwórz SMS z treścią z pola powyżej">
+          <i class="bi bi-chat-dots me-1"></i> Wyślij SMS
+        </button>
         <button class="btn btn-primary btn-sm" onclick="markEmailed()">
           <i class="bi bi-check2 me-1"></i> Oznaczyłem jako wysłany
         </button>
@@ -835,6 +839,7 @@
 let currentStatus = 'all';
 let currentLeadId    = null;
 let currentLeadEmail = null;
+let currentLeadPhone = null;
 let debounceTimer = null;
 
 // ── Status badge HTML ──
@@ -1070,6 +1075,8 @@ async function openEmailModal(leadId, businessName, myFeedback = '', forceRegen 
   const leadRes = await fetch(`/api/lead/${leadId}`);
   const lead    = await leadRes.json();
   currentLeadEmail = lead.email || null;
+  currentLeadPhone = lead.phone || null;
+  document.getElementById('smsBtn').style.display = currentLeadPhone ? '' : 'none';
   // Feedback or explicit "napisz od nowa" skips the cached email and regenerates
   let emailText = (myFeedback || forceRegen) ? null : lead.generated_email;
 
@@ -1103,6 +1110,12 @@ async function openEmailModal(leadId, businessName, myFeedback = '', forceRegen 
   document.getElementById('emailLoadingState').classList.add('d-none');
   document.getElementById('emailContent').classList.remove('d-none');
   document.getElementById('emailFooter').style.removeProperty('display');
+}
+
+function openInSms() {
+  const body = document.getElementById('emailBody').value;
+  // "?&body=" działa i na iOS/macOS, i na Androidzie
+  window.open(`sms:${currentLeadPhone.replace(/[^\d+]/g, '')}?&body=${encodeURIComponent(body)}`);
 }
 
 function openInGmail() {
