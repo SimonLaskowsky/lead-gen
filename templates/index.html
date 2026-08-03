@@ -251,12 +251,12 @@
 
     /* ── Akcje w wierszu ── */
     .action-row { display: flex; align-items: center; gap: 4px; }
-    .btn-ai, .btn-email, .btn-more {
+    .btn-ai, .btn-email, .btn-sms, .btn-more {
       width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center;
       background: transparent; border: 1px solid var(--green-deep); color: var(--muted);
       font-size: 12px; cursor: pointer; border-radius: 0; padding: 0;
     }
-    .btn-ai:hover, .btn-email:hover, .btn-more:hover { background: var(--green); border-color: var(--green); color: #001a0c; }
+    .btn-ai:hover, .btn-email:hover, .btn-sms:hover, .btn-more:hover { background: var(--green); border-color: var(--green); color: #001a0c; }
     .btn-more::after { display: none; }
     .dropdown-menu {
       background: var(--panel-solid); border: 1px solid var(--green-dim); border-radius: 0; padding: 4px;
@@ -985,6 +985,7 @@ function renderTable(leads) {
         <div class="action-row">
           ${aiBtn}
           <button class="btn-email" title="Generuj email" onclick="openEmailModal(${lead.id}, '${escHtml(lead.business_name)}')"><i class="bi bi-envelope"></i></button>
+          ${lead.phone ? `<button class="btn-sms" title="Wyślij SMS" onclick="smsLead(${lead.id})"><i class="bi bi-chat-dots"></i></button>` : ''}
           <div class="dropdown">
             <button class="btn-more dropdown-toggle" data-bs-toggle="dropdown" title="Więcej"><i class="bi bi-three-dots"></i></button>
             <ul class="dropdown-menu dropdown-menu-end">
@@ -1114,10 +1115,21 @@ async function openEmailModal(leadId, businessName, myFeedback = '', forceRegen 
   document.getElementById('emailFooter').style.removeProperty('display');
 }
 
+// "?&body=" działa i na iOS/macOS, i na Androidzie
+function smsTo(phone, body) {
+  window.open(`sms:${(phone || '').replace(/[^\d+]/g, '')}?&body=${encodeURIComponent(body || '')}`);
+}
+
 function openInSms() {
-  const body = document.getElementById('emailBody').value;
-  // "?&body=" działa i na iOS/macOS, i na Androidzie
-  window.open(`sms:${currentLeadPhone.replace(/[^\d+]/g, '')}?&body=${encodeURIComponent(body)}`);
+  smsTo(currentLeadPhone, document.getElementById('emailBody').value);
+}
+
+// SMS prosto z tabeli: bierze zapisany email jeśli jest, inaczej otwiera pusty
+async function smsLead(leadId) {
+  const lead  = await (await fetch(`/api/lead/${leadId}`)).json();
+  const lines = (lead.generated_email || '').split('\n');
+  const body  = lines[0].toLowerCase().startsWith('temat:') ? lines.slice(1).join('\n').trim() : lead.generated_email;
+  smsTo(lead.phone, body);
 }
 
 function openInGmail() {
