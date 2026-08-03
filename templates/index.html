@@ -206,7 +206,9 @@
     }
     .table td { padding: 9px 10px; border-bottom: 1px dashed rgba(15,143,79,0.35); vertical-align: middle; }
     .table tbody tr:hover { background: rgba(51,255,136,0.07); }
-    .table tbody tr:hover td:first-child::before { content: '>'; color: var(--green); margin-right: 4px; }
+    /* znacznik trzyma miejsce zawsze, na hover tylko sie odslania, inaczej tabela skacze */
+    .table tbody td:first-child::before { content: '>'; color: var(--green); margin-right: 4px; opacity: 0; }
+    .table tbody tr:hover td:first-child::before { opacity: 1; }
     .table tbody tr:last-child td { border-bottom: 0; }
     .table td:first-child { color: var(--muted); font-variant-numeric: tabular-nums; }
 
