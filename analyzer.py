@@ -224,12 +224,10 @@ Oferta. To sa DWIE ROZNE rzeczy i nigdy nie wolno ich mieszac ani wyceniac tak s
 2. ULEPSZENIA istniejacej strony (poprawki, modernizacja, redesign): to NIE jest budowa nowej strony.
    Zakres bywa rozny, wiec cena jest zawsze inna niz przy nowej stronie i ustalana indywidualnie.
 
-ZASADA CENOWA W MAILU: domyslnie NIE podawaj zadnej kwoty. Cold mail ma doprowadzic do rozmowy,
-nie do wyceny. Kwote 3000 PLN wymieniaj tylko wtedy, gdy bez niej mail traci sens.
-Przy ulepszeniach istniejacej strony NIGDY nie podawaj kwoty, mow "wyceniamy indywidualnie po rozmowie".
-
-Killer argument (uzywaj go zamiast ceny): PLATNOSC PO POLOWIE, polowa na start,
-polowa dopiero gdy strona im sie podoba. Zero ryzyka.
+ZASADA PIENIEZNA W PIERWSZYM MAILU: nie pisz NIC o pieniadzach. Zadnych kwot, zadnych widelek,
+zadnych warunkow platnosci, zadnego "polowa na start". Powyzsze ceny sa dla Ciebie jako kontekst,
+kto my jestesmy, a nie tresc do wklejenia. Pierwszy kontakt sprzedaje bezplatny projekt graficzny,
+nie usluge. O pieniadzach rozmawiamy dopiero, gdy klient sam odpisze.
 """
 
     # ── Proven statistics to use ──
@@ -301,8 +299,8 @@ Struktura emaila:
 2. HOOK: komplementuj, mają dobre opinie/profil na {outsourced}, ale Google ich nie pokazuje gdy ktoś szuka bezpośrednio
 3. PROBLEM: klienci którzy nie szukają przez {outsourced} (np. z polecenia, z Google) nie mają gdzie trafić, tracą część ruchu
 4. ROZWIĄZANIE: własna strona z widgetem {outsourced} wbudowanym, rezerwacje zostają, dochodzi SEO i marka premium
-5. OFERTA: od 1250 PLN jednorazowo, połowa na start, połowa po oddaniu
-6. CTA: "Mamy już gotowy szkic jak mogłaby wyglądać strona {business_name}, chce Pan/Pani zobaczyć?"
+5. ROZWIAZANIE CIAG DALSZY: ani slowa o cenie i platnosciach, to temat na pozniej
+6. CTA: bezplatny projekt graficzny strony wraz z wycena, bez zobowiazan, zakonczony uprzejmym pytaniem w pelnym zdaniu
 
 Zasady:
 - Maksymalnie 180 słów
@@ -339,8 +337,8 @@ Struktura emaila:
 1. TEMAT: konkretny, nawiązujący do braku własnej strony i tego co przez to tracą
 2. HOOK: zauważyłeś że ich jedyną obecnością w sieci jest profil na {outsourced}, Google ich nie pokazuje gdy ktoś szuka ich branży w mieście
 3. KOSZT BRAKU STRONY: klienci z Google trafiają do konkurencji, nie do nich
-4. ALTERNATYWA: własna strona od 1250 PLN jednorazowo, własna domena, SEO, marka premium. Połowa na start, połowa po oddaniu.
-5. CTA: "Mamy już gotowy szkic jak mogłaby wyglądać strona {business_name}, chce Pan/Pani zobaczyć?"
+4. ALTERNATYWA: własna strona, własna domena, SEO, marka premium. Ani slowa o cenie i platnosciach.
+5. CTA: bezplatny projekt graficzny strony wraz z wycena, bez zobowiazan, zakonczony uprzejmym pytaniem w pelnym zdaniu
 
 Zasady:
 - Maksymalnie 180 słów
@@ -377,44 +375,37 @@ Sytuacja: firma NIE MA strony internetowej w ogóle
 === ZADANIE ===
 Napisz krotki cold email sprzedazowy. Ma doprowadzic do odpowiedzi, nie do wyceny.
 
-Wzorzec, ktory dziala. Trzymaj sie tej dlugosci i rytmu, tresc dopasuj do branzy:
-
-    Temat: Salon w Katowicach bez wlasnej strony, kilka pytan
-
-    Dzien dobry,
-
-    Trafilismy na Pani salon w Google, wizytowka jest, ale wlasnej strony brakuje.
-    Dla klientki, ktora porownuje trzy salony, strona to czesto jedyna roznica.
-
-    Jestesmy dwuosobowym studiem z regionu (Szymon i Nikodem), robimy strony dla
-    lokalnych firm. Platnosc dzielimy na pol, druga polowa dopiero wtedy, gdy strona
-    sie Pani podoba.
-
-    Moglibysmy przygotowac szkic, jak taka strona moglaby wygladac. Zainteresowana?
-
-    Sand'n Studio · sandnstudio.pl
-
 Struktura (nie pisz numerow ani naglowkow):
 1. TEMAT: konkretny, bez obietnic i bez strachu. Nazwij sytuacje, dodaj lekka luke informacyjna.
 2. OTWARCIE: "Dzien dobry," a potem od razu obserwacja. Wizytowka w Google jest, strony brak.
 3. DLACZEGO TO BOLI: jedno zdanie o kliencie, ktory porownuje kilka firm z branzy.
    Bez statystyk, bez procentow, bez pouczania.
-4. KIM JESTESMY plus platnosc po polowie. To jest nasz najmocniejszy argument, wiec ma byc tutaj.
-5. CTA: propozycja przygotowania szkicu, zakonczona krotkim pytaniem.
+4. KIM JESTESMY: dwuosobowe studio z regionu, Szymon i Nikodem, robimy strony dla lokalnych firm.
+5. CTA: proponujemy BEZPLATNY projekt graficzny strony wraz z wycena, bez zobowiazan.
+   To jest jedyna rzecz, o ktora prosimy w tym mailu.
 6. Podpis: Sand'n Studio · sandnstudio.pl
 
 Zasady:
 - Maksymalnie 110 slow razem z tematem. Krotszy mail wygrywa.
 - Cztery akapity, kazdy najwyzej dwa zdania.
-- ZADNEJ CENY. Nie pisz "od 3000 PLN", nie porownuj do agencji, nie podawaj widelek.
-  Platnosc po polowie owszem, konkretna kwota nie.
+- ANI SLOWA O PLATNOSCIACH. Zero cen, zero widelek, zero rat, zero "polowa na start".
+  Pierwszy mail sprzedaje darmowy projekt, nie usluge. Pieniadze sa tematem na pozniej.
 - ZADNYCH STATYSTYK ani procentow. Brzmia jak wypelniacz i obnizaja wiarygodnosc.
+- CTA ma byc uprzejmym pytaniem w pelnym zdaniu, np. "Czy mozemy taki projekt przygotowac
+  i podeslac?" albo "Chcialaby Pani zobaczyc, jak taka strona moglaby wygladac?".
+  ZAKAZ jednowyrazowych zaczepek typu "Zainteresowana?", "Zainteresowany?", "Chetnie?".
+  Brzmia infantylnie i spoufalaja sie z osoba, ktorej nie znamy.
 - Zwroty grzecznosciowe dopasuj do plci wlasciciela, jesli da sie ja wywnioskowac
   z nazwy firmy ({business_name}). Jesli nie da sie, pisz bezosobowo albo "Panstwa".
-- Nie pisz "gotowy szkic". Piszemy, ze moglibysmy go przygotowac.
+- Podkresl, ze projekt jest bezplatny i do niczego nie zobowiazuje.
 - Zero social proof bez nazw. Nie pisz "kilka firm nam zaufalo", to nic nie znaczy.
 - Pierwsza linia to: Temat: [temat]
 - Nie uzywaj slow: "pragne", "uprzejmie", "niniejszym", "pozwalam sobie", "oferta"
+
+WAZNE O ORYGINALNOSCI: powyzsza struktura to szkielet, nie gotowy tekst do przepisania.
+Kazdy mail ma byc napisany od nowa pod konkretna firme ({business_name}, {business_type}, {city}).
+Zmieniaj sformulowania, kolejnosc slow w zdaniu i sposob opisania problemu.
+Dwa maile do dwoch roznych firm nie moga brzmiec jak ten sam tekst z podmieniona nazwa.
 """
 
     else:
@@ -505,7 +496,7 @@ URL: {lead.get('website_url', '')}
 5. Krótka lista "co jeszcze wyłapaliśmy": Zaraz po głównym problemie dorzuć zwięzłą wypunktowaną listę 3-4 KOLEJNYCH konkretnych usterek z audytu (np. brak SSL, martwy Google Analytics, brak nagłówka H1, wolne ładowanie, brak opinii, ukryty formularz). Każdy punkt jedno krótkie zdanie, chodzi o pokazanie, że naprawdę przeszliśmy stronę punkt po punkcie, a nie wysłaliśmy masówki. Wybieraj punkty REALNIE obecne w audycie, nie zmyślaj.
 6. Sygnał, że to dopiero wierzchołek: Po liście dodaj jedno zdanie w stylu "To tylko część tego, co znaleźliśmy, pełną listę z konkretnymi poprawkami mamy spisaną i chętnie prześlemy". Pokaż, że za mailem stoi solidny, obszerny audyt, a nie kilka ogólników.
 7. Kim jesteście: "Jesteśmy Sand'n Studio, dwuosobowy zespół programistów z Polski. Bierzemy na warsztat witryny lokalnych firm i sprawnie przebudowujemy je tak, aby generowały więcej telefonów. Nasze realizacje: sandnstudio.pl".
-8. Kotwica cenowa i warunki (framing "specjalnej wyceny"): Najpierw zakotwicz wysoko, duże agencje biorą za tego typu przebudowę 3000-8000 PLN, a standardowo prace poprawkowe i lifting strony zaczynają się u nas od 1900 PLN. Następnie zaznacz, że DLA PAŃSTWA możemy przygotować specjalną, indywidualną wycenę, która wyjdzie korzystniej niż ta standardowa stawka, bo zależy nam na współpracy z lokalnymi firmami (np. z {city}) i widzimy, że zakres jest konkretny. Cel: klient ma poczuć, że dostaje wyjątkową, dopasowaną cenę przygotowaną specjalnie pod niego, a nie cennik z półki. NIE podawaj dokładnej kwoty tej specjalnej wyceny, to ma być zachęta do rozmowy ("dopniemy szczegóły i podamy dokładną, niższą cenę"). Płatność dzielona 50/50, reszta dopiero, gdy nowa wersja w pełni się podoba.
+8. Wycena: to sa ULEPSZENIA istniejacej strony, a nie budowa nowej, wiec zakres i cena sa zawsze indywidualne. NIE podawaj ZADNEJ kwoty, ani widelek, ani stawek agencji, ani warunkow platnosci. Napisz tylko, ze wycene przygotowujemy indywidualnie po obejrzeniu zakresu i ze dolaczamy ja do bezplatnego podgladu.
 9. Call to Action (Haczyk): Zaproponuj podrzucenie bezpłatnego, prostego podglądu (mockupu) ekranu głównego po optymalizacji. Zapytaj na końcu: "Czy mogę podesłać ten bezpłatny podgląd do rzucenia okiem?".
 
 === ZASADY STYLU ===
