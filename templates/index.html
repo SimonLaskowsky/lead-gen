@@ -216,7 +216,8 @@
     .email-cell { font-size: 11px; }
     .email-cell a { color: var(--cyan); text-decoration: none; }
     .email-cell a:hover { text-decoration: underline; }
-    .notes-cell { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--muted); }
+    .notes-cell { max-width: 280px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--muted); }
+    .notes-cell:hover { color: var(--green); text-decoration: underline; }
 
     .site-link, .no-site {
       display: inline-flex; align-items: center; gap: 5px;
@@ -561,10 +562,10 @@
                 <th style="width:44px">id</th>
                 <th>cel</th>
                 <th>branża / sektor</th>
-                <th>strona</th>
+                <th style="width:190px">strona</th>
                 <th>kontakt</th>
                 <th>status</th>
-                <th>notatki</th>
+                <th style="width:280px">notatki</th>
                 <th style="width:104px">akcje</th>
               </tr>
             </thead>
@@ -978,7 +979,8 @@ function renderTable(leads) {
       <td>${websiteCell}</td>
       <td>${emailCell}</td>
       <td>${STATUS_BADGES[lead.status] || lead.status}${emailedDate}</td>
-      <td><div class="notes-cell" title="${escHtml(lead.notes || '')}">${escHtml(lead.notes || '—')}</div></td>
+      <td><div class="notes-cell" title="${escHtml(lead.notes || 'Kliknij aby dodać notatkę')}"
+               onclick="openNotesModal(${lead.id},'${escHtml(lead.business_name)}','${escHtml(lead.notes||'')}','${escHtml(lead.email||'')}')">${escHtml(lead.notes || '—')}</div></td>
       <td>
         <div class="action-row">
           ${aiBtn}
