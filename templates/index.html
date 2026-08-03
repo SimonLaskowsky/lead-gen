@@ -962,8 +962,8 @@ function renderTable(leads) {
     return `<tr>
       <td style="color:var(--muted);font-size:12px">${lead.id}</td>
       <td>
-        <a class="biz-name" target="_blank" rel="noopener" title="Zobacz wizytówkę w Google Maps"
-           href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([lead.business_name, lead.address, lead.city].filter(Boolean).join(' '))}">${escHtml(lead.business_name)}</a>
+        <a class="biz-name" target="_blank" rel="noopener" title="Szukaj w Google"
+           href="https://www.google.com/search?q=${encodeURIComponent([lead.business_name, lead.address, lead.city].filter(Boolean).join(' '))}">${escHtml(lead.business_name)}</a>
         ${lead.phone ? `<div class="biz-phone"><i class="bi bi-telephone" style="font-size:10px"></i> ${escHtml(lead.phone)}</div>` : ''}
       </td>
       <td class="biz-meta">${escHtml(lead.business_type)}<br>${escHtml(lead.city)}</td>
