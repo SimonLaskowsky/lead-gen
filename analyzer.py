@@ -260,18 +260,8 @@ Używaj TYLKO 1-2 statystyk pasujących do problemów tej konkretnej firmy. Nie 
 4. Nie obiecuj rzeczy, ktorych nie ma. Szkic strony wspominamy jako propozycje do zrobienia,
    nie jako gotowy plik czekajacy w folderze.
 5. Bez P.S., bez emoji, bez wykrzyknikow, bez pogrubien i naglowkow sekcji.
-6. TON: piszemy do wlasciciela dobrze prosperujacej firmy, nie wystawiamy mu diagnozy.
-   Braku strony NIGDY nie stawiaj jako werdyktu w osobnym, uciętym zdaniu.
-   ZAKAZANE sformulowania: "Wlasnej strony internetowej brak.", "Strony brak.",
-   "wizytowka to jedyne miejsce, gdzie mozna go zobaczyc", "nie maja Panstwo strony".
-   Brzmia jak protokol z kontroli i od razu ustawiaja odbiorce w defensywie.
-   Zamiast tego wplec to mimochodem w zdanie o mozliwosci, np. "wizytowka wyglada dobrze,
-   a wlasna strona pozwolilaby pokazac wnetrze i realizacje w jednym miejscu".
-   Zasada: jedno zdanie ma jednoczesnie nazywac sytuacje i pokazywac, co mozna zyskac.
-   Nigdy samo wytkniecie braku.
-7. Zaczynaj od czegos pozytywnego o firmie, zanim przejdziesz do propozycji.
-   Wizytowka, opinie, zdjecia, cokolwiek widac w Google. Komplement ma byc konkretny,
-   nie ogolnikowe "widac, ze dbaja Panstwo o klientow".
+6. BADZ MILY. Piszemy do wlasciciela firmy, ktorej idzie dobrze. Braku strony nie stawiaj
+   jako werdyktu ("Wlasnej strony brak."), tylko wplec go w zdanie o tym, co mozna zyskac.
 """
 
     outsourced = (website_data or {}).get("outsourced_platform")
@@ -390,9 +380,8 @@ Napisz krotki cold email sprzedazowy. Ma doprowadzic do odpowiedzi, nie do wycen
 
 Struktura (nie pisz numerow ani naglowkow):
 1. TEMAT: konkretny, bez obietnic i bez strachu. Nazwij sytuacje, dodaj lekka luke informacyjna.
-2. OTWARCIE: "Dzien dobry," a potem zyczliwa obserwacja. Zauwazamy cos dobrego w ich wizytowce
-   (opinie, zdjecia, ocena) i dopiero przy okazji wspominamy, ze wlasnej strony jeszcze nie maja.
-   Ma to brzmiec jak zauwazona szansa, nie jak wytkniety brak.
+2. OTWARCIE: "Dzien dobry," a potem zyczliwa obserwacja o ich wizytowce i o tym,
+   ze wlasnej strony jeszcze nie maja.
 3. CO MOZNA ZYSKAC: jedno zdanie o kliencie, ktory porownuje kilka firm z branzy.
    Bez statystyk, bez procentow, bez pouczania.
 4. KIM JESTESMY: dwuosobowe studio z regionu, Szymon i Nikodem, robimy strony dla lokalnych firm.
