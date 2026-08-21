@@ -740,6 +740,9 @@
         <button class="btn btn-ghost btn-sm" onclick="regenerateEmail()" title="Wygeneruj zupełnie nową wersję">
           <i class="bi bi-arrow-clockwise me-1"></i> Napisz od nowa
         </button>
+        <button class="btn btn-ghost btn-sm" onclick="addSignature()" title="Dopisz stopkę z danymi kontaktowymi na końcu maila">
+          <i class="bi bi-person-vcard me-1"></i> Stopka
+        </button>
         <button class="btn btn-ghost btn-sm" onclick="copyEmail()">
           <i class="bi bi-clipboard me-1"></i> Kopiuj
         </button>
@@ -857,6 +860,9 @@ let currentLeadId    = null;
 let currentLeadEmail = null;
 let currentLeadPhone = null;
 let debounceTimer = null;
+// dane leadów z ostatniego renderu; onclick dostaje tylko id, nigdy teksty
+// (apostrof albo enter w nazwie/notatce rozwalałby inline JS w atrybucie)
+let leadsById = {};
 
 // ── Status badge HTML ──
 const STATUS_BADGES = {
@@ -910,6 +916,7 @@ async function loadLeads() {
 
 // ── Render table ──
 function renderTable(leads) {
+  leadsById = Object.fromEntries(leads.map(l => [l.id, l]));
   const tbody = document.getElementById('leadsTableBody');
   if (!leads.length) {
     tbody.innerHTML = `<tr><td colspan="8">
@@ -978,7 +985,7 @@ function renderTable(leads) {
       : (outsourcedPlatform ? `💡 Generuj pitch sprzedażowy (${outsourcedPlatform})` : 'Uruchom analizę AI ✨');
     const aiBtn = lead.website_url
       ? `<button class="btn-ai" title="${aiTitle}" style="${aiStyle}"
-           onclick="openAnalyzeModal(${lead.id}, '${escHtml(lead.business_name)}')">
+           onclick="openAnalyzeModal(${lead.id})">
            <i class="bi bi-${aiIcon}"></i>
          </button>`
       : '';
@@ -995,23 +1002,23 @@ function renderTable(leads) {
       <td>${emailCell}</td>
       <td>${STATUS_BADGES[lead.status] || lead.status}${emailedDate}</td>
       <td><div class="notes-cell" title="${escHtml(lead.notes || 'Kliknij aby dodać notatkę')}"
-               onclick="openNotesModal(${lead.id},'${escHtml(lead.business_name)}','${escHtml(lead.notes||'')}','${escHtml(lead.email||'')}')">${escHtml(lead.notes || '—')}</div></td>
+               onclick="openNotesModal(${lead.id})">${escHtml(lead.notes || '—')}</div></td>
       <td>
         <div class="action-row">
           ${aiBtn}
-          <button class="btn-email" title="Generuj email" onclick="openEmailModal(${lead.id}, '${escHtml(lead.business_name)}')"><i class="bi bi-envelope"></i></button>
+          <button class="btn-email" title="Generuj email" onclick="openEmailModal(${lead.id})"><i class="bi bi-envelope"></i></button>
           ${lead.phone ? `<button class="btn-sms" title="Wyślij SMS" onclick="smsLead(${lead.id})"><i class="bi bi-chat-dots"></i></button>` : ''}
           <div class="dropdown">
             <button class="btn-more dropdown-toggle" data-bs-toggle="dropdown" title="Więcej"><i class="bi bi-three-dots"></i></button>
             <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" href="#" onclick="setStatus(${lead.id},'emailed')">📤 Wysłano email</a></li>
-              <li><a class="dropdown-item" href="#" onclick="setStatus(${lead.id},'replied')">💬 Odpowiedział</a></li>
-              <li><a class="dropdown-item" href="#" onclick="setStatus(${lead.id},'converted')">⭐ Został klientem</a></li>
-              <li><a class="dropdown-item" href="#" onclick="setStatus(${lead.id},'new')">🔄 Wróć do Nowy</a></li>
-              <li><a class="dropdown-item" href="#" onclick="setStatus(${lead.id},'skipped')">⏭️ Pomiń</a></li>
+              <li><a class="dropdown-item" href="javascript:void(0)" onclick="setStatus(${lead.id},'emailed')">📤 Wysłano email</a></li>
+              <li><a class="dropdown-item" href="javascript:void(0)" onclick="setStatus(${lead.id},'replied')">💬 Odpowiedział</a></li>
+              <li><a class="dropdown-item" href="javascript:void(0)" onclick="setStatus(${lead.id},'converted')">⭐ Został klientem</a></li>
+              <li><a class="dropdown-item" href="javascript:void(0)" onclick="setStatus(${lead.id},'new')">🔄 Wróć do Nowy</a></li>
+              <li><a class="dropdown-item" href="javascript:void(0)" onclick="setStatus(${lead.id},'skipped')">⏭️ Pomiń</a></li>
               <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="#" onclick="openNotesModal(${lead.id},'${escHtml(lead.business_name)}','${escHtml(lead.notes||'')}','${escHtml(lead.email||'')}')">📝 Notatki / email</a></li>
-              <li><a class="dropdown-item text-danger" href="#" onclick="deleteLead(${lead.id})">🗑️ Usuń</a></li>
+              <li><a class="dropdown-item" href="javascript:void(0)" onclick="openNotesModal(${lead.id})">📝 Notatki / email</a></li>
+              <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="deleteLead(${lead.id})">🗑️ Usuń</a></li>
             </ul>
           </div>
         </div>
@@ -1078,12 +1085,12 @@ async function addManualLead() {
 
 // ── Email modal ──
 function regenerateEmail() {
-  openEmailModal(currentLeadId, document.getElementById('emailForBusiness').textContent, '', true);
+  openEmailModal(currentLeadId, '', true);
 }
 
-async function openEmailModal(leadId, businessName, myFeedback = '', forceRegen = false) {
+async function openEmailModal(leadId, myFeedback = '', forceRegen = false) {
   currentLeadId = leadId;
-  document.getElementById('emailForBusiness').textContent = businessName;
+  document.getElementById('emailForBusiness').textContent = (leadsById[leadId] || {}).business_name || '';
   document.getElementById('emailLoadingState').classList.remove('d-none');
   document.getElementById('emailContent').classList.add('d-none');
   document.getElementById('emailFooter').style.setProperty('display','none','important');
@@ -1159,6 +1166,20 @@ function openInGmail() {
   window.open('https://mail.google.com/mail/?' + params.toString(), '_blank');
 }
 
+// Stopka doklejana na końcu maila. Uzupełnij numer telefonu, konkurencja
+// (patrz maile od agencji) zawsze podpisuje się imieniem, domeną i telefonem.
+const EMAIL_SIGNATURE = [
+  'Pozdrawiamy',
+  'Szymon i Nikodem',
+  'S&N Studio · sandnstudio.pl',
+].join('\n');
+
+function addSignature() {
+  const ta = document.getElementById('emailBody');
+  if (ta.value.includes('S&N Studio · sandnstudio.pl')) { showToast('Stopka już jest w treści', 'warning'); return; }
+  ta.value = ta.value.trimEnd() + '\n\n' + EMAIL_SIGNATURE;
+}
+
 function copyEmail() {
   const subject = document.getElementById('emailSubject').textContent;
   const body    = document.getElementById('emailBody').value;
@@ -1179,9 +1200,9 @@ async function markEmailed() {
 }
 
 // ── Analyze modal ──
-async function openAnalyzeModal(leadId, businessName) {
+async function openAnalyzeModal(leadId) {
   currentLeadId = leadId;
-  document.getElementById('analyzeForBusiness').textContent = businessName;
+  document.getElementById('analyzeForBusiness').textContent = (leadsById[leadId] || {}).business_name || '';
   document.getElementById('analyzeLoadingState').classList.remove('d-none');
   document.getElementById('analyzeContent').classList.add('d-none');
   document.getElementById('analyzeError').classList.add('d-none');
@@ -1287,15 +1308,11 @@ async function showAnalysisResult(analysis, websiteData, scores, fromCache) {
   // Load saved observations for this lead
   try {
     const lead = await (await fetch(`/api/lead/${currentLeadId}`)).json();
-    const obs = lead.observations || [];
+    currentObs = lead.observations || [];
     const histEl = document.getElementById('obsHistory');
-    if (obs.length) {
-      histEl.innerHTML = obs.map(o =>
-        `<span class="obs-chip" onclick="document.getElementById('myFeedback').value='${escHtml(o).replace(/'/g,"\\'")}'">${escHtml(o)}</span>`
-      ).join('');
-    } else {
-      histEl.innerHTML = '';
-    }
+    histEl.innerHTML = currentObs.map((o, i) =>
+      `<span class="obs-chip" onclick="useObs(${i})">${escHtml(o)}</span>`
+    ).join('');
   } catch(e) {}
 
   // Refresh table so the button turns green
@@ -1321,10 +1338,13 @@ function animateStep(id, delay) {
 }
 
 
+let currentObs = [];
+function useObs(i) { document.getElementById('myFeedback').value = currentObs[i] || ''; }
+
 function generateEmailFromAnalysis() {
   const feedback = document.getElementById('myFeedback').value.trim();
   bootstrap.Modal.getInstance(document.getElementById('analyzeModal')).hide();
-  setTimeout(() => openEmailModal(currentLeadId, document.getElementById('analyzeForBusiness').textContent, feedback), 300);
+  setTimeout(() => openEmailModal(currentLeadId, feedback), 300);
 }
 
 // ── Status / notes / delete ──
@@ -1334,11 +1354,12 @@ async function setStatus(leadId, status) {
   loadLeads();
 }
 
-function openNotesModal(leadId, businessName, notes, email) {
+function openNotesModal(leadId) {
+  const lead = leadsById[leadId] || {};
   currentLeadId = leadId;
-  document.getElementById('notesForBusiness').textContent = businessName;
-  document.getElementById('notesInput').value  = notes;
-  document.getElementById('emailInput').value  = email;
+  document.getElementById('notesForBusiness').textContent = lead.business_name || '';
+  document.getElementById('notesInput').value  = lead.notes || '';
+  document.getElementById('emailInput').value  = lead.email || '';
   new bootstrap.Modal(document.getElementById('notesModal')).show();
 }
 
@@ -1378,7 +1399,7 @@ function showToast(message, type = 'success') {
   container.insertAdjacentHTML('beforeend', `
     <div id="${id}" class="app-toast toast-${type}">
       <div class="toast-dot"></div>
-      <span>${message}</span>
+      <span>${escHtml(message)}</span>
       <button class="toast-close" onclick="document.getElementById('${id}').remove()">×</button>
     </div>
   `);
