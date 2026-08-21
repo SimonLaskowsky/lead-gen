@@ -29,7 +29,7 @@ def detect_outsourced_platform(url: str) -> dict | None:
         return None
     try:
         from urllib.parse import urlparse
-        domain = urlparse(url).netloc.lower().lstrip("www.")
+        domain = urlparse(url).netloc.lower().removeprefix("www.")
         for platform_domain, info in OUTSOURCED_PLATFORMS.items():
             if domain == platform_domain or domain.endswith("." + platform_domain):
                 return info
@@ -176,7 +176,8 @@ def scrape_website(url: str) -> dict | None:
         # Decompose noise tags for clean AI text
         for tag in soup(["script", "style", "head"]):
             tag.decompose()
-        clean_text = " ".join(soup.get_text().split())[:3000]
+        clean_full = " ".join(soup.get_text().split())
+        clean_text = clean_full[:3000]
 
         # Checks
         has_ssl = resp.url.startswith("https://")
@@ -217,8 +218,8 @@ def scrape_website(url: str) -> dict | None:
         phone_match = re.search(r'(\+48[\s\-]?)?\d[\d\s\-]{8,}\d', full_text)
         has_phone = bool(phone_match)
 
-        # Content depth
-        word_count = len(clean_text.split())
+        # Content depth — z pełnego tekstu, nie z obciętego podglądu
+        word_count = len(clean_full.split())
 
         # H1
         has_h1 = h1_tag is not None
@@ -471,14 +472,14 @@ def _domain_of(url: str) -> str:
     """Registrable host of a URL, without www. — used to spot same-domain emails."""
     try:
         from urllib.parse import urlparse
-        return urlparse(url).netloc.lower().lstrip("www.")
+        return urlparse(url).netloc.lower().removeprefix("www.")
     except Exception:
         return ""
 
 
 def _pick_best_email(mailto: list[str], text_emails: list[str], domain: str = "") -> str:
     """Rank candidates: same-domain > mailto link > role inbox. Return the best."""
-    domain = (domain or "").lower().lstrip("www.")
+    domain = (domain or "").lower().removeprefix("www.")
     scores: dict[str, int] = {}
     for source, bonus in ((mailto, 50), (text_emails, 0)):
         for raw in source:
