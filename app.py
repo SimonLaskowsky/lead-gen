@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, jsonify, Response
 from dotenv import load_dotenv
 from datetime import datetime
-from functools import wraps
 import json
 import os
 import db
@@ -12,26 +11,7 @@ from pathlib import Path
 load_dotenv(Path(__file__).parent / ".env")
 
 app = Flask(__name__)
-
-
-def require_auth(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        password = os.getenv("APP_PASSWORD", "")
-        if not password:
-            return f(*args, **kwargs)  # no password set = open access (local dev)
-        auth = request.authorization
-        if not auth or auth.password != password:
-            return Response(
-                "Wymagane logowanie",
-                401,
-                {"WWW-Authenticate": 'Basic realm="Lead Gen"'},
-            )
-        return f(*args, **kwargs)
-    return decorated
-
-
-app.before_request_funcs[None] = []
+db.init_db()
 
 
 @app.before_request
@@ -46,11 +26,6 @@ def auth_check():
             401,
             {"WWW-Authenticate": 'Basic realm="Lead Gen"'},
         )
-
-
-@app.before_request
-def setup():
-    db.init_db()
 
 
 @app.route("/")
@@ -156,6 +131,12 @@ def search():
     results = []
 
     for lead in leads:
+        # Duplikat sprawdzamy PRZED scrapowaniem, żeby nie palić minut na
+        # PageSpeed i szukanie maila dla firmy, którą baza i tak odrzuci
+        if db.lead_exists(lead["business_name"], city):
+            skipped += 1
+            continue
+
         website_data = None
         if lead.get("website_url"):
             website_data = scraper.scrape_website(lead["website_url"])
@@ -208,7 +189,7 @@ def add_manual_lead():
         website_checks=json.dumps(website_data or {}),
     )
     if not lead_id:
-        return jsonify({"error": "Nie udało się dodać"}), 500
+        return jsonify({"error": "Taki lead już jest w bazie (ta sama nazwa i miasto)"}), 409
     return jsonify({"id": lead_id, "email": email})
 
 
@@ -343,10 +324,7 @@ def update_lead(lead_id):
 
 @app.route("/api/lead/<int:lead_id>", methods=["DELETE"])
 def delete_lead(lead_id):
-    import sqlite3
-    from db import get_conn
-
-    with get_conn() as conn:
+    with db.get_conn() as conn:
         conn.execute("DELETE FROM leads WHERE id = ?", (lead_id,))
     return jsonify({"ok": True})
 

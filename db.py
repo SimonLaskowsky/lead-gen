@@ -58,23 +58,29 @@ def get_conn():
 
 
 def add_lead(**kwargs):
+    """Zwraca id nowego rekordu albo None gdy duplikat (nazwa + miasto) lub błąd."""
     with get_conn() as conn:
         fields = list(kwargs.keys())
         placeholders = ", ".join("?" * len(fields))
         cols = ", ".join(fields)
         try:
-            conn.execute(
+            cur = conn.execute(
                 f"INSERT OR IGNORE INTO leads ({cols}) VALUES ({placeholders})",
                 list(kwargs.values()),
             )
-            row = conn.execute(
-                "SELECT id FROM leads WHERE business_name = ? AND city = ?",
-                (kwargs.get("business_name"), kwargs.get("city")),
-            ).fetchone()
-            return row["id"] if row else None
+            return cur.lastrowid if cur.rowcount else None
         except Exception as e:
             print(f"DB error: {e}")
             return None
+
+
+def lead_exists(business_name, city):
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM leads WHERE business_name = ? AND city = ?",
+            (business_name, city),
+        ).fetchone()
+        return row is not None
 
 
 def get_leads(status=None, city=None, business_type=None, search=None):
