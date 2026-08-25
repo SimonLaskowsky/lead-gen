@@ -10,9 +10,9 @@ STYLE_RULES = """
    ani zwyklego minusa uzytego jako pauza w zdaniu. Zero wyjatkow. Zamiast pauzy uzyj przecinka,
    dwukropka albo rozbij na dwa zdania.
    Lacznik wewnatrz wyrazu ("e-mail", "biało-czerwony") jest OK, pauza miedzy myslami NIE.
-2. Nadawcami sa DWAJ MEZCZYZNI, Szymon i Nikodem. Wszystkie czasowniki w rodzaju MESKOOSOBOWYM
-   liczby mnogiej: "szukalismy", "trafilismy", "zrobilismy", "jestesmy".
-   NIGDY w rodzaju zenskim ("szukalysmy", "trafilysmy") nawet gdy piszesz do kobiety
+2. Nadawca jest JEDEN MEZCZYZNA. Pisz w pierwszej osobie liczby POJEDYNCZEJ rodzaju
+   meskiego: "szukalem", "trafilem", "zrobilem", "jestem". NIGDY liczby mnogiej
+   ("szukalismy", "jestesmy") i NIGDY rodzaju zenskiego, nawet gdy piszesz do kobiety
    i nawet gdy w tekscie przewijaja sie "klientki".
 3. Zadnego twierdzenia, ktore odbiorca obali w 10 sekund. W szczegolnosci: nie twierdz,
    ze czegos "nie da sie kliknac" albo ze cos "nie dziala", jesli nie potwierdzaja tego
@@ -27,6 +27,23 @@ STYLE_RULES = """
 7. BADZ MILY. Piszemy do wlasciciela firmy, ktorej idzie dobrze. Braku strony nie stawiaj
    jako werdyktu ("Wlasnej strony brak."), tylko wplec go w zdanie o tym, co mozna zyskac.
 """
+
+
+SENDERS = {
+    "szymon": {
+        "name": "Szymon Laskowski",
+        "domain": "szymonlaskowski.pl",
+        "phone": "+48 731 531 571",
+        "bio": "ponad 3 lata komercyjnego doswiadczenia jako programista; realizacje: oficjalna strona urzedu miejskiego w Bielsku-Bialej, sklep internetowy Mateusza Sochy",
+    },
+    "nikodem": {
+        # ponytail: uzupelnij nazwisko, domene, telefon i bio Nikodema przed uzyciem
+        "name": "Nikodem",
+        "domain": "",
+        "phone": "",
+        "bio": "programista, robi strony dla lokalnych firm w regionie",
+    },
+}
 
 
 def _client():
@@ -227,8 +244,10 @@ Potem pusta linia i pełna analiza."""
     return _parse_analysis(_text(message))
 
 
-def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: str | None = None, my_feedback: str | None = None) -> str:
+def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: str | None = None, my_feedback: str | None = None, sender: str = "szymon") -> str:
     client = _client()
+    snd = SENDERS.get(sender) or SENDERS["szymon"]
+    sig = "\n".join(x for x in (snd["name"], snd["domain"], snd["phone"]) if x)
 
     business_name = lead.get("business_name", "")
     business_type = lead.get("business_type", "firma")
@@ -236,13 +255,13 @@ def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: st
     has_website = bool(lead.get("website_url"))
 
     # ── Shared context: who we are ──
-    sender_context = """
-Kim jesteśmy (nadawcy emaila):
-- S&N Studio, dwuosobowy duet web developerów z Polski (Szymon i Nikodem)
-- Robimy strony dla lokalnych firm, kilka zrealizowanych projektów w regionie, klienci zadowoleni
-- Nie jesteśmy korporacją, to atut: szybko, bez biurokracji, bezpośredni kontakt
-- Portfolio: https://sandnstudio.pl/
-- Odpowiadamy tego samego dnia
+    sender_context = f"""
+Kim jest nadawca emaila:
+- {snd['name']}, programista z regionu, robi strony dla lokalnych firm
+- {snd['bio']}
+- Kontakt i portfolio: {snd['domain'] or snd['name']}
+- Jedna konkretna osoba, nie agencja i nie studio, to atut: szybko, bez biurokracji, kontakt wprost z wykonawcą
+- Odpowiada tego samego dnia
 
 Oferta. To sa DWIE ROZNE rzeczy i nigdy nie wolno ich mieszac ani wyceniac tak samo:
 
@@ -252,7 +271,7 @@ Oferta. To sa DWIE ROZNE rzeczy i nigdy nie wolno ich mieszac ani wyceniac tak s
 
 ZASADA PIENIEZNA W PIERWSZYM MAILU: nie pisz NIC o pieniadzach. Zadnych kwot, zadnych widelek,
 zadnych warunkow platnosci, zadnego "polowa na start". Powyzsze ceny sa dla Ciebie jako kontekst,
-kto my jestesmy, a nie tresc do wklejenia. Pierwszy kontakt sprzedaje bezplatny projekt graficzny,
+kim jest nadawca, a nie tresc do wklejenia. Pierwszy kontakt sprzedaje bezplatny projekt graficzny,
 nie usluge. O pieniadzach rozmawiamy dopiero, gdy klient sam odpisze.
 """
 
@@ -281,7 +300,7 @@ Jesli zadna nie pasuje do realnych problemow tej firmy, nie uzywaj zadnej: staty
         is_booking_platform = outsourced in booking_platforms
 
         if is_booking_platform:
-            prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla S&N Studio, dwuosobowego studia web developerskiego.
+            prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla {snd['name']}, programisty robiącego strony dla lokalnych firm.
 
 {sender_context}
 
@@ -306,7 +325,7 @@ Zyski: własna marka, SEO na Google, profesjonalny wizerunek, uniezależnienie s
 Napisz cold email który SPRZEDAJE własną stronę jako UZUPEŁNIENIE {outsourced}, nie zamiennik.
 
 Struktura emaila:
-1. TEMAT: konkretny, najwyzej 60 znakow, np. "Znaleźliśmy {business_name} na {outsourced}, brakuje jednej rzeczy"
+1. TEMAT: konkretny, najwyzej 60 znakow, np. "Znalazłem {business_name} na {outsourced}, brakuje jednej rzeczy"
 2. HOOK: komplementuj, mają dobre opinie/profil na {outsourced}, ale Google ich nie pokazuje gdy ktoś szuka bezpośrednio
 3. PROBLEM: klienci którzy nie szukają przez {outsourced} (np. z polecenia, z Google) nie mają gdzie trafić, tracą część ruchu
 4. ROZWIĄZANIE: własna strona z widgetem {outsourced} wbudowanym, rezerwacje zostają, dochodzi SEO i marka premium
@@ -315,11 +334,12 @@ Struktura emaila:
 Zasady:
 - Maksymalnie 180 słów
 - Ani slowa o cenie i platnosciach, to temat na pozniej
-- Pisz w formie "my", ZAWSZE liczba mnoga (jesteśmy dwuosobowym studiem). Nigdy "znalazłem/znalazłam/sprawdziłem", tylko "znalezliśmy/sprawdziliśmy". Żadnych form pierwszej osoby liczby pojedynczej.
+- Pisz w pierwszej osobie liczby pojedynczej rodzaju męskiego ("znalazłem", "sprawdziłem"). Żadnych form "my" ani liczby mnogiej.
 - Doceniaj {outsourced}, nie atakuj go, firma słusznie go używa
 - NIE brzmij pouczająco, pokaż szansę którą tracą, nie że coś zepsuli
 - Odpowiedz wylacznie gotowa trescia maila, bez zadnych komentarzy przed ani po. Pierwsza linia: Temat: [temat]
-- Podpis, dokladnie dwie linie: pierwsza "Szymon i Nikodem", druga "S&N Studio · sandnstudio.pl"
+- Podpis, dokladnie te linie i zadne inne:
+{sig}
 - Nie używaj korporacyjnego języka
 - Zacznij od "Dzień dobry," i zaraz po nim hak, bez zdania rozbiegowego
 - NIE dodawaj P.S., CTA w punkcie 5 jest wystarczające
@@ -327,7 +347,7 @@ Zasady:
         else:
             # Social/link platforms (Facebook, Instagram, Linktree, Google Sites), these are weak presences,
             # proposing a real website as replacement makes sense here.
-            prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla S&N Studio, dwuosobowego studia web developerskiego które oferuje własną stronę lokalnej firmie.
+            prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla {snd['name']}, programisty który oferuje własną stronę lokalnej firmie.
 
 {sender_context}
 
@@ -346,17 +366,18 @@ Napisz cold email który SPRZEDAJE własną stronę zamiast {outsourced}. Argume
 
 Struktura emaila:
 1. TEMAT: konkretny, najwyzej 60 znakow, nawiązujący do braku własnej strony i tego co przez to tracą
-2. HOOK: zauważyliście że ich jedyną obecnością w sieci jest profil na {outsourced}, Google ich nie pokazuje gdy ktoś szuka ich branży w mieście
+2. HOOK: zauważyłeś, że ich jedyną obecnością w sieci jest profil na {outsourced}, Google ich nie pokazuje gdy ktoś szuka ich branży w mieście
 3. KOSZT BRAKU STRONY: klienci z Google trafiają do konkurencji, nie do nich
 4. ALTERNATYWA: własna strona, własna domena, SEO, marka premium. Ani slowa o cenie i platnosciach.
 5. CTA: bezplatny projekt graficzny strony wraz z wycena, bez zobowiazan, zakonczony uprzejmym pytaniem w pelnym zdaniu
 
 Zasady:
 - Maksymalnie 180 słów
-- Pisz w formie "my", ZAWSZE liczba mnoga (jesteśmy dwuosobowym studiem). Nigdy "znalazłem/znalazłam/sprawdziłem", tylko "znalezliśmy/sprawdziliśmy". Żadnych form pierwszej osoby liczby pojedynczej.
+- Pisz w pierwszej osobie liczby pojedynczej rodzaju męskiego ("znalazłem", "sprawdziłem"). Żadnych form "my" ani liczby mnogiej.
 - NIE brzmij pouczająco, pokaż szansę którą tracą
 - Odpowiedz wylacznie gotowa trescia maila, bez zadnych komentarzy przed ani po. Pierwsza linia: Temat: [temat]
-- Podpis, dokladnie dwie linie: pierwsza "Szymon i Nikodem", druga "S&N Studio · sandnstudio.pl"
+- Podpis, dokladnie te linie i zadne inne:
+{sig}
 - Nie używaj korporacyjnego języka
 - Zacznij od "Dzień dobry," i zaraz po nim hak, bez zdania rozbiegowego
 - NIE dodawaj P.S., CTA w punkcie 5 jest wystarczające
@@ -370,7 +391,7 @@ Zasady:
         return _text(message)
 
     if not has_website:
-        prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla S&N Studio, dwuosobowego studia web developerskiego które oferuje zbudowanie strony lokalnej firmie.
+        prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla {snd['name']}, programisty który oferuje zbudowanie strony lokalnej firmie.
 
 {sender_context}
 
@@ -393,11 +414,12 @@ Struktura (nie pisz numerow ani naglowkow):
    ze wlasnej strony jeszcze nie maja.
 3. CO MOZNA ZYSKAC: jedno zdanie o kliencie, ktory porownuje kilka firm z branzy.
    Bez statystyk, bez procentow, bez pouczania.
-4. KIM JESTESMY: pol zdania, dwuosobowe studio z regionu (Szymon i Nikodem), robimy strony
+4. KIM JESTEM: pol zdania, {snd['name']}, programista z regionu, robi strony
    dla lokalnych firm. Mozna skleic z punktem 5 w jedno zdanie.
-5. CTA: proponujemy BEZPLATNY projekt graficzny strony wraz z wycena, bez zobowiazan.
-   To jest jedyna rzecz, o ktora prosimy w tym mailu.
-6. Podpis: S&N Studio · sandnstudio.pl
+5. CTA: proponuje BEZPLATNY projekt graficzny strony wraz z wycena, bez zobowiazan.
+   To jest jedyna rzecz, o ktora prosze w tym mailu.
+6. Podpis, dokladnie te linie i zadne inne:
+{sig}
 
 Zasady:
 - Maksymalnie 60 slow razem z tematem. To twardy limit, krotszy mail wygrywa.
@@ -405,7 +427,7 @@ Zasady:
 - ANI SLOWA O PLATNOSCIACH. Zero cen, zero widelek, zero rat, zero "polowa na start".
   Pierwszy mail sprzedaje darmowy projekt, nie usluge. Pieniadze sa tematem na pozniej.
 - ZADNYCH STATYSTYK ani procentow. Brzmia jak wypelniacz i obnizaja wiarygodnosc.
-- CTA ma byc uprzejmym pytaniem w pelnym zdaniu, np. "Czy mozemy taki projekt przygotowac
+- CTA ma byc uprzejmym pytaniem w pelnym zdaniu, np. "Czy moge taki projekt przygotowac
   i podeslac?" albo "Chcialaby Pani zobaczyc, jak taka strona moglaby wygladac?".
   ZAKAZ jednowyrazowych zaczepek typu "Zainteresowana?", "Zainteresowany?", "Chetnie?".
   Brzmia infantylnie i spoufalaja sie z osoba, ktorej nie znamy.
@@ -503,19 +525,20 @@ URL: {lead.get('website_url', '')}
 
 === WYNIKI AUDYTU STRONY (ŹRÓDŁO WIEDZY) ===
 {audit_text}
+{sender_context}
 {style_rules}
 === WYTYCZNE DLA COLD MAILA ===
 1. Zwrot do adresata: "Dzień dobry" lub "Panie/Pani [imię]", ale imienia uzyj TYLKO jesli wystepuje w nazwie firmy, nigdy go nie zgaduj. Pisz per Pan/Pani, szanując tradycyjne podejście lokalnych przedsiębiorców. Żadnego "Cześć" na start.
 2. Temat maila: najwyzej 60 znakow, oparty na CIEKAWOSCI, nie na strachu. Nazwij konkretną obserwację ze strony i zostaw lukę informacyjną (np. "Rzut oka na [domena] oczami klienta z telefonu", "Kilka rzeczy na [domena], które łatwo poprawić"). Zakaz straszenia utratą klientów w temacie.
-3. Wstęp: Wykorzystaj kontekst lokalny i psychologiczny (np. "Wyszukaliśmy [Nazwa Firmy] na telefonie, udając klienta z [Miasto/Region], któremu pilnie potrzebna jest pomoc...").
+3. Wstęp: Wykorzystaj kontekst lokalny i psychologiczny (np. "Wyszukałem [Nazwa Firmy] na telefonie, udając klienta z [Miasto/Region], któremu pilnie potrzebna jest pomoc...").
 4. Rozwinięcie (NAJWAŻNIEJSZE, tu pokazujesz głębię analizy): najpierw ustal DOMINUJĄCĄ HISTORIĘ audytu, czyli to, co naprawdę kosztuje firmę klientów, i o niej napisz. Nie wybieraj pojedynczego technicznego detalu, gdy audyt mówi, że problemem jest całość.
    - Jeśli audyt stwierdza, że strona jest wizualnie niespójna, przestarzała lub wygląda nieprofesjonalnie, historią jest ZAUFANIE: klient ocenia wiarygodność firmy po stronie zanim zadzwoni i część wybiera konkurenta, który wygląda poważniej. Napisz to dyplomatycznie, nigdy "brzydka" ani "amatorska", tylko np. "strona nie gra w tej samej lidze co Państwa usługi" albo "odstaje od konkurencji, przez co część klientów odpada zanim zadzwoni". Poprzyj to DWOMA najbardziej widocznymi konkretami z audytu, wplecionymi w zdania.
    - Jeśli strona wygląda porządnie, a audyt wskazuje jeden krytyczny błąd konwersji, rozwiń ten jeden błąd w 2-3 zdaniach językiem korzyści.
    Zawsze wybieraj to, co właściciel sam zobaczy w 10 sekund po otwarciu własnej strony na telefonie.
 5. Sygnał głębi BEZ listy: po głównym problemie dodaj JEDNO zdanie, że przy przeglądzie wyszło jeszcze kilka mniejszych rzeczy (możesz nazwać najwyżej dwie, wplecione w naturalne zdanie, żadnych wypunktowań) i że pełną spisaną listę dołączymy do bezpłatnego podglądu. Wybieraj usterki REALNIE obecne w audycie, nie zmyślaj.
-6. Kim jesteście: "Jesteśmy S&N Studio, dwuosobowy zespół programistów z regionu. Bierzemy na warsztat witryny lokalnych firm i sprawnie przebudowujemy je tak, aby generowały więcej telefonów." (link do realizacji jest w podpisie, nie powtarzaj go w treści).
-7. Wycena: to sa ULEPSZENIA istniejacej strony, a nie budowa nowej, wiec zakres i cena sa zawsze indywidualne. NIE podawaj ZADNEJ kwoty, ani widelek, ani stawek agencji, ani warunkow platnosci. Napisz tylko, ze wycene przygotowujemy indywidualnie po obejrzeniu zakresu i ze dolaczamy ja do bezplatnego podgladu.
-8. Call to Action: Zaproponuj podrzucenie bezpłatnego, prostego podglądu (mockupu) ekranu głównego po optymalizacji. Zapytaj na końcu: "Czy możemy podesłać ten bezpłatny podgląd do rzucenia okiem?". To jest JEDYNA prośba w mailu, nie dodawaj innych pytań ani ofert.
+6. Kim jestem: przedstaw nadawcę w jednym-dwóch zdaniach na bazie sekcji "Kim jest nadawca": imię i nazwisko, doświadczenie, jedna-dwie imienne realizacje. Zero ogólników typu "wiele firm mi zaufało". (dane kontaktowe są w podpisie, nie powtarzaj ich w treści).
+7. Wycena: to sa ULEPSZENIA istniejacej strony, a nie budowa nowej, wiec zakres i cena sa zawsze indywidualne. NIE podawaj ZADNEJ kwoty, ani widelek, ani stawek agencji, ani warunkow platnosci. Napisz tylko, ze wycene przygotowuje indywidualnie po obejrzeniu zakresu i ze dolacza ja do bezplatnego podgladu.
+8. Call to Action: Zaproponuj podrzucenie bezpłatnego, prostego podglądu (mockupu) ekranu głównego po optymalizacji. Zapytaj na końcu: "Czy mogę podesłać ten bezpłatny podgląd do rzucenia okiem?". To jest JEDYNA prośba w mailu, nie dodawaj innych pytań ani ofert.
 
 === ZASADY STYLU ===
 - Maksymalnie 120 słów razem z tematem. Dłuższego cold maila właściciel firmy nie doczyta do CTA. Jeśli musisz ciąć, tnij opis zespołu, nie główny problem.
@@ -526,8 +549,7 @@ URL: {lead.get('website_url', '')}
 - Odpowiedz WYŁĄCZNIE gotową treścią maila (Temat + Treść), bez żadnych dodatkowych komentarzy od AI przed czy po tekście.
 
 Podpisz maila dokladnie tak:
-Szymon i Nikodem
-S&N Studio · sandnstudio.pl"""
+{sig}"""
 
     message = client.messages.create(
         model="claude-opus-5",
@@ -553,11 +575,11 @@ def generate_followup(lead: dict, followup_number: int = 1) -> str:
     else:
         goal = (
             "To DRUGI i OSTATNI follow-up (break-up mail).\n"
-            "Cel: uprzejmie zamknac temat. Napisz wprost, ze to nasza ostatnia wiadomosc i nie bedziemy juz przypominac.\n"
+            "Cel: uprzejmie zamknac temat. Napisz wprost, ze to moja ostatnia wiadomosc i nie bede juz przypominac.\n"
             "Zostaw otwarta furtke: propozycja bezplatnego projektu pozostaje aktualna, wystarczy krotka odpowiedz, gdy temat wroci.\n"
             "Zero wyrzutow, zero dramatu, lekki i zyczliwy ton."
         )
-    prompt = f"""Jestes copywriterem S&N Studio. Wyslalismy do firmy {lead.get('business_name', '')} ({lead.get('business_type', '')}, {lead.get('city', '')}) ponizszy cold email i nie dostalismy odpowiedzi.
+    prompt = f"""Jestes copywriterem. Nadawca wyslal do firmy {lead.get('business_name', '')} ({lead.get('business_type', '')}, {lead.get('city', '')}) ponizszy cold email i nie dostal odpowiedzi.
 
 === PIERWSZY MAIL (wyslany wczesniej) ===
 {prev_email}
@@ -570,7 +592,7 @@ def generate_followup(lead: dict, followup_number: int = 1) -> str:
 - Maksymalnie 50 slow. Najwyzej dwa krotkie akapity.
 - Nie powtarzaj argumentow z pierwszego maila tym samym jezykiem i nie streszczaj go.
 - Zakoncz jednym uprzejmym pytaniem w pelnym zdaniu o zgode na podeslanie bezplatnego projektu.
-- Podpis, dokladnie dwie linie: pierwsza "Szymon i Nikodem", druga "S&N Studio · sandnstudio.pl"
+- Podpisz sie DOKLADNIE tak samo jak w pierwszym mailu, te same linie podpisu.
 """
     message = client.messages.create(
         model="claude-opus-5",

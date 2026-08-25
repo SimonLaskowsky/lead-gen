@@ -290,10 +290,12 @@ def generate_email(lead_id):
         website_data = scraper.scrape_website(lead["website_url"])
 
     ai_analysis = lead.get("ai_analysis") or None
-    my_feedback = (request.json or {}).get("my_feedback", "").strip()
+    payload = request.json or {}
+    my_feedback = payload.get("my_feedback", "").strip()
+    sender = payload.get("sender") or "szymon"
 
     try:
-        email_text = analyzer.generate_email(lead, website_data, ai_analysis=ai_analysis, my_feedback=my_feedback or None)
+        email_text = analyzer.generate_email(lead, website_data, ai_analysis=ai_analysis, my_feedback=my_feedback or None, sender=sender)
         _mark("ai", True, f"email: {lead['business_name']}")
         updates = {"generated_email": email_text}
         if my_feedback:

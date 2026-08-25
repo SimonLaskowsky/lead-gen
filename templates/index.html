@@ -737,6 +737,10 @@
         </div>
       </div>
       <div class="modal-footer" id="emailFooter" style="display:none!important">
+        <select id="senderSelect" class="form-select form-select-sm" style="width:auto" title="Kto podpisuje maila">
+          <option value="szymon">Pisze: Szymon</option>
+          <option value="nikodem">Pisze: Nikodem</option>
+        </select>
         <button class="btn btn-ghost btn-sm" onclick="regenerateEmail()" title="Wygeneruj zupełnie nową wersję">
           <i class="bi bi-arrow-clockwise me-1"></i> Napisz od nowa
         </button>
@@ -819,6 +823,9 @@
         </span>
         <button id="regenBtn" class="btn btn-ghost btn-sm" style="display:none" onclick="runAnalysis(currentLeadId)">
           <i class="bi bi-arrow-clockwise me-1"></i> Regeneruj
+        </button>
+<button class="btn btn-ghost btn-sm" onclick="exportAnalysisPdf()" title="Wersja do druku / zapisu jako PDF, do wysłania klientowi">
+          <i class="bi bi-file-earmark-pdf me-1"></i> Eksport PDF
         </button>
 <button class="btn btn-primary" onclick="generateEmailFromAnalysis()">
           <i class="bi bi-envelope me-1"></i> Generuj email
@@ -1130,7 +1137,8 @@ async function openEmailModal(leadId, myFeedback = '', forceRegen = false) {
 
   if (!emailText) {
     try {
-      const body = myFeedback ? JSON.stringify({ my_feedback: myFeedback }) : '{}';
+      const sender = (document.getElementById('senderSelect') || {}).value || 'szymon';
+      const body = JSON.stringify(myFeedback ? { my_feedback: myFeedback, sender } : { sender });
       const res  = await fetch(`/api/lead/${leadId}/generate-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1189,18 +1197,22 @@ function openInGmail() {
   window.open('https://mail.google.com/mail/?' + params.toString(), '_blank');
 }
 
-// Stopka doklejana na końcu maila. Uzupełnij numer telefonu, konkurencja
-// (patrz maile od agencji) zawsze podpisuje się imieniem, domeną i telefonem.
-const EMAIL_SIGNATURE = [
-  'Pozdrawiamy',
-  'Szymon i Nikodem',
-  'S&N Studio · sandnstudio.pl',
-].join('\n');
+// Stopka doklejana na końcu maila. Musi zgadzać się z SENDERS w analyzer.py.
+const SENDER_SIGNATURES = {
+  szymon:  ['Pozdrawiam', 'Szymon Laskowski', 'szymonlaskowski.pl', '+48 731 531 571'],
+  nikodem: ['Pozdrawiam', 'Nikodem'], // uzupełnij dane Nikodema
+};
+
+function currentSignature() {
+  const key = (document.getElementById('senderSelect') || {}).value || 'szymon';
+  return SENDER_SIGNATURES[key] || SENDER_SIGNATURES.szymon;
+}
 
 function addSignature() {
+  const lines = currentSignature();
   const ta = document.getElementById('emailBody');
-  if (ta.value.includes('S&N Studio · sandnstudio.pl')) { showToast('Stopka już jest w treści', 'warning'); return; }
-  ta.value = ta.value.trimEnd() + '\n\n' + EMAIL_SIGNATURE;
+  if (ta.value.includes(lines[1])) { showToast('Stopka już jest w treści', 'warning'); return; }
+  ta.value = ta.value.trimEnd() + '\n\n' + lines.join('\n');
 }
 
 function copyEmail() {
@@ -1365,6 +1377,39 @@ function animateStep(id, delay) {
 
 let currentObs = [];
 function useObs(i) { document.getElementById('myFeedback').value = currentObs[i] || ''; }
+
+// Otwiera wersje do druku; uzytkownik zapisuje jako PDF systemowym dialogiem. Zero zaleznosci.
+function exportAnalysisPdf() {
+  const lead = leadsById[currentLeadId] || {};
+  const body = document.getElementById('analyzeResult').innerHTML;
+  if (!body.trim()) { showToast('Brak analizy do eksportu', 'warning'); return; }
+  const sig  = currentSignature();
+  const w = window.open('', '_blank');
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Audyt ${escHtml(lead.business_name || '')}</title>
+  <style>
+    body { font-family: Georgia, 'Times New Roman', serif; color: #111; max-width: 700px; margin: 40px auto; line-height: 1.7; font-size: 13.5px; padding: 0 16px; }
+    .head { border-bottom: 2px solid #111; padding-bottom: 12px; margin-bottom: 22px; }
+    .head h1 { font-size: 19px; margin: 0 0 4px; }
+    .head .sub { color: #555; font-size: 11.5px; }
+    .analysis-h1, .analysis-h2, .analysis-h3 { font-weight: 700; margin: 18px 0 6px; font-size: 14.5px; }
+    .analysis-h2 { border-left: 3px solid #111; padding-left: 8px; }
+    .analysis-bullet { padding-left: 16px; position: relative; }
+    .analysis-bullet::before { content: '\\2022'; position: absolute; left: 2px; }
+    .analysis-hr { border: 0; border-top: 1px dashed #999; margin: 14px 0; }
+    .foot { margin-top: 30px; border-top: 1px solid #ccc; padding-top: 10px; color: #555; font-size: 11.5px; }
+    @media print { body { margin: 6mm auto; } }
+  </style></head><body>
+  <div class="head">
+    <h1>Audyt strony: ${escHtml(lead.website_url || lead.business_name || '')}</h1>
+    <div class="sub">${escHtml(lead.business_name || '')} &middot; przygotował ${escHtml(sig[1])} &middot; ${new Date().toLocaleDateString('pl-PL')}</div>
+  </div>
+  ${body}
+  <div class="foot">${sig.slice(1).map(escHtml).join(' &middot; ')}</div>
+  </body></html>`);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 350);
+}
 
 function generateEmailFromAnalysis() {
   const feedback = document.getElementById('myFeedback').value.trim();
