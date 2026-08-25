@@ -218,6 +218,9 @@ def scrape_website(url: str) -> dict | None:
         phone_match = re.search(r'(\+48[\s\-]?)?\d[\d\s\-]{8,}\d', full_text)
         has_phone = bool(phone_match)
 
+        # Klikalny link tel: — zrzut ekranu nie mowi czy numer da sie kliknac, HTML tak
+        has_tel_link = bool(soup.find("a", href=lambda h: h and h.strip().lower().startswith("tel:")))
+
         # Content depth — z pełnego tekstu, nie z obciętego podglądu
         word_count = len(clean_full.split())
 
@@ -244,6 +247,7 @@ def scrape_website(url: str) -> dict | None:
             "image_count": len(images),
             "images_missing_alt": images_missing_alt,
             "has_phone": has_phone,
+            "has_tel_link": has_tel_link,
             "word_count": word_count,
             "has_h1": has_h1,
             "h1_text": h1_text,

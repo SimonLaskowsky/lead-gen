@@ -14,13 +14,17 @@ STYLE_RULES = """
    liczby mnogiej: "szukalismy", "trafilismy", "zrobilismy", "jestesmy".
    NIGDY w rodzaju zenskim ("szukalysmy", "trafilysmy") nawet gdy piszesz do kobiety
    i nawet gdy w tekscie przewijaja sie "klientki".
-3. Zadnego twierdzenia, ktore odbiorca obali w 10 sekund. Firma MA wizytowke w Google,
+3. Zadnego twierdzenia, ktore odbiorca obali w 10 sekund. W szczegolnosci: nie twierdz,
+   ze czegos "nie da sie kliknac" albo ze cos "nie dziala", jesli nie potwierdzaja tego
+   wprost dane techniczne audytu. Wyglad na zrzucie to za malo. Firma MA wizytowke w Google,
    bo wlasnie stamtad mamy jej dane. Nie pisz, ze "nie ma jej w Google" ani ze "nie wyskakuje
    w wyszukiwarce". Brak strony WWW to co innego niz brak obecnosci w Google.
 4. Nie obiecuj rzeczy, ktorych nie ma. Szkic strony wspominamy jako propozycje do zrobienia,
    nie jako gotowy plik czekajacy w folderze.
 5. Bez P.S., bez emoji, bez wykrzyknikow, bez pogrubien i naglowkow sekcji.
-6. BADZ MILY. Piszemy do wlasciciela firmy, ktorej idzie dobrze. Braku strony nie stawiaj
+6. Zanim oddasz tekst, sprawdz pisownie kazdego slowa. Jedna literowka w mailu
+   wytykajacym cudze niedorobki kompromituje cala wiadomosc.
+7. BADZ MILY. Piszemy do wlasciciela firmy, ktorej idzie dobrze. Braku strony nie stawiaj
    jako werdyktu ("Wlasnej strony brak."), tylko wplec go w zdanie o tym, co mozna zyskac.
 """
 
@@ -108,6 +112,7 @@ def analyze_website_visually(lead: dict, screenshots: dict, website_data: dict |
             tech_facts.append(f"H1: {website_data['h1_text']}")
         if not website_data.get("has_phone"):
             tech_facts.append("Numer telefonu: NIE ZNALEZIONO na stronie")
+        tech_facts.append(f"Klikalny numer (link tel: w HTML): {'tak' if website_data.get('has_tel_link') else 'NIE'}")
         img_count = website_data.get("image_count", 0)
         missing_alt = website_data.get("images_missing_alt", 0)
         if img_count > 0 and missing_alt > 0:
@@ -158,6 +163,7 @@ URL: {lead.get('website_url', '')}
 {visual_instruction}
 
 Przeprowadź analizę, skupiając się na psychologii klienta i konwersji. Unikaj ogólników typu "strona jest ładna/nieładna". Pisz szczerze, bezpośrednio i technicznie konstruktywnie.
+WAŻNE: zrzut ekranu NIE mówi, czy element jest klikalny. O klikalności numeru telefonu i linków wnioskuj WYŁĄCZNIE z danych automatycznych (linia "Klikalny numer"), nigdy z samego wyglądu.
 
 Zastosuj poniższą strukturę:
 
@@ -502,9 +508,12 @@ URL: {lead.get('website_url', '')}
 1. Zwrot do adresata: "Dzień dobry" lub "Panie/Pani [imię]", ale imienia uzyj TYLKO jesli wystepuje w nazwie firmy, nigdy go nie zgaduj. Pisz per Pan/Pani, szanując tradycyjne podejście lokalnych przedsiębiorców. Żadnego "Cześć" na start.
 2. Temat maila: najwyzej 60 znakow, oparty na CIEKAWOSCI, nie na strachu. Nazwij konkretną obserwację ze strony i zostaw lukę informacyjną (np. "Rzut oka na [domena] oczami klienta z telefonu", "Kilka rzeczy na [domena], które łatwo poprawić"). Zakaz straszenia utratą klientów w temacie.
 3. Wstęp: Wykorzystaj kontekst lokalny i psychologiczny (np. "Wyszukaliśmy [Nazwa Firmy] na telefonie, udając klienta z [Miasto/Region], któremu pilnie potrzebna jest pomoc...").
-4. Rozwinięcie (NAJWAŻNIEJSZE, tu pokazujesz głębię analizy): Z dostarczonego audytu wybierz 1 najboleśniejszy błąd biznesowy i rozwiń go najmocniej w 2-3 zdaniach językiem korzyści (nie "responsywność", lecz "klienci z telefonów uciekają, bo nie widzą numeru"). To Twój główny haczyk.
+4. Rozwinięcie (NAJWAŻNIEJSZE, tu pokazujesz głębię analizy): najpierw ustal DOMINUJĄCĄ HISTORIĘ audytu, czyli to, co naprawdę kosztuje firmę klientów, i o niej napisz. Nie wybieraj pojedynczego technicznego detalu, gdy audyt mówi, że problemem jest całość.
+   - Jeśli audyt stwierdza, że strona jest wizualnie niespójna, przestarzała lub wygląda nieprofesjonalnie, historią jest ZAUFANIE: klient ocenia wiarygodność firmy po stronie zanim zadzwoni i część wybiera konkurenta, który wygląda poważniej. Napisz to dyplomatycznie, nigdy "brzydka" ani "amatorska", tylko np. "strona nie gra w tej samej lidze co Państwa usługi" albo "odstaje od konkurencji, przez co część klientów odpada zanim zadzwoni". Poprzyj to DWOMA najbardziej widocznymi konkretami z audytu, wplecionymi w zdania.
+   - Jeśli strona wygląda porządnie, a audyt wskazuje jeden krytyczny błąd konwersji, rozwiń ten jeden błąd w 2-3 zdaniach językiem korzyści.
+   Zawsze wybieraj to, co właściciel sam zobaczy w 10 sekund po otwarciu własnej strony na telefonie.
 5. Sygnał głębi BEZ listy: po głównym problemie dodaj JEDNO zdanie, że przy przeglądzie wyszło jeszcze kilka mniejszych rzeczy (możesz nazwać najwyżej dwie, wplecione w naturalne zdanie, żadnych wypunktowań) i że pełną spisaną listę dołączymy do bezpłatnego podglądu. Wybieraj usterki REALNIE obecne w audycie, nie zmyślaj.
-6. Kim jesteście: "Jesteśmy S&N Studio, dwuosobowy zespół programistów z Polski. Bierzemy na warsztat witryny lokalnych firm i sprawnie przebudowujemy je tak, aby generowały więcej telefonów." (link do realizacji jest w podpisie, nie powtarzaj go w treści).
+6. Kim jesteście: "Jesteśmy S&N Studio, dwuosobowy zespół programistów z regionu. Bierzemy na warsztat witryny lokalnych firm i sprawnie przebudowujemy je tak, aby generowały więcej telefonów." (link do realizacji jest w podpisie, nie powtarzaj go w treści).
 7. Wycena: to sa ULEPSZENIA istniejacej strony, a nie budowa nowej, wiec zakres i cena sa zawsze indywidualne. NIE podawaj ZADNEJ kwoty, ani widelek, ani stawek agencji, ani warunkow platnosci. Napisz tylko, ze wycene przygotowujemy indywidualnie po obejrzeniu zakresu i ze dolaczamy ja do bezplatnego podgladu.
 8. Call to Action: Zaproponuj podrzucenie bezpłatnego, prostego podglądu (mockupu) ekranu głównego po optymalizacji. Zapytaj na końcu: "Czy możemy podesłać ten bezpłatny podgląd do rzucenia okiem?". To jest JEDYNA prośba w mailu, nie dodawaj innych pytań ani ofert.
 
