@@ -740,6 +740,9 @@
         <button class="btn btn-ghost btn-sm" onclick="regenerateEmail()" title="Wygeneruj zupełnie nową wersję">
           <i class="bi bi-arrow-clockwise me-1"></i> Napisz od nowa
         </button>
+        <button class="btn btn-ghost btn-sm" onclick="generateFollowup()" title="Krótki follow-up do wysłania jako odpowiedź w tym samym wątku">
+          <i class="bi bi-reply me-1"></i> Follow-up
+        </button>
         <button class="btn btn-ghost btn-sm" onclick="addSignature()" title="Dopisz stopkę z danymi kontaktowymi na końcu maila">
           <i class="bi bi-person-vcard me-1"></i> Stopka
         </button>
@@ -1084,12 +1087,32 @@ async function addManualLead() {
 }
 
 // ── Email modal ──
+async function generateFollowup() {
+  if (!currentLeadId) return;
+  const ta = document.getElementById('emailBody');
+  const prev = ta.value;
+  ta.value = 'Piszę follow-up...';
+  try {
+    const res  = await fetch(`/api/lead/${currentLeadId}/generate-followup`, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    const subj = document.getElementById('emailSubject');
+    if (subj.textContent && !subj.textContent.startsWith('Re:')) subj.textContent = 'Re: ' + subj.textContent;
+    ta.value = data.followup;
+    followupMode = true;
+    showToast(`✉️ Follow-up nr ${data.number}. Wyślij jako odpowiedź w wątku pierwszego maila`, 'success');
+  } catch(e) { ta.value = prev; showToast('Błąd: ' + e.message, 'danger'); }
+}
+
 function regenerateEmail() {
   openEmailModal(currentLeadId, '', true);
 }
 
+let followupMode = false;
+
 async function openEmailModal(leadId, myFeedback = '', forceRegen = false) {
   currentLeadId = leadId;
+  followupMode = false;
   document.getElementById('emailForBusiness').textContent = (leadsById[leadId] || {}).business_name || '';
   document.getElementById('emailLoadingState').classList.remove('d-none');
   document.getElementById('emailContent').classList.add('d-none');
@@ -1192,7 +1215,9 @@ async function markEmailed() {
   const body    = document.getElementById('emailBody').value;
   const subject = document.getElementById('emailSubject').textContent;
   const full    = (subject ? 'Temat: ' + subject + '\n\n' : '') + body;
-  await fetch(`/api/lead/${currentLeadId}/update`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status:'emailed', generated_email: full}) });
+  // W trybie follow-up nie nadpisujemy pierwszego maila, follow-up jest zapisany osobno
+  const payload  = followupMode ? {status:'emailed'} : {status:'emailed', generated_email: full};
+  await fetch(`/api/lead/${currentLeadId}/update`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
   bootstrap.Modal.getInstance(document.getElementById('emailModal')).hide();
   showToast('📤 Oznaczono jako wysłany!', 'success');
   await refreshStats();

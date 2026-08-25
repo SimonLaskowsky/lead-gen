@@ -8,7 +8,6 @@ DB_PATH = os.getenv("DB_PATH", "leads.db")
 
 def init_db():
     with get_conn() as conn:
-        _migrate(conn)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS leads (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,6 +28,7 @@ def init_db():
                 UNIQUE(business_name, city)
             )
         """)
+        _migrate(conn)
 
 
 def _migrate(conn):
@@ -39,6 +39,7 @@ def _migrate(conn):
         ("mockup_html",    "TEXT DEFAULT ''"),
         ("mockup_image",   "BLOB"),
         ("observations",   "TEXT DEFAULT '[]'"),
+        ("followups",      "TEXT DEFAULT '[]'"),
     ]:
         try:
             conn.execute(f"ALTER TABLE leads ADD COLUMN {col} {definition}")

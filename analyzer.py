@@ -4,6 +4,27 @@ import io
 import anthropic
 
 
+STYLE_RULES = """
+=== ZASADY STYLU (bezwzgledne) ===
+1. ZAKAZ MYSLNIKOW. Nie wolno uzyc pauzy: ani em dash (unicode U+2014), ani en dash (U+2013),
+   ani zwyklego minusa uzytego jako pauza w zdaniu. Zero wyjatkow. Zamiast pauzy uzyj przecinka,
+   dwukropka albo rozbij na dwa zdania.
+   Lacznik wewnatrz wyrazu ("e-mail", "biało-czerwony") jest OK, pauza miedzy myslami NIE.
+2. Nadawcami sa DWAJ MEZCZYZNI, Szymon i Nikodem. Wszystkie czasowniki w rodzaju MESKOOSOBOWYM
+   liczby mnogiej: "szukalismy", "trafilismy", "zrobilismy", "jestesmy".
+   NIGDY w rodzaju zenskim ("szukalysmy", "trafilysmy") nawet gdy piszesz do kobiety
+   i nawet gdy w tekscie przewijaja sie "klientki".
+3. Zadnego twierdzenia, ktore odbiorca obali w 10 sekund. Firma MA wizytowke w Google,
+   bo wlasnie stamtad mamy jej dane. Nie pisz, ze "nie ma jej w Google" ani ze "nie wyskakuje
+   w wyszukiwarce". Brak strony WWW to co innego niz brak obecnosci w Google.
+4. Nie obiecuj rzeczy, ktorych nie ma. Szkic strony wspominamy jako propozycje do zrobienia,
+   nie jako gotowy plik czekajacy w folderze.
+5. Bez P.S., bez emoji, bez wykrzyknikow, bez pogrubien i naglowkow sekcji.
+6. BADZ MILY. Piszemy do wlasciciela firmy, ktorej idzie dobrze. Braku strony nie stawiaj
+   jako werdyktu ("Wlasnej strony brak."), tylko wplec go w zdanie o tym, co mozna zyskac.
+"""
+
+
 def _client():
     return anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
@@ -244,34 +265,14 @@ Statystyki które można użyć (tylko te pasujące do konkretnych problemów te
 - 60% ruchu w internecie pochodzi z telefonów, strona nieresponsywna traci ponad połowę odwiedzających
 - Strony ładujące się ponad 3 sekundy tracą 53% użytkowników mobilnych (Google)
 - 75% użytkowników ocenia wiarygodność firmy po wyglądzie strony
-- Strony z SSL konwertują o 85% lepiej, bez SSL przeglądarka wyświetla "Niezabezpieczona"
-- Firmy z profesjonalną stroną dostają średnio 3x więcej zapytań online
+- Bez SSL Chrome wyświetla "Niezabezpieczona" zanim klient w ogóle zobaczy stronę (fakt, nie statystyka)
 - Brak CTA (przycisku "zadzwoń/napisz") to najczęstsza przyczyna ucieczki klientów ze strony
-- Strony z opiniami klientów konwertują o 270% lepiej niż bez opinii
+- Strony z opiniami klientów konwertują o 270% lepiej (badanie Spiegel Research Center)
 Używaj TYLKO 1-2 statystyk pasujących do problemów tej konkretnej firmy. Nie wymieniaj wszystkich.
 Jesli zadna nie pasuje do realnych problemow tej firmy, nie uzywaj zadnej: statystyka na sile brzmi jak masowka.
 """
 
-    # ── Style rules shared by every branch ──
-    style_rules = """
-=== ZASADY STYLU (bezwzgledne) ===
-1. ZAKAZ MYSLNIKOW. Nie wolno uzyc pauzy: ani em dash (unicode U+2014), ani en dash (U+2013),
-   ani zwyklego minusa uzytego jako pauza w zdaniu. Zero wyjatkow. Zamiast pauzy uzyj przecinka,
-   dwukropka albo rozbij na dwa zdania.
-   Lacznik wewnatrz wyrazu ("e-mail", "biało-czerwony") jest OK, pauza miedzy myslami NIE.
-2. Nadawcami sa DWAJ MEZCZYZNI, Szymon i Nikodem. Wszystkie czasowniki w rodzaju MESKOOSOBOWYM
-   liczby mnogiej: "szukalismy", "trafilismy", "zrobilismy", "jestesmy".
-   NIGDY w rodzaju zenskim ("szukalysmy", "trafilysmy") nawet gdy piszesz do kobiety
-   i nawet gdy w tekscie przewijaja sie "klientki".
-3. Zadnego twierdzenia, ktore odbiorca obali w 10 sekund. Firma MA wizytowke w Google,
-   bo wlasnie stamtad mamy jej dane. Nie pisz, ze "nie ma jej w Google" ani ze "nie wyskakuje
-   w wyszukiwarce". Brak strony WWW to co innego niz brak obecnosci w Google.
-4. Nie obiecuj rzeczy, ktorych nie ma. Szkic strony wspominamy jako propozycje do zrobienia,
-   nie jako gotowy plik czekajacy w folderze.
-5. Bez P.S., bez emoji, bez wykrzyknikow, bez pogrubien i naglowkow sekcji.
-6. BADZ MILY. Piszemy do wlasciciela firmy, ktorej idzie dobrze. Braku strony nie stawiaj
-   jako werdyktu ("Wlasnej strony brak."), tylko wplec go w zdanie o tym, co mozna zyskac.
-"""
+    style_rules = STYLE_RULES
 
     outsourced = (website_data or {}).get("outsourced_platform")
     if outsourced:
@@ -508,20 +509,19 @@ URL: {lead.get('website_url', '')}
 {style_rules}
 === WYTYCZNE DLA COLD MAILA ===
 1. Zwrot do adresata: "Dzień dobry" lub "Panie/Pani [imię]", ale imienia uzyj TYLKO jesli wystepuje w nazwie firmy, nigdy go nie zgaduj. Pisz per Pan/Pani, szanując tradycyjne podejście lokalnych przedsiębiorców. Żadnego "Cześć" na start.
-2. Temat maila: Intrygujący, bezpośredni, najwyzej 60 znakow, nawiązujący do smartfona i konkretnego błędu ze źródłowego audytu (np. "Weszliśmy na [domena] z telefonu, klienci mogą nie doczekać się wyceny").
+2. Temat maila: najwyzej 60 znakow, oparty na CIEKAWOSCI, nie na strachu. Nazwij konkretną obserwację ze strony i zostaw lukę informacyjną (np. "Rzut oka na [domena] oczami klienta z telefonu", "Kilka rzeczy na [domena], które łatwo poprawić"). Zakaz straszenia utratą klientów w temacie.
 3. Wstęp: Wykorzystaj kontekst lokalny i psychologiczny (np. "Wyszukaliśmy [Nazwa Firmy] na telefonie, udając klienta z [Miasto/Region], któremu pilnie potrzebna jest pomoc...").
 4. Rozwinięcie (NAJWAŻNIEJSZE, tu pokazujesz głębię analizy): Z dostarczonego audytu wybierz 1 najboleśniejszy błąd biznesowy i rozwiń go najmocniej w 2-3 zdaniach językiem korzyści (nie "responsywność", lecz "klienci z telefonów uciekają, bo nie widzą numeru"). To Twój główny haczyk.
-5. Krótka lista "co jeszcze wyłapaliśmy": Zaraz po głównym problemie dorzuć zwięzłą wypunktowaną listę 3-4 KOLEJNYCH konkretnych usterek z audytu (np. brak SSL, martwy Google Analytics, brak nagłówka H1, wolne ładowanie, brak opinii, ukryty formularz). Każdy punkt jedno krótkie zdanie, chodzi o pokazanie, że naprawdę przeszliśmy stronę punkt po punkcie, a nie wysłaliśmy masówki. Wybieraj punkty REALNIE obecne w audycie, nie zmyślaj.
-6. Sygnał, że to dopiero wierzchołek: Po liście dodaj jedno zdanie w stylu "To tylko część tego, co znaleźliśmy, pełną listę z konkretnymi poprawkami mamy spisaną i chętnie prześlemy". Pokaż, że za mailem stoi solidny, obszerny audyt, a nie kilka ogólników.
-7. Kim jesteście: "Jesteśmy S&N Studio, dwuosobowy zespół programistów z Polski. Bierzemy na warsztat witryny lokalnych firm i sprawnie przebudowujemy je tak, aby generowały więcej telefonów." (link do realizacji jest w podpisie, nie powtarzaj go w treści).
-8. Wycena: to sa ULEPSZENIA istniejacej strony, a nie budowa nowej, wiec zakres i cena sa zawsze indywidualne. NIE podawaj ZADNEJ kwoty, ani widelek, ani stawek agencji, ani warunkow platnosci. Napisz tylko, ze wycene przygotowujemy indywidualnie po obejrzeniu zakresu i ze dolaczamy ja do bezplatnego podgladu.
-9. Call to Action (Haczyk): Zaproponuj podrzucenie bezpłatnego, prostego podglądu (mockupu) ekranu głównego po optymalizacji. Zapytaj na końcu: "Czy możemy podesłać ten bezpłatny podgląd do rzucenia okiem?".
+5. Sygnał głębi BEZ listy: po głównym problemie dodaj JEDNO zdanie, że przy przeglądzie wyszło jeszcze kilka mniejszych rzeczy (możesz nazwać najwyżej dwie, wplecione w naturalne zdanie, żadnych wypunktowań) i że pełną spisaną listę dołączymy do bezpłatnego podglądu. Wybieraj usterki REALNIE obecne w audycie, nie zmyślaj.
+6. Kim jesteście: "Jesteśmy S&N Studio, dwuosobowy zespół programistów z Polski. Bierzemy na warsztat witryny lokalnych firm i sprawnie przebudowujemy je tak, aby generowały więcej telefonów." (link do realizacji jest w podpisie, nie powtarzaj go w treści).
+7. Wycena: to sa ULEPSZENIA istniejacej strony, a nie budowa nowej, wiec zakres i cena sa zawsze indywidualne. NIE podawaj ZADNEJ kwoty, ani widelek, ani stawek agencji, ani warunkow platnosci. Napisz tylko, ze wycene przygotowujemy indywidualnie po obejrzeniu zakresu i ze dolaczamy ja do bezplatnego podgladu.
+8. Call to Action: Zaproponuj podrzucenie bezpłatnego, prostego podglądu (mockupu) ekranu głównego po optymalizacji. Zapytaj na końcu: "Czy możemy podesłać ten bezpłatny podgląd do rzucenia okiem?". To jest JEDYNA prośba w mailu, nie dodawaj innych pytań ani ofert.
 
 === ZASADY STYLU ===
-- Maksymalnie 180 słów razem z tematem. Dłuższego cold maila właściciel firmy nie doczyta do CTA. Jeśli musisz ciąć, tnij rozwinięcie i opis zespołu, nie listę usterek.
-- Pisz zwięźle i konkretnie, bez lania wody i bez marketingu korporacyjnego, ale NIE skracaj listy usterek z punktu 5, ona ma robić wrażenie skrupulatności.
-- Mail ma wyglądać tak, jakby Szymon lub Nikodem napisali go ręcznie po dokładnym przejściu strony, ma czuć się jak realny, szczegółowy audyt, nie szablon.
-- Główny problem rozwiń, resztę usterek podaj telegraficznie w punktach, kontrast między głębią a listą buduje poczucie, że masz tego dużo więcej.
+- Maksymalnie 120 słów razem z tematem. Dłuższego cold maila właściciel firmy nie doczyta do CTA. Jeśli musisz ciąć, tnij opis zespołu, nie główny problem.
+- Pisz zwięźle i konkretnie, bez lania wody i bez marketingu korporacyjnego.
+- Mail ma wyglądać jak życzliwa obserwacja od człowieka, który naprawdę przeszedł stronę, nie jak protokół kontroli i nie jak szablon.
+- Jeden dobrze rozwinięty problem robi większe wrażenie niż lista zarzutów. Żadnych wypunktowań w treści maila.
 - Całkowity zakaz używania emoji.
 - Odpowiedz WYŁĄCZNIE gotową treścią maila (Temat + Treść), bez żadnych dodatkowych komentarzy od AI przed czy po tekście.
 
@@ -536,4 +536,46 @@ S&N Studio · sandnstudio.pl"""
         messages=[{"role": "user", "content": prompt}],
     )
 
+    return _text(message)
+
+
+def generate_followup(lead: dict, followup_number: int = 1) -> str:
+    """Follow-up do wyslanego cold maila. Zwraca sama tresc (bez tematu), do wyslania w tym samym watku."""
+    client = _client()
+    prev_email = lead.get("generated_email", "")
+    if followup_number <= 1:
+        goal = (
+            "To PIERWSZY follow-up, wysylany kilka dni po pierwszym mailu bez odpowiedzi.\n"
+            "Cel: krotkie, zyczliwe przypomnienie i ponowienie propozycji bezplatnego projektu graficznego.\n"
+            "Zakaz zdan w stylu 'czy dotarl moj poprzedni mail' i jakichkolwiek pretensji o brak odpowiedzi.\n"
+            "Mozesz dodac JEDEN nowy drobny konkret lub argument, ktorego nie bylo w pierwszym mailu."
+        )
+    else:
+        goal = (
+            "To DRUGI i OSTATNI follow-up (break-up mail).\n"
+            "Cel: uprzejmie zamknac temat. Napisz wprost, ze to nasza ostatnia wiadomosc i nie bedziemy juz przypominac.\n"
+            "Zostaw otwarta furtke: propozycja bezplatnego projektu pozostaje aktualna, wystarczy krotka odpowiedz, gdy temat wroci.\n"
+            "Zero wyrzutow, zero dramatu, lekki i zyczliwy ton."
+        )
+    prompt = f"""Jestes copywriterem S&N Studio. Wyslalismy do firmy {lead.get('business_name', '')} ({lead.get('business_type', '')}, {lead.get('city', '')}) ponizszy cold email i nie dostalismy odpowiedzi.
+
+=== PIERWSZY MAIL (wyslany wczesniej) ===
+{prev_email}
+
+=== ZADANIE ===
+{goal}
+{STYLE_RULES}
+=== FORMAT ===
+- Follow-up idzie jako ODPOWIEDZ w tym samym watku, wiec NIE piszesz tematu. Odpowiedz wylacznie trescia maila, od "Dzien dobry," do podpisu, bez zadnych komentarzy przed ani po.
+- Maksymalnie 50 slow. Najwyzej dwa krotkie akapity.
+- Nie powtarzaj argumentow z pierwszego maila tym samym jezykiem i nie streszczaj go.
+- Zakoncz jednym uprzejmym pytaniem w pelnym zdaniu o zgode na podeslanie bezplatnego projektu.
+- Podpis, dokladnie dwie linie: pierwsza "Szymon i Nikodem", druga "S&N Studio · sandnstudio.pl"
+"""
+    message = client.messages.create(
+        model="claude-opus-5",
+        max_tokens=4000,
+        output_config={"effort": "medium"},
+        messages=[{"role": "user", "content": prompt}],
+    )
     return _text(message)

@@ -309,6 +309,27 @@ def generate_email(lead_id):
 
 
 
+@app.route("/api/lead/<int:lead_id>/generate-followup", methods=["POST"])
+def generate_followup(lead_id):
+    lead = db.get_lead(lead_id)
+    if not lead:
+        return jsonify({"error": "Nie znaleziono"}), 404
+    if not (lead.get("generated_email") or "").strip():
+        return jsonify({"error": "Najpierw wygeneruj pierwszy mail"}), 400
+    followups = json.loads(lead.get("followups") or "[]")
+    if len(followups) >= 2:
+        return jsonify({"error": "Maksymalnie 2 follow-upy, dalsze przypominanie to spam"}), 400
+    try:
+        text = analyzer.generate_followup(lead, followup_number=len(followups) + 1)
+        _mark("ai", True, f"follow-up {len(followups) + 1}: {lead['business_name']}")
+        followups.append(text)
+        db.update_lead(lead_id, followups=json.dumps(followups, ensure_ascii=False))
+        return jsonify({"followup": text, "number": len(followups)})
+    except Exception as e:
+        _mark("ai", False, str(e)[:140])
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/lead/<int:lead_id>/update", methods=["POST"])
 def update_lead(lead_id):
     data = request.json or {}
