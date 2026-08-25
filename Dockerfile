@@ -11,6 +11,8 @@ RUN playwright install --with-deps chromium
 
 COPY . .
 
+ENV PORT=8080 DB_PATH=/app/data/leads.db
+RUN mkdir -p /app/data
 EXPOSE 8080
 
 CMD ["python", "app.py"]
