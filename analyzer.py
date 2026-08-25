@@ -161,6 +161,7 @@ Zastosuj poniższą strukturę:
 - Wypisz dokładnie 3 konkretne, techniczne zmiany na stronie, które natychmiast podniosą liczbę telefonów i zapytań od klientów.
 
 Pisz wyłącznie po polsku. Nie używaj emoji. Bądź precyzyjny.
+Cała analiza ma się zmieścić w 350 słowach: krótkie akapity i punkty, konkret zamiast opisu, bez powtarzania danych wejściowych.
 
 === FORMAT ODPOWIEDZI ===
 Zacznij odpowiedź od JEDNEJ linii z ocenami 1-10 (przed całą analizą):
@@ -201,6 +202,7 @@ Potem pusta linia i pełna analiza."""
     message = client.messages.create(
         model="claude-opus-5",
         max_tokens=16000,
+        output_config={"effort": "medium"},
         messages=[{"role": "user", "content": content}],
     )
 
@@ -364,6 +366,7 @@ Zasady:
         message = client.messages.create(
             model="claude-opus-5",
             max_tokens=8000,
+            output_config={"effort": "medium"},
             messages=[{"role": "user", "content": prompt}],
         )
         return _text(message)
@@ -529,6 +532,7 @@ S&N Studio · sandnstudio.pl"""
     message = client.messages.create(
         model="claude-opus-5",
         max_tokens=8000,
+        output_config={"effort": "medium"},
         messages=[{"role": "user", "content": prompt}],
     )
 
