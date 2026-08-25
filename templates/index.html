@@ -528,6 +528,9 @@
             <button class="btn-op" data-bs-toggle="modal" data-bs-target="#manualModal">
               Wpisz cel
             </button>
+            <button class="btn-op" data-bs-toggle="modal" data-bs-target="#profilesModal">
+              Profile
+            </button>
           </div>
         </div>
       </div>
@@ -650,6 +653,10 @@
           <input type="text" id="manualCity" class="form-control" placeholder="np. Kraków" />
         </div>
         <div class="mb-3">
+          <label class="form-label">Profil nadawcy</label>
+          <select id="manualProfile" class="form-select"></select>
+        </div>
+        <div class="mb-3">
           <label class="form-label">Notatki</label>
           <textarea id="manualNotes" class="form-control" rows="2" placeholder="np. polecenie od Kasi"></textarea>
         </div>
@@ -737,10 +744,7 @@
         </div>
       </div>
       <div class="modal-footer" id="emailFooter" style="display:none!important">
-        <select id="senderSelect" class="form-select form-select-sm" style="width:auto" title="Kto podpisuje maila">
-          <option value="szymon">Pisze: Szymon</option>
-          <option value="nikodem">Pisze: Nikodem</option>
-        </select>
+        <select id="senderSelect" class="form-select form-select-sm" style="width:auto" title="Kto podpisuje maila"></select>
         <button class="btn btn-ghost btn-sm" onclick="regenerateEmail()" title="Wygeneruj zupełnie nową wersję">
           <i class="bi bi-arrow-clockwise me-1"></i> Napisz od nowa
         </button>
@@ -838,6 +842,22 @@
 <!-- ══════════════════════════════════════
      NOTES MODAL
 ══════════════════════════════════════ -->
+<div class="modal fade" id="profilesModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-person-badge me-2" style="color:var(--primary)"></i>Profile nadawców</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="profilesList"></div>
+      <div class="modal-footer">
+        <input type="text" id="newProfileName" class="form-control" style="max-width:240px" placeholder="Imię i nazwisko" />
+        <button class="btn btn-primary" onclick="createProfile()"><i class="bi bi-plus-lg me-1"></i> Dodaj profil</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="notesModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered" style="max-width:420px">
     <div class="modal-content">
@@ -850,9 +870,13 @@
           <label class="form-label">Notatka</label>
           <textarea id="notesInput" class="form-control" rows="4" placeholder="Dodaj notatkę..."></textarea>
         </div>
-        <div>
+        <div class="mb-3">
           <label class="form-label">Email kontaktowy</label>
           <input type="email" id="emailInput" class="form-control" placeholder="email@firma.pl" />
+        </div>
+        <div>
+          <label class="form-label">Profil nadawcy</label>
+          <select id="notesProfile" class="form-select"></select>
         </div>
       </div>
       <div class="modal-footer">
@@ -1077,6 +1101,7 @@ async function addManualLead() {
     business_type: document.getElementById('manualType').value.trim(),
     city:          document.getElementById('manualCity').value.trim(),
     notes:         document.getElementById('manualNotes').value.trim(),
+    profile_id:    +document.getElementById('manualProfile').value || null,
   };
   if (!body.business_name) { showToast('Podaj nazwę firmy', 'warning'); return; }
 
@@ -1131,14 +1156,15 @@ async function openEmailModal(leadId, myFeedback = '', forceRegen = false) {
   const lead    = await leadRes.json();
   currentLeadEmail = lead.email || null;
   currentLeadPhone = lead.phone || null;
+  if (lead.profile_id) document.getElementById('senderSelect').value = lead.profile_id;
   document.getElementById('smsBtn').style.display = currentLeadPhone ? '' : 'none';
   // Feedback or explicit "napisz od nowa" skips the cached email and regenerates
   let emailText = (myFeedback || forceRegen) ? null : lead.generated_email;
 
   if (!emailText) {
     try {
-      const sender = (document.getElementById('senderSelect') || {}).value || 'szymon';
-      const body = JSON.stringify(myFeedback ? { my_feedback: myFeedback, sender } : { sender });
+      const profile_id = +((document.getElementById('senderSelect') || {}).value) || null;
+      const body = JSON.stringify(myFeedback ? { my_feedback: myFeedback, profile_id } : { profile_id });
       const res  = await fetch(`/api/lead/${leadId}/generate-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1197,21 +1223,74 @@ function openInGmail() {
   window.open('https://mail.google.com/mail/?' + params.toString(), '_blank');
 }
 
-// Stopka doklejana na końcu maila. Musi zgadzać się z SENDERS w analyzer.py.
-const SENDER_SIGNATURES = {
-  szymon:  ['Pozdrawiam', 'Szymon Laskowski', 'szymonlaskowski.pl', '+48 731 531 571'],
-  nikodem: ['Pozdrawiam', 'Nikodem'], // uzupełnij dane Nikodema
-};
+// ── Profile nadawców (z bazy) ──
+let profiles = [];
+
+async function loadProfiles() {
+  profiles = await (await fetch('/api/profiles')).json();
+  const opts = profiles.map(p => `<option value="${p.id}">${escHtml(p.name)}</option>`).join('');
+  for (const id of ['senderSelect', 'manualProfile', 'notesProfile']) {
+    const el = document.getElementById(id);
+    if (el) { const v = el.value; el.innerHTML = opts; if (v) el.value = v; }
+  }
+  renderProfilesList();
+}
+
+function profileById(id) { return profiles.find(p => p.id == id) || profiles[0] || {}; }
 
 function currentSignature() {
-  const key = (document.getElementById('senderSelect') || {}).value || 'szymon';
-  return SENDER_SIGNATURES[key] || SENDER_SIGNATURES.szymon;
+  const p = profileById((document.getElementById('senderSelect') || {}).value);
+  return ['Pozdrawiam', p.name, p.domain, p.phone].filter(Boolean);
+}
+
+function renderProfilesList() {
+  const box = document.getElementById('profilesList');
+  if (!box) return;
+  box.innerHTML = profiles.map(p => `
+    <div style="border:1px solid var(--green-deep);padding:14px;margin-bottom:14px">
+      <div class="row g-2">
+        <div class="col-md-4"><label class="form-label">Imię i nazwisko</label><input class="form-control" id="pf-name-${p.id}" value="${escHtml(p.name)}"></div>
+        <div class="col-md-4"><label class="form-label">Własna strona</label><input class="form-control" id="pf-domain-${p.id}" value="${escHtml(p.domain || '')}" placeholder="np. jankowalski.pl"></div>
+        <div class="col-md-4"><label class="form-label">Telefon</label><input class="form-control" id="pf-phone-${p.id}" value="${escHtml(p.phone || '')}" placeholder="+48 ..."></div>
+        <div class="col-12"><label class="form-label">Doświadczenie</label><input class="form-control" id="pf-experience-${p.id}" value="${escHtml(p.experience || '')}" placeholder="np. 3 lata komercyjnego doświadczenia jako programista"></div>
+        <div class="col-12"><label class="form-label">Realizacje (imienne, po przecinku)</label><textarea class="form-control" id="pf-realizations-${p.id}" rows="2" placeholder="np. strona urzędu X, sklep Y">${escHtml(p.realizations || '')}</textarea></div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-ghost btn-sm" onclick="deleteProfile(${p.id})"><i class="bi bi-trash me-1"></i> Usuń</button>
+        <button class="btn btn-primary btn-sm" onclick="saveProfile(${p.id})"><i class="bi bi-check2 me-1"></i> Zapisz</button>
+      </div>
+    </div>`).join('') || '<div style="color:var(--muted)">Brak profili, dodaj pierwszy poniżej.</div>';
+}
+
+async function saveProfile(id) {
+  const body = {};
+  for (const f of ['name', 'domain', 'phone', 'experience', 'realizations'])
+    body[f] = document.getElementById(`pf-${f}-${id}`).value;
+  await fetch(`/api/profiles/${id}/update`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  showToast('💾 Zapisano profil', 'success');
+  loadProfiles();
+}
+
+async function deleteProfile(id) {
+  if (!confirm('Usunąć ten profil? Leady z nim powiązane wrócą do domyślnego.')) return;
+  await fetch(`/api/profiles/${id}`, { method:'DELETE' });
+  loadProfiles();
+}
+
+async function createProfile() {
+  const name = document.getElementById('newProfileName').value.trim();
+  if (!name) { showToast('Podaj imię i nazwisko', 'warning'); return; }
+  const res  = await fetch('/api/profiles', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name }) });
+  const data = await res.json();
+  if (data.error) { showToast('Błąd: ' + data.error, 'danger'); return; }
+  document.getElementById('newProfileName').value = '';
+  loadProfiles();
 }
 
 function addSignature() {
   const lines = currentSignature();
   const ta = document.getElementById('emailBody');
-  if (ta.value.includes(lines[1])) { showToast('Stopka już jest w treści', 'warning'); return; }
+  if (lines[1] && ta.value.includes(lines[1])) { showToast('Stopka już jest w treści', 'warning'); return; }
   ta.value = ta.value.trimEnd() + '\n\n' + lines.join('\n');
 }
 
@@ -1430,13 +1509,16 @@ function openNotesModal(leadId) {
   document.getElementById('notesForBusiness').textContent = lead.business_name || '';
   document.getElementById('notesInput').value  = lead.notes || '';
   document.getElementById('emailInput').value  = lead.email || '';
+  const np = document.getElementById('notesProfile');
+  if (lead.profile_id) np.value = lead.profile_id; else if (profiles[0]) np.value = profiles[0].id;
   new bootstrap.Modal(document.getElementById('notesModal')).show();
 }
 
 async function saveNotes() {
   const notes = document.getElementById('notesInput').value;
   const email = document.getElementById('emailInput').value;
-  await fetch(`/api/lead/${currentLeadId}/update`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({notes, email}) });
+  const profile_id = +document.getElementById('notesProfile').value || null;
+  await fetch(`/api/lead/${currentLeadId}/update`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({notes, email, profile_id}) });
   bootstrap.Modal.getInstance(document.getElementById('notesModal')).hide();
   showToast('💾 Zapisano', 'success');
   loadLeads();
@@ -1515,6 +1597,7 @@ async function refreshHealth(probe = false) {
 function probeApis() { refreshHealth(true); }
 
 refreshHealth();
+loadProfiles();
 setInterval(() => refreshHealth(), 60000);
 
 // ── Zegar operacyjny ──

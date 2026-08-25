@@ -29,6 +29,24 @@ def init_db():
             )
         """)
         _migrate(conn)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS profiles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                domain TEXT DEFAULT '',
+                phone TEXT DEFAULT '',
+                experience TEXT DEFAULT '',
+                realizations TEXT DEFAULT ''
+            )
+        """)
+        if conn.execute("SELECT COUNT(*) FROM profiles").fetchone()[0] == 0:
+            conn.execute(
+                "INSERT INTO profiles (name, domain, phone, experience, realizations) VALUES (?,?,?,?,?)",
+                ("Szymon Laskowski", "szymonlaskowski.pl", "+48 731 531 571",
+                 "ponad 3 lata komercyjnego doświadczenia jako programista",
+                 "oficjalna strona urzędu miejskiego w Bielsku-Białej, sklep internetowy Mateusza Sochy"),
+            )
+            conn.execute("INSERT INTO profiles (name) VALUES (?)", ("Nikodem",))
 
 
 def _migrate(conn):
@@ -40,6 +58,7 @@ def _migrate(conn):
         ("mockup_image",   "BLOB"),
         ("observations",   "TEXT DEFAULT '[]'"),
         ("followups",      "TEXT DEFAULT '[]'"),
+        ("profile_id",     "INTEGER"),
     ]:
         try:
             conn.execute(f"ALTER TABLE leads ADD COLUMN {col} {definition}")
@@ -145,3 +164,45 @@ def get_business_types():
             "SELECT DISTINCT business_type FROM leads WHERE business_type != '' ORDER BY business_type"
         ).fetchall()
         return [r["business_type"] for r in rows]
+
+
+# ── Profile nadawców ──
+PROFILE_FIELDS = ("name", "domain", "phone", "experience", "realizations")
+
+
+def get_profiles():
+    with get_conn() as conn:
+        return [dict(r) for r in conn.execute("SELECT * FROM profiles ORDER BY id").fetchall()]
+
+
+def add_profile(**kwargs):
+    """Zwraca id albo None (brak nazwy / duplikat)."""
+    kw = {k: (kwargs.get(k) or "").strip() for k in PROFILE_FIELDS if kwargs.get(k)}
+    if not kw.get("name"):
+        return None
+    with get_conn() as conn:
+        try:
+            cur = conn.execute(
+                f"INSERT INTO profiles ({', '.join(kw)}) VALUES ({', '.join('?' * len(kw))})",
+                list(kw.values()),
+            )
+            return cur.lastrowid
+        except Exception:
+            return None
+
+
+def update_profile(profile_id, **kwargs):
+    kw = {k: (kwargs.get(k) or "").strip() for k in PROFILE_FIELDS if k in kwargs}
+    if not kw:
+        return
+    with get_conn() as conn:
+        conn.execute(
+            f"UPDATE profiles SET {', '.join(f'{k} = ?' for k in kw)} WHERE id = ?",
+            list(kw.values()) + [profile_id],
+        )
+
+
+def delete_profile(profile_id):
+    with get_conn() as conn:
+        conn.execute("DELETE FROM profiles WHERE id = ?", (profile_id,))
+        conn.execute("UPDATE leads SET profile_id = NULL WHERE profile_id = ?", (profile_id,))

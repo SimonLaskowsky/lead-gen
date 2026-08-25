@@ -164,6 +164,28 @@ def search():
     return jsonify({"added": added, "skipped": skipped, "total_found": len(leads)})
 
 
+@app.route("/api/profiles", methods=["GET", "POST"])
+def profiles_collection():
+    if request.method == "GET":
+        return jsonify(db.get_profiles())
+    pid = db.add_profile(**(request.json or {}))
+    if not pid:
+        return jsonify({"error": "Podaj unikalne imię i nazwisko"}), 400
+    return jsonify({"id": pid})
+
+
+@app.route("/api/profiles/<int:profile_id>/update", methods=["POST"])
+def update_profile(profile_id):
+    db.update_profile(profile_id, **(request.json or {}))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/profiles/<int:profile_id>", methods=["DELETE"])
+def delete_profile(profile_id):
+    db.delete_profile(profile_id)
+    return jsonify({"ok": True})
+
+
 @app.route("/api/lead/manual", methods=["POST"])
 def add_manual_lead():
     data = request.json or {}
@@ -186,6 +208,7 @@ def add_manual_lead():
         business_type=data.get("business_type", "").strip(),
         city=data.get("city", "").strip(),
         notes=data.get("notes", "").strip(),
+        profile_id=data.get("profile_id") or None,
         website_checks=json.dumps(website_data or {}),
     )
     if not lead_id:
@@ -292,12 +315,16 @@ def generate_email(lead_id):
     ai_analysis = lead.get("ai_analysis") or None
     payload = request.json or {}
     my_feedback = payload.get("my_feedback", "").strip()
-    sender = payload.get("sender") or "szymon"
+    profiles = db.get_profiles()
+    wanted = payload.get("profile_id") or lead.get("profile_id")
+    profile = next((p for p in profiles if p["id"] == wanted), profiles[0] if profiles else None)
 
     try:
-        email_text = analyzer.generate_email(lead, website_data, ai_analysis=ai_analysis, my_feedback=my_feedback or None, sender=sender)
+        email_text = analyzer.generate_email(lead, website_data, ai_analysis=ai_analysis, my_feedback=my_feedback or None, profile=profile)
         _mark("ai", True, f"email: {lead['business_name']}")
         updates = {"generated_email": email_text}
+        if profile:
+            updates["profile_id"] = profile["id"]
         if my_feedback:
             existing = json.loads(lead.get("observations") or "[]")
             if my_feedback not in existing:
@@ -335,7 +362,7 @@ def generate_followup(lead_id):
 @app.route("/api/lead/<int:lead_id>/update", methods=["POST"])
 def update_lead(lead_id):
     data = request.json or {}
-    allowed = {"status", "notes", "email", "generated_email", "phone"}
+    allowed = {"status", "notes", "email", "generated_email", "phone", "profile_id"}
     updates = {k: v for k, v in data.items() if k in allowed}
 
     if updates.get("status") == "emailed":

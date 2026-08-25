@@ -29,23 +29,6 @@ STYLE_RULES = """
 """
 
 
-SENDERS = {
-    "szymon": {
-        "name": "Szymon Laskowski",
-        "domain": "szymonlaskowski.pl",
-        "phone": "+48 731 531 571",
-        "bio": "ponad 3 lata komercyjnego doswiadczenia jako programista; realizacje: oficjalna strona urzedu miejskiego w Bielsku-Bialej, sklep internetowy Mateusza Sochy",
-    },
-    "nikodem": {
-        # ponytail: uzupelnij nazwisko, domene, telefon i bio Nikodema przed uzyciem
-        "name": "Nikodem",
-        "domain": "",
-        "phone": "",
-        "bio": "programista, robi strony dla lokalnych firm w regionie",
-    },
-}
-
-
 def _client():
     return anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
@@ -244,9 +227,18 @@ Potem pusta linia i pełna analiza."""
     return _parse_analysis(_text(message))
 
 
-def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: str | None = None, my_feedback: str | None = None, sender: str = "szymon") -> str:
+def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: str | None = None, my_feedback: str | None = None, profile: dict | None = None) -> str:
     client = _client()
-    snd = SENDERS.get(sender) or SENDERS["szymon"]
+    p = profile or {}
+    snd = {
+        "name":   p.get("name") or "Szymon Laskowski",
+        "domain": p.get("domain") or "",
+        "phone":  p.get("phone") or "",
+        "bio": "; ".join(x for x in (
+            p.get("experience"),
+            f"realizacje: {p['realizations']}" if p.get("realizations") else "",
+        ) if x) or "programista, robi strony dla lokalnych firm",
+    }
     sig = "\n".join(x for x in (snd["name"], snd["domain"], snd["phone"]) if x)
 
     business_name = lead.get("business_name", "")
