@@ -385,7 +385,7 @@ def screenshot_website(url: str) -> dict[str, bytes | None]:
                 mobile_page.goto(url, timeout=30000, wait_until="load")
                 mobile_page.wait_for_timeout(2000)
             _dismiss_cookie_banner(mobile_page)
-            results["mobile"] = mobile_page.screenshot(type="png")
+            results["mobile"] = mobile_page.screenshot(type="png", full_page=True)
 
             browser.close()
     except Exception as e:

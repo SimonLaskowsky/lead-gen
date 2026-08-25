@@ -34,22 +34,31 @@ def _text(message) -> str:
     return "".join(b.text for b in message.content if b.type == "text")
 
 
-def _crop_above_fold(png_bytes: bytes, fold_height: int = 900, max_width: int = 1100, quality: int = 85) -> bytes | None:
-    """Crop full-page screenshot to above-the-fold portion at high resolution."""
+def _slice_page(png_bytes: bytes, max_width: int = 1100, strip_height: int = 1000,
+                quality: int = 80, max_strips: int = 8) -> list[bytes]:
+    """Tnie pelny zrzut strony na pasy w pelnej rozdzielczosci.
+    API skaluje kazdy obraz do ok. 1.15 Mpx / 1568 px dluzszego boku, wiec jeden zrzut
+    calej dlugiej strony robi sie nieczytelna miniaturka. Pasy mieszcza sie w limicie
+    bez skalowania, model oglada strone sekcja po sekcji jak czlowiek przewijajacy na zywo."""
     try:
         from PIL import Image
-        img = Image.open(io.BytesIO(png_bytes))
-        if img.height <= fold_height:
-            return None  # already fits viewport, no separate crop needed
-        cropped = img.crop((0, 0, img.width, fold_height))
-        ratio = min(max_width / cropped.width, 1.0)
-        if ratio < 1.0:
-            cropped = cropped.resize((int(cropped.width * ratio), int(cropped.height * ratio)), Image.LANCZOS)
+    except ImportError:
+        return [png_bytes]  # Pillow brak: wysylamy surowy PNG, API i tak go przeskaluje
+    img = Image.open(io.BytesIO(png_bytes))
+    ratio = min(max_width / img.width, 1.0)
+    if ratio < 1.0:
+        img = img.resize((int(img.width * ratio), int(img.height * ratio)), Image.LANCZOS)
+    strips = []
+    for top in range(0, img.height, strip_height):
+        if len(strips) >= max_strips:
+            break
+        strip = img.crop((0, top, img.width, min(top + strip_height, img.height)))
+        if strip.height < 60 and strips:
+            break  # kilkupikselowy ogon nic nie wnosi
         buf = io.BytesIO()
-        cropped.convert("RGB").save(buf, format="JPEG", quality=quality, optimize=True)
-        return buf.getvalue()
-    except Exception:
-        return None
+        strip.convert("RGB").save(buf, format="JPEG", quality=quality, optimize=True)
+        strips.append(buf.getvalue())
+    return strips
 
 
 def _parse_analysis(raw: str) -> dict:
@@ -64,22 +73,6 @@ def _parse_analysis(raw: str) -> dict:
                 k, _, v = part.partition("=")
                 scores[k.strip()] = int(v.strip()) if v.strip().isdigit() else None
     return {"scores": scores, "analysis": analysis}
-
-
-def _compress(png_bytes: bytes, max_width: int = 1100, max_height: int = 2500, quality: int = 72) -> bytes:
-    """Resize + convert PNG to JPEG to reduce payload size. Falls back to raw PNG if Pillow missing."""
-    try:
-        from PIL import Image
-        img = Image.open(io.BytesIO(png_bytes))
-        # Scale down to fit within max_width × max_height, preserving aspect ratio
-        ratio = min(max_width / img.width, max_height / img.height, 1.0)
-        if ratio < 1.0:
-            img = img.resize((int(img.width * ratio), int(img.height * ratio)), Image.LANCZOS)
-        buf = io.BytesIO()
-        img.convert("RGB").save(buf, format="JPEG", quality=quality, optimize=True)
-        return buf.getvalue()
-    except ImportError:
-        return png_bytes  # Pillow not installed, send raw PNG
 
 
 def analyze_website_visually(lead: dict, screenshots: dict, website_data: dict | None = None) -> dict:
@@ -135,7 +128,8 @@ def analyze_website_visually(lead: dict, screenshots: dict, website_data: dict |
     has_screenshots = bool(desktop_bytes or mobile_bytes)
 
     visual_instruction = (
-        "Masz przed sobą zrzuty ekranu tej strony (desktop i mobile). Przeprowadź szczegółowy audyt wzrokowy i techniczny.\n"
+        "Masz przed sobą stronę pociętą na sekcje w pełnej rozdzielczości, od góry do dołu: najpierw DESKTOP, potem MOBILE. "
+        "Obejrzyj każdą sekcję uważnie, łącznie z drobnym tekstem, jakością grafik i typografią, tak jakbyś przewijał stronę na żywo.\n"
         "WAŻNE: Dane tekstowe poniżej mogą być niekompletne jeśli strona używa JavaScript do renderowania treści. "
         "Zrzuty ekranu są źródłem prawdy — jeśli na screenshocie widać treść której nie ma w danych tekstowych, ufaj screenshotowi."
         if has_screenshots else
@@ -144,9 +138,9 @@ def analyze_website_visually(lead: dict, screenshots: dict, website_data: dict |
     )
 
     mobile_section = (
-        "**3. Mobile (patrz na zrzut mobilny)**\nCzy strona działa na telefonie? Co się psuje — tekst, przyciski, układ?"
+        "**4. Doświadczenie mobilne (patrz na sekcje MOBILE)**\nCzy strona działa na telefonie? Co się psuje — tekst, przyciski, układ?"
         if has_screenshots else
-        f"**3. Mobile**\nBrak meta viewport: {'TAK — strona NIE jest responsywna' if website_data and not website_data.get('has_mobile_viewport') else 'jest responsywna'}. Oceń konsekwencje."
+        f"**4. Doświadczenie mobilne**\nBrak meta viewport: {'TAK — strona NIE jest responsywna' if website_data and not website_data.get('has_mobile_viewport') else 'jest responsywna'}. Oceń konsekwencje."
     )
 
     prompt = f"""Jesteś bezwzględnym, ale genialnym dyrektorem ds. konwersji i psychologii sprzedaży w internecie. Przeprowadzasz brutalnie szczery audyt strony polskiego lokalnego biznesu, aby znaleźć powody, przez które firma traci klientów na rzecz konkurencji.
@@ -171,18 +165,22 @@ Zastosuj poniższą strukturę:
 - Co widzi użytkownik zanim zacznie przewijać stronę? Czy w ciągu 3 sekund wie CZYM zajmuje się firma i w JAKIM mieście/rejonie działa?
 - Czy na pierwszym ekranie jest widoczny, bezpośredni i klikalny przycisk Call-To-Action (np. "Zadzwoń teraz", "Bezpłatna wycena")? Jeśli nie, opisz jak bardzo utrudnia to kontakt.
 
-**2. Krytyczne błędy techniczne i zaufanie (Trust Flags)**
+**2. Spójność wizualna i profesjonalizm wykonania**
+- Czy typografia, kolory i grafiki wyglądają jak jeden przemyślany projekt, czy jak sklejka kilku stylów?
+- Wyłap konkrety widoczne na sekcjach: nagłówki łamane w środku wyrazu, cliparty i naklejki obok eleganckich fontów, opinie wklejone jako zrzut ekranu zamiast widgetu, pikselowate lub stockowe grafiki, elementy gryzące się kolorami, emotikony w tekstach firmowych.
+- Werdykt: czy ta strona wygląda, jakby w ostatnich latach robił ją profesjonalista?
+
+**3. Krytyczne błędy techniczne i zaufanie (Trust Flags)**
 - Przeanalizuj wpływ braku SSL, błędów PageSpeed, braku nagłówka H1 lub martwego Google Analytics na biznes firmy.
 - Jak błędy techniczne wpływają na pozycję w Google (SEO) oraz na podświadome poczucie bezpieczeństwa klienta, który ma podać swoje dane lub zadzwonić?
 
-**3. Doświadczenie mobilne (Mobile UX)**
 {mobile_section}
 
-**4. Lista 3 najważniejszych zmian o najwyższym ROI**
+**5. Lista 3 najważniejszych zmian o najwyższym ROI**
 - Wypisz dokładnie 3 konkretne, techniczne zmiany na stronie, które natychmiast podniosą liczbę telefonów i zapytań od klientów.
 
 Pisz wyłącznie po polsku. Nie używaj emoji. Bądź precyzyjny.
-Cała analiza ma się zmieścić w 350 słowach: krótkie akapity i punkty, konkret zamiast opisu, bez powtarzania danych wejściowych.
+Cała analiza ma się zmieścić w 400 słowach: krótkie akapity i punkty, konkret zamiast opisu, bez powtarzania danych wejściowych.
 
 === FORMAT ODPOWIEDZI ===
 Zacznij odpowiedź od JEDNEJ linii z ocenami 1-10 (przed całą analizą):
@@ -190,32 +188,25 @@ SCORES: design=X mobile=X seo=X cta=X speed=X
 (speed=null jeśli brak danych PageSpeed; null dla dowolnej kategorii jeśli nie możesz ocenić)
 Potem pusta linia i pełna analiza."""
 
-    # Build message content
+    # Build message content: strona pocieta na pasy, kazdy pas to osobny obraz
     content = []
 
-    if desktop_bytes:
-        fold_crop = _crop_above_fold(desktop_bytes)
-        if fold_crop:
-            content.append({"type": "text", "text": "**Zrzut ekranu — DESKTOP above-the-fold (pierwsze wrażenie, wysoka rozdzielczość):**"})
+    def _add_strips(png, label, **kw):
+        strips = _slice_page(png, **kw)
+        for i, jpg in enumerate(strips, 1):
+            content.append({"type": "text", "text": f"**{label}, sekcja {i}/{len(strips)} (kolejno od góry strony):**"})
             content.append({
                 "type": "image",
                 "source": {"type": "base64", "media_type": "image/jpeg",
-                           "data": base64.standard_b64encode(fold_crop).decode("utf-8")},
+                           "data": base64.standard_b64encode(jpg).decode("utf-8")},
             })
-        content.append({"type": "text", "text": "**Zrzut ekranu — DESKTOP pełna strona (struktura i układ):**"})
-        content.append({
-            "type": "image",
-            "source": {"type": "base64", "media_type": "image/jpeg",
-                       "data": base64.standard_b64encode(_compress(desktop_bytes)).decode("utf-8")},
-        })
+        if len(strips) == kw.get("max_strips", 8):
+            content.append({"type": "text", "text": f"({label}: strona jest dłuższa, dolna część poza kadrem)"})
 
+    if desktop_bytes:
+        _add_strips(desktop_bytes, "DESKTOP")
     if mobile_bytes:
-        content.append({"type": "text", "text": "**Zrzut ekranu — MOBILE (390px):**"})
-        content.append({
-            "type": "image",
-            "source": {"type": "base64", "media_type": "image/jpeg",
-                       "data": base64.standard_b64encode(_compress(mobile_bytes, max_width=600)).decode("utf-8")},
-        })
+        _add_strips(mobile_bytes, "MOBILE 390px", max_width=600, strip_height=1500, max_strips=5)
 
     content.append({"type": "text", "text": prompt})
 
