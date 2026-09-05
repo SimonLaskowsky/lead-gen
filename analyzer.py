@@ -133,9 +133,11 @@ def first_impression(lead: dict, screenshots: dict) -> dict | None:
     oczami projektanta UI po trzech sekundach, z dowodami widocznymi na ekranie.
     Uniwersalne z zalozenia: nie szuka konkretnej listy usterek, tylko nazywa to,
     co psuje pierwsze wrazenie na TEJ stronie, i wskazuje, gdzie to widac."""
+    desktop = (screenshots or {}).get("desktop")
     views = [
-        ("DESKTOP 1280 px", (screenshots or {}).get("desktop"), 900, 650),
-        ("LAPTOP 1024 px", (screenshots or {}).get("laptop"), 800, 600),
+        ("DESKTOP 1280 px", desktop, 1280, 650),
+        ("DETAL: góra strony w pełnej rozdzielczości (logo, nagłówek, nawigacja)", desktop, 1280, 400),
+        ("LAPTOP 1024 px", (screenshots or {}).get("laptop"), 1024, 600),
         ("TELEFON 390 px", (screenshots or {}).get("mobile"), 390, 844),
     ]
     content = []
@@ -160,7 +162,7 @@ Firma: {lead.get('business_name', '')}
 Typ biznesu: {lead.get('business_type', '')}
 Rok: 2026
 
-Masz przed sobą pierwszy ekran tej samej strony w trzech szerokościach: desktop, laptop i telefon. Nie masz listy rzeczy do sprawdzenia. Patrzysz na całość i nazywasz to, co naprawdę buduje albo psuje pierwsze wrażenie NA TEJ STRONIE, cokolwiek to jest: krój i czytelność pisma, hierarchia, odstępy i wyrównanie, kontrast, jakość i dobór zdjęć, kolory, gęstość, zachowanie układu między szerokościami (ucinanie, nachodzenie, puste połacie), widoczność tego, po co gość przyszedł. Jeśli coś wygląda dobrze, powiedz to wprost, to też jest informacja.
+Masz przed sobą pierwszy ekran tej samej strony w trzech szerokościach: desktop, laptop i telefon, oraz osobny kadr górnej części strony w pełnej rozdzielczości, na którym widać kształt liter w logo, nagłówku i nawigacji tak, jak widzi je człowiek. Nie masz listy rzeczy do sprawdzenia. Patrzysz na całość i nazywasz to, co naprawdę buduje albo psuje pierwsze wrażenie NA TEJ STRONIE, cokolwiek to jest: krój i czytelność pisma, hierarchia, odstępy i wyrównanie, kontrast, jakość i dobór zdjęć, kolory, gęstość, zachowanie układu między szerokościami (ucinanie, nachodzenie, puste połacie), widoczność tego, po co gość przyszedł. Jeśli coś wygląda dobrze, powiedz to wprost, to też jest informacja.
 
 Format odpowiedzi, dokładnie taki:
 Pierwsza linia: IMPRESSION: score=X year=YYYY
@@ -341,6 +343,15 @@ Potem pusta linia i pełna analiza."""
     return _parse_analysis(_text(message))
 
 
+OPT_OUT_LINE = "Jeśli nie chce Pan/Pani takich wiadomości, wystarczy odpisać jedno słowo: nie. Więcej nie napiszę."
+
+
+def _with_opt_out(text: str) -> str:
+    """Linia o wypisaniu jest doklejana w kodzie, bo model potrafi ją 'poprawić' (np. samo Pan)."""
+    lines = [ln for ln in text.rstrip().split("\n") if "wystarczy odpisać" not in ln]
+    return "\n".join(lines).rstrip() + "\n\n" + OPT_OUT_LINE
+
+
 def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: str | None = None, my_feedback: str | None = None, profile: dict | None = None) -> str:
     client = _client()
     p = profile or {}
@@ -354,7 +365,6 @@ def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: st
         ) if x) or "programista, robi strony dla lokalnych firm",
     }
     sig = "\n".join(x for x in (snd["name"], snd["domain"], snd["phone"]) if x)
-    sig += "\n\nJeśli nie chce Pan/Pani takich wiadomości, wystarczy odpisać jedno słowo: nie. Więcej nie napiszę."
 
     business_name = lead.get("business_name", "")
     business_type = lead.get("business_type", "firma")
@@ -496,7 +506,7 @@ Zasady:
             messages=[{"role": "user", "content": prompt}],
         )
         _record(message, "mail")
-        return _text(message)
+        return _with_opt_out(_text(message))
 
     if not has_website:
         prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla {snd['name']}, programisty który oferuje zbudowanie strony lokalnej firmie.
@@ -667,7 +677,7 @@ Podpisz maila dokladnie tak:
     )
     _record(message, "mail")
 
-    return _text(message)
+    return _with_opt_out(_text(message))
 
 
 def generate_followup(lead: dict, followup_number: int = 1) -> str:
