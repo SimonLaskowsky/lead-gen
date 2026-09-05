@@ -145,12 +145,27 @@ def run_analysis(lead) -> dict:
         return {"analysis": analysis, "scores": {}, "website_data": website_data}
 
     screenshots = scraper.screenshot_website(lead["website_url"])
+    impression = None
     try:
-        result = analyzer.analyze_website_visually(lead, screenshots, website_data)
+        impression = analyzer.first_impression(lead, screenshots)
+    except Exception as error:
+        mark("ai", False, f"pierwsze wrażenie: {str(error)[:120]}")
+    try:
+        result = analyzer.analyze_website_visually(
+            lead, screenshots, website_data, impression=(impression or {}).get("text"))
         mark("ai", True, f"analiza: {lead['business_name']}")
     except Exception as error:
         mark("ai", False, str(error)[:140])
         raise
+    if impression and impression.get("text"):
+        result["analysis"] = (
+            "Pierwsze wrażenie po trzech sekundach (desktop, laptop, telefon):\n"
+            + impression["text"] + "\n\n" + result["analysis"]
+        )
+        scores = result.setdefault("scores", {})
+        for key in ("first_impression", "design_year"):
+            if impression.get(key) is not None:
+                scores[key] = impression[key]
     db.update_lead(
         lead["id"],
         ai_analysis=json.dumps(result),

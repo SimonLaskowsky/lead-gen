@@ -36,6 +36,7 @@ EMAIL_EFFORT = os.getenv("EMAIL_EFFORT", "medium")
 FOLLOWUP_MODEL = os.getenv("FOLLOWUP_MODEL", "claude-sonnet-5")
 DESKTOP_STRIPS = int(os.getenv("DESKTOP_STRIPS", "4"))
 MOBILE_STRIPS = int(os.getenv("MOBILE_STRIPS", "2"))
+LAPTOP_STRIPS = int(os.getenv("LAPTOP_STRIPS", "2"))
 
 on_usage = None
 
@@ -97,7 +98,93 @@ def _parse_analysis(raw: str) -> dict:
     return {"scores": scores, "analysis": analysis}
 
 
-def analyze_website_visually(lead: dict, screenshots: dict, website_data: dict | None = None) -> dict:
+def _above_fold(png_bytes: bytes, max_width: int, height: int, quality: int = 80) -> bytes | None:
+    """Sam pierwszy ekran: to, co widzi gosc zanim zacznie przewijac."""
+    try:
+        from PIL import Image
+    except ImportError:
+        return png_bytes
+    img = Image.open(io.BytesIO(png_bytes))
+    ratio = min(max_width / img.width, 1.0)
+    if ratio < 1.0:
+        img = img.resize((int(img.width * ratio), int(img.height * ratio)), Image.LANCZOS)
+    crop = img.crop((0, 0, img.width, min(height, img.height)))
+    buf = io.BytesIO()
+    crop.convert("RGB").save(buf, format="JPEG", quality=quality, optimize=True)
+    return buf.getvalue()
+
+
+def _parse_impression(raw: str) -> dict:
+    out = {"text": raw.strip(), "first_impression": None, "design_year": None}
+    if raw.startswith("IMPRESSION:"):
+        line, _, rest = raw.partition("\n")
+        out["text"] = rest.strip()
+        for part in line[len("IMPRESSION:"):].strip().split():
+            key, _, value = part.partition("=")
+            if key == "score" and value.isdigit():
+                out["first_impression"] = int(value)
+            elif key == "year" and value.isdigit():
+                out["design_year"] = value
+    return out
+
+
+def first_impression(lead: dict, screenshots: dict) -> dict | None:
+    """Osobne, tanie przejscie: trzy pierwsze ekrany (desktop, laptop, telefon) i ocena
+    oczami projektanta UI po trzech sekundach, z dowodami widocznymi na ekranie.
+    Uniwersalne z zalozenia: nie szuka konkretnej listy usterek, tylko nazywa to,
+    co psuje pierwsze wrazenie na TEJ stronie, i wskazuje, gdzie to widac."""
+    views = [
+        ("DESKTOP 1280 px", (screenshots or {}).get("desktop"), 900, 650),
+        ("LAPTOP 1024 px", (screenshots or {}).get("laptop"), 800, 600),
+        ("TELEFON 390 px", (screenshots or {}).get("mobile"), 390, 844),
+    ]
+    content = []
+    for label, png, width, height in views:
+        if not png:
+            continue
+        jpg = _above_fold(png, width, height)
+        if not jpg:
+            continue
+        content.append({"type": "text", "text": f"**Pierwszy ekran, {label}:**"})
+        content.append({
+            "type": "image",
+            "source": {"type": "base64", "media_type": "image/jpeg",
+                       "data": base64.standard_b64encode(jpg).decode("utf-8")},
+        })
+    if not content:
+        return None
+
+    prompt = f"""Jesteś doświadczonym projektantem UI/UX. Oceniasz stronę lokalnej firmy tak, jak robi to człowiek: najpierw w trzy sekundy czujesz, czy to wygląda dobrze, potem umiesz powiedzieć dlaczego.
+
+Firma: {lead.get('business_name', '')}
+Typ biznesu: {lead.get('business_type', '')}
+Rok: 2026
+
+Masz przed sobą pierwszy ekran tej samej strony w trzech szerokościach: desktop, laptop i telefon. Nie masz listy rzeczy do sprawdzenia. Patrzysz na całość i nazywasz to, co naprawdę buduje albo psuje pierwsze wrażenie NA TEJ STRONIE, cokolwiek to jest: krój i czytelność pisma, hierarchia, odstępy i wyrównanie, kontrast, jakość i dobór zdjęć, kolory, gęstość, zachowanie układu między szerokościami (ucinanie, nachodzenie, puste połacie), widoczność tego, po co gość przyszedł. Jeśli coś wygląda dobrze, powiedz to wprost, to też jest informacja.
+
+Format odpowiedzi, dokładnie taki:
+Pierwsza linia: IMPRESSION: score=X year=YYYY
+  score to ocena 1-10 na tle dobrych stron tej branży z 2026 roku, year to rok, w którym ta strona wygląda, jakby została zaprojektowana.
+Potem pusta linia i trzy krótkie akapity bez nagłówków:
+1. Jedno zdanie: co czuje gość po trzech sekundach (zaufanie, obojętność, wrażenie zaniedbania, konsternacja) i co za to odpowiada.
+2. Trzy najsilniejsze sygnały wizualne, od najważniejszego. Każdy w jednym-dwóch zdaniach: co widać, gdzie dokładnie na ekranie (np. menu po lewej, nagłówek sekcji, tło pod tekstem) i dlaczego to działa na odbiorcę. Tylko rzeczy, które właściciel sam zobaczy w dziesięć sekund po otwarciu własnej strony. Jeśli różne szerokości pokazują coś różnego, napisz na której.
+3. Jedno zdanie: co dobra strona tej branży w 2026 roku pokazuje na pierwszym ekranie, a czego tu brakuje.
+
+Zasady: po polsku, bez emoji, najwyżej 180 słów po pierwszej linii. Nie oceniaj klikalności elementów, tego zrzut nie pokazuje. Nie używaj słów "brzydka", "amatorska", "tandetna": nazwij konkret, nie werdykt."""
+    content.append({"type": "text", "text": prompt})
+    client = _client()
+    message = client.messages.create(
+        model=ANALYSIS_MODEL,
+        max_tokens=1500,
+        output_config={"effort": ANALYSIS_EFFORT},
+        messages=[{"role": "user", "content": content}],
+    )
+    _record(message, "analysis")
+    return _parse_impression(_text(message))
+
+
+def analyze_website_visually(lead: dict, screenshots: dict, website_data: dict | None = None,
+                             impression: str | None = None) -> dict:
     """Full audit: desktop + mobile screenshots + scraped text → Claude deep analysis.
     Returns {"scores": {"design":X,...}, "analysis": str}."""
     client = _client()
@@ -147,11 +234,17 @@ def analyze_website_visually(lead: dict, screenshots: dict, website_data: dict |
     tech_block = "\n".join(tech_facts)
 
     desktop_bytes = (screenshots or {}).get("desktop")
+    laptop_bytes  = (screenshots or {}).get("laptop")
     mobile_bytes  = (screenshots or {}).get("mobile")
-    has_screenshots = bool(desktop_bytes or mobile_bytes)
+    has_screenshots = bool(desktop_bytes or laptop_bytes or mobile_bytes)
+    impression_block = (
+        f"\n=== PIERWSZE WRAŻENIE (osobne przejście projektanta UI, trzy pierwsze ekrany) ===\n{impression}\n"
+        "Potraktuj to jako punkt wyjścia: rozwiń, potwierdź albo skoryguj na podstawie pełnych sekcji poniżej.\n"
+        if impression else ""
+    )
 
     visual_instruction = (
-        "Masz przed sobą stronę pociętą na sekcje w pełnej rozdzielczości, od góry do dołu: najpierw DESKTOP, potem MOBILE. "
+        "Masz przed sobą stronę pociętą na sekcje w pełnej rozdzielczości, od góry do dołu: najpierw DESKTOP, potem LAPTOP 1024 px, potem MOBILE. "
         "Obejrzyj każdą sekcję uważnie, łącznie z drobnym tekstem, jakością grafik i typografią, tak jakbyś przewijał stronę na żywo.\n"
         "WAŻNE: Dane tekstowe poniżej mogą być niekompletne jeśli strona używa JavaScript do renderowania treści. "
         "Zrzuty ekranu są źródłem prawdy — jeśli na screenshocie widać treść której nie ma w danych tekstowych, ufaj screenshotowi."
@@ -176,7 +269,7 @@ URL: {lead.get('website_url', '')}
 === WYNIKI AUTOMATYCZNYCH SPRAWDZEŃ ===
 {tech_block}
 {page_text}
-
+{impression_block}
 === TWOJE ZADANIE ===
 {visual_instruction}
 
@@ -189,10 +282,10 @@ Zastosuj poniższą strukturę:
 - Co widzi użytkownik zanim zacznie przewijać stronę? Czy w ciągu 3 sekund wie CZYM zajmuje się firma i w JAKIM mieście/rejonie działa?
 - Czy na pierwszym ekranie jest widoczny, bezpośredni i klikalny przycisk Call-To-Action (np. "Zadzwoń teraz", "Bezpłatna wycena")? Jeśli nie, opisz jak bardzo utrudnia to kontakt.
 
-**2. Spójność wizualna i profesjonalizm wykonania**
-- Czy typografia, kolory i grafiki wyglądają jak jeden przemyślany projekt, czy jak sklejka kilku stylów?
-- Wyłap konkrety widoczne na sekcjach: nagłówki łamane w środku wyrazu, cliparty i naklejki obok eleganckich fontów, opinie wklejone jako zrzut ekranu zamiast widgetu, pikselowate lub stockowe grafiki, elementy gryzące się kolorami, emotikony w tekstach firmowych.
-- Werdykt: czy ta strona wygląda, jakby w ostatnich latach robił ją profesjonalista?
+**2. Jakość wizualna oczami projektanta**
+- Nie odhaczaj listy. Patrz na całość i nazwij to, co na TEJ stronie najbardziej buduje albo psuje wrażenie, w dowolnej z tych warstw: pismo (krój, czytelność liter i polskich znaków, hierarchia nagłówków, wyjustowanie z rzekami), układ (wyrównanie, odstępy, gęstość, puste połacie, ucinanie lub nachodzenie elementów między szerokościami DESKTOP, LAPTOP i MOBILE), kolor i kontrast (tekst na zdjęciach, kolory gryzące się ze sobą), zdjęcia i grafiki (jakość, spójność, stock, odznaki wklejone jako obrazki), hierarchia (czy oko wie, gdzie patrzeć, czy widać, po co gość przyszedł).
+- Każde spostrzeżenie z dowodem: co widać i gdzie dokładnie na ekranie, tak żeby właściciel odnalazł to w dziesięć sekund. Jeśli coś jest zrobione dobrze, napisz to.
+- Werdykt: z którego roku ta strona wygląda i czy w 2026 roku wytrzymuje porównanie z dobrymi stronami tej branży.
 
 **3. Krytyczne błędy techniczne i zaufanie (Trust Flags)**
 - Przeanalizuj wpływ braku SSL, błędów PageSpeed, braku nagłówka H1 lub martwego Google Analytics na biznes firmy.
@@ -229,6 +322,8 @@ Potem pusta linia i pełna analiza."""
 
     if desktop_bytes:
         _add_strips(desktop_bytes, "DESKTOP", max_width=900, strip_height=1000, max_strips=DESKTOP_STRIPS)
+    if laptop_bytes:
+        _add_strips(laptop_bytes, "LAPTOP 1024px", max_width=800, strip_height=1000, max_strips=LAPTOP_STRIPS)
     if mobile_bytes:
         _add_strips(mobile_bytes, "MOBILE 390px", max_width=500, strip_height=1500, max_strips=MOBILE_STRIPS)
 
@@ -551,7 +646,7 @@ URL: {lead.get('website_url', '')}
 5. Sygnał głębi BEZ listy: po głównym problemie dodaj JEDNO zdanie, że przy przeglądzie wyszło jeszcze kilka mniejszych rzeczy (możesz nazwać najwyżej dwie, wplecione w naturalne zdanie, żadnych wypunktowań) i że pełną spisaną listę dołączymy do bezpłatnego podglądu. Wybieraj usterki REALNIE obecne w audycie, nie zmyślaj.
 6. Kim jestem: przedstaw nadawcę w jednym-dwóch zdaniach na bazie sekcji "Kim jest nadawca": imię i nazwisko, doświadczenie, jedna-dwie imienne realizacje. Zero ogólników typu "wiele firm mi zaufało". (dane kontaktowe są w podpisie, nie powtarzaj ich w treści).
 7. Wycena: to sa ULEPSZENIA istniejacej strony, a nie budowa nowej, wiec zakres i cena sa zawsze indywidualne. NIE podawaj ZADNEJ kwoty, ani widelek, ani stawek agencji, ani warunkow platnosci. Napisz tylko, ze wycene przygotowuje indywidualnie po obejrzeniu zakresu i ze dolacza ja do bezplatnego podgladu.
-8. Call to Action: Zaproponuj podrzucenie bezpłatnego, prostego podglądu (mockupu) ekranu głównego po optymalizacji. Zapytaj na końcu: "Czy mogę podesłać ten bezpłatny podgląd do rzucenia okiem?". To jest JEDYNA prośba w mailu, nie dodawaj innych pytań ani ofert.
+8. Call to Action: Zaproponuj, że przygotujesz bezpłatny podgląd (prostą makietę) strony głównej po poprawkach, i dopiero potem zapytaj: "Czy mogę podesłać taki bezpłatny podgląd do rzucenia okiem?". Słowo "podgląd" musi być wprowadzone zdanie wcześniej, zanim o nim zapytasz. To jest JEDYNA prośba w mailu, nie dodawaj innych pytań ani ofert.
 
 === ZASADY STYLU ===
 - Maksymalnie 120 słów razem z tematem. Dłuższego cold maila właściciel firmy nie doczyta do CTA. Jeśli musisz ciąć, tnij opis zespołu, nie główny problem.

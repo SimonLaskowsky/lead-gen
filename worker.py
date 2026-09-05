@@ -184,7 +184,7 @@ def step_discover():
         updates = {"found_count": found_count, "last_run_at": db.now_iso(), "last_error": ""}
         if found_count >= campaign["target_count"]:
             updates["active"] = 0
-        elif result["added"] == 0 and result["exhausted"]:
+        elif result["added"] == 0:
             updates["active"] = 0
             updates["last_error"] = "Google nie zwraca już nowych firm dla tego zapytania"
         db.update_campaign(campaign["id"], **updates)

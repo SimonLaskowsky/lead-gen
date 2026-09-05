@@ -45,7 +45,7 @@ def fake_find_contact_email(url, data):
     return "kontakt@" + scraper._domain_of(url) if url else ""
 
 
-def fake_analyze(lead, screenshots, website_data):
+def fake_analyze(lead, screenshots, website_data, impression=None):
     return {"scores": {"design": 4}, "analysis": "Strona do poprawy."}
 
 
@@ -69,6 +69,7 @@ scraper.scrape_website = fake_scrape_website
 scraper.find_contact_email = fake_find_contact_email
 scraper.screenshot_website = lambda url: {}
 analyzer.analyze_website_visually = fake_analyze
+analyzer.first_impression = lambda lead, screenshots: None
 analyzer.generate_email = fake_generate_email
 analyzer.generate_followup = fake_generate_followup
 mailer.send = fake_send

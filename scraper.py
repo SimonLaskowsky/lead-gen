@@ -84,6 +84,9 @@ def search_leads(business_type: str, city: str, max_results: int = 10, no_websit
                     place["place_id"],
                     fields=["name", "formatted_phone_number", "website", "formatted_address"],
                 )["result"]
+                if details.get("name") in known_names:
+                    skipped_known += 1
+                    continue
                 site = details.get("website", "")
                 # "bez strony" = brak URL albo tylko profil na platformie (Instagram, Booksy, FB...)
                 if no_website and site and not detect_outsourced_platform(site):
@@ -360,7 +363,7 @@ def _dismiss_cookie_banner(page) -> None:
 
 def screenshot_website(url: str) -> dict[str, bytes | None]:
     """Take desktop + mobile screenshots using Playwright. Returns dict with 'desktop' and 'mobile'."""
-    results = {"desktop": None, "mobile": None}
+    results = {"desktop": None, "laptop": None, "mobile": None}
     try:
         from playwright.sync_api import sync_playwright
 
@@ -388,6 +391,16 @@ def screenshot_website(url: str) -> dict[str, bytes | None]:
                 results["rendered_text"] = desktop_page.inner_text("body")[:5000]
             except Exception:
                 pass
+
+            # Laptop 1024 px: szerokosc, na ktorej szablony z lat 2012-2016 najczesciej lamia uklad
+            laptop_page = browser.new_page(viewport={"width": 1024, "height": 768})
+            try:
+                laptop_page.goto(url, timeout=30000, wait_until="networkidle")
+            except Exception:
+                laptop_page.goto(url, timeout=30000, wait_until="load")
+                laptop_page.wait_for_timeout(2000)
+            _dismiss_cookie_banner(laptop_page)
+            results["laptop"] = laptop_page.screenshot(type="png", full_page=True)
 
             # Mobile screenshot (iPhone 12 size)
             mobile_page = browser.new_page(viewport={"width": 390, "height": 844})
