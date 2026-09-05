@@ -33,15 +33,39 @@ def _record(message, purpose):
         on_usage(purpose, message.model, message.usage.input_tokens, message.usage.output_tokens)
 
 
-def _registered_domain(host):
-    parts = host.lower().strip(".").split(".")
-    return ".".join(parts[-2:]) if len(parts) >= 2 else host.lower()
+def _bare_host(host):
+    host = (host or "").lower().strip(".")
+    return host[4:] if host.startswith("www.") else host
+
+
+def _same_site(target_host, base_host):
+    target, base = _bare_host(target_host), _bare_host(base_host)
+    return bool(base) and (target == base or target.endswith("." + base))
+
+
+def _public_ip(host):
+    """Zwraca publiczny adres IP hosta albo None, gdy host jest adresem IP, nie rozwiazuje sie
+    albo wskazuje na siec prywatna, loopback, link-local."""
+    try:
+        ipaddress.ip_address(host)
+        return None
+    except ValueError:
+        pass
+    try:
+        resolved = [info[4][0] for info in socket.getaddrinfo(host, None)]
+    except socket.gaierror:
+        return None
+    for address in resolved:
+        ip = ipaddress.ip_address(address)
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast or ip.is_unspecified:
+            return None
+    return resolved[0] if resolved else None
 
 
 def _url_allowed(url, base_url):
-    """Agent oglada tylko strone audytowanej firmy. Adresy spoza jej domeny, IP zamiast nazwy
-    i hosty rozwiazujace sie na adresy prywatne sa odrzucane, zeby strona nie mogla
-    naprowadzic modelu na siec wewnetrzna serwera."""
+    """Agent oglada tylko strone audytowanej firmy: ten sam host (bez www) albo jego poddomena,
+    http lub https, nazwa zamiast IP, rozwiazywana na adres publiczny. Chroni przed
+    naprowadzeniem modelu przez cudza strone na siec wewnetrzna serwera."""
     try:
         target = urlparse(url)
         base = urlparse(base_url)
@@ -49,22 +73,9 @@ def _url_allowed(url, base_url):
         return False
     if target.scheme not in ("http", "https") or not target.hostname or not base.hostname:
         return False
-    if _registered_domain(target.hostname) != _registered_domain(base.hostname):
+    if not _same_site(target.hostname, base.hostname):
         return False
-    try:
-        ipaddress.ip_address(target.hostname)
-        return False
-    except ValueError:
-        pass
-    try:
-        resolved = {info[4][0] for info in socket.getaddrinfo(target.hostname, None)}
-    except socket.gaierror:
-        return False
-    for address in resolved:
-        ip = ipaddress.ip_address(address)
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
-            return False
-    return bool(resolved)
+    return _public_ip(target.hostname) is not None
 
 
 def _absolute(base_url, href):
@@ -80,6 +91,21 @@ def _absolute(base_url, href):
     return folder.rstrip("/") + "/" + href
 
 
+def _fetch_within_site(url, hops=5):
+    """Pobiera strone bez automatycznych przekierowan: kazdy kolejny adres przechodzi te same
+    sprawdzenia co adres wpisany przez model."""
+    current = url
+    for _ in range(hops):
+        if not _url_allowed(current, url):
+            raise ValueError("przekierowanie poza domenę firmy")
+        response = requests.get(current, timeout=20, headers={"User-Agent": "Mozilla/5.0"}, allow_redirects=False)
+        if response.status_code in (301, 302, 303, 307, 308) and response.headers.get("Location"):
+            current = _absolute(current, response.headers["Location"])
+            continue
+        return response
+    raise ValueError("za dużo przekierowań")
+
+
 def _page_facts(url):
     """Fakty ze strony w postaci krotkiego tekstu dla modelu: to, co czlowiek sprawdzilby w kodzie."""
     data = scraper.scrape_website(url) or {}
@@ -88,7 +114,7 @@ def _page_facts(url):
     if data.get("error"):
         return f"Nie udalo sie otworzyc strony: {data['error']}", data, []
     try:
-        response = requests.get(url, timeout=20, headers={"User-Agent": "Mozilla/5.0"})
+        response = _fetch_within_site(url)
         soup = BeautifulSoup(response.text, "html.parser")
         page_html = response.text
     except Exception as error:
@@ -151,8 +177,13 @@ def _jpeg(png_bytes, max_width, max_height=None, quality=75):
 def _screenshot(url, width, whole_page):
     from playwright.sync_api import sync_playwright
     height = 844 if width <= 500 else (768 if width <= 1024 else 800)
+    host = urlparse(url).hostname or ""
+    pinned_ip = _public_ip(host)
+    if not pinned_ip:
+        raise ValueError("host nie rozwiązuje się na adres publiczny")
+    resolver_rules = f"MAP {host} {pinned_ip}"
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(headless=True, args=[f"--host-resolver-rules={resolver_rules}"])
         page = browser.new_page(viewport={"width": width, "height": height})
         try:
             page.goto(url, timeout=30000, wait_until="networkidle")
