@@ -1153,7 +1153,7 @@ function renderTable(leads) {
           <button class="btn-email" title="Generuj email" onclick="openEmailModal(${lead.id})"><i class="bi bi-envelope"></i></button>
           ${lead.phone ? `<button class="btn-sms" title="Wyślij SMS" onclick="smsLead(${lead.id})"><i class="bi bi-chat-dots"></i></button>` : ''}
           <div class="dropdown">
-            <button class="btn-more dropdown-toggle" data-bs-toggle="dropdown" title="Więcej"><i class="bi bi-three-dots"></i></button>
+            <button class="btn-more dropdown-toggle" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' title="Więcej"><i class="bi bi-three-dots"></i></button>
             <ul class="dropdown-menu dropdown-menu-end">
               <li><a class="dropdown-item" href="javascript:void(0)" onclick="setStatus(${lead.id},'emailed')">Wysłano email</a></li>
               <li><a class="dropdown-item" href="javascript:void(0)" onclick="setStatus(${lead.id},'replied')">Odpowiedział</a></li>
