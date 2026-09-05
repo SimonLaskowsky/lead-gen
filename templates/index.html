@@ -291,6 +291,7 @@
     }
     .btn-ai:hover, .btn-email:hover, .btn-sms:hover, .btn-more:hover { background: var(--green); border-color: var(--green); color: var(--green-ink); }
     .btn-ai.done { color: var(--green); border-color: var(--line-3); }
+    .btn-email.done { color: var(--green); border-color: var(--line-3); }
     .btn-ai.platform { color: var(--amber); border-color: var(--line-3); }
     .btn-more::after { display: none; }
     .dropdown-menu {
@@ -865,7 +866,7 @@
         <span id="cachedBadge" style="display:none;align-items:center;gap:5px;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--fg-3);padding:4px 8px;border:1px solid var(--line-2)">
           Z pamięci podręcznej
         </span>
-        <button id="regenBtn" class="btn btn-ghost btn-sm" style="display:none" onclick="runAnalysis(currentLeadId)">
+        <button id="regenBtn" class="btn btn-ghost btn-sm" style="display:none" onclick="if (confirmSpend('Ponowna analiza nadpisze obecny raport.', COSTS.analysis)) runAnalysis(currentLeadId)">
           <i class="bi bi-arrow-clockwise me-1"></i> Regeneruj
         </button>
 <button class="btn btn-ghost btn-sm" onclick="exportAnalysisPdf()" title="Wersja do druku / zapisu jako PDF, do wysłania klientowi">
@@ -1125,8 +1126,14 @@ function renderTable(leads) {
     const aiClass = hasAnalysis ? 'btn-ai done' : (outsourcedPlatform ? 'btn-ai platform' : 'btn-ai');
     const aiIcon  = hasAnalysis ? 'check2' : (outsourcedPlatform ? 'lightning-charge' : 'cpu');
     const aiTitle = hasAnalysis
-      ? (outsourcedPlatform ? `Pitch gotowy (${outsourcedPlatform}), kliknij by otworzyć` : 'Analiza gotowa, kliknij by otworzyć')
-      : (outsourcedPlatform ? `Generuj pitch sprzedażowy (${outsourcedPlatform})` : 'Uruchom analizę AI');
+      ? (outsourcedPlatform ? `Pitch gotowy (${outsourcedPlatform}), kliknij by otworzyć` : 'Raport gotowy, kliknij by otworzyć')
+      : (outsourcedPlatform ? `Generuj pitch sprzedażowy (${outsourcedPlatform}), ${costLabel(COSTS.analysis)}` : `Brak raportu. Kliknięcie uruchomi analizę, ${costLabel(COSTS.analysis)}`);
+    const hasEmail   = !!(lead.generated_email && lead.generated_email.length > 10);
+    const emailClass = hasEmail ? 'btn-email done' : 'btn-email';
+    const emailIcon  = hasEmail ? 'envelope-check' : 'envelope';
+    const emailTitle = hasEmail
+      ? 'Mail gotowy, kliknij by otworzyć'
+      : `Brak maila. Kliknięcie wygeneruje mail, ${costLabel(COSTS.email)}${hasAnalysis ? '' : ' (bez raportu mail będzie ogólny)'}`;
     const aiBtn = lead.website_url
       ? `<button class="${aiClass}" title="${aiTitle}" onclick="openAnalyzeModal(${lead.id})"><i class="bi bi-${aiIcon}"></i></button>`
       : '';
@@ -1150,7 +1157,7 @@ function renderTable(leads) {
       <td>
         <div class="action-row">
           ${aiBtn}
-          <button class="btn-email" title="Generuj email" onclick="openEmailModal(${lead.id})"><i class="bi bi-envelope"></i></button>
+          <button class="${emailClass}" title="${emailTitle}" onclick="openEmailModal(${lead.id})"><i class="bi bi-${emailIcon}"></i></button>
           ${lead.phone ? `<button class="btn-sms" title="Wyślij SMS" onclick="smsLead(${lead.id})"><i class="bi bi-chat-dots"></i></button>` : ''}
           <div class="dropdown">
             <button class="btn-more dropdown-toggle" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' title="Więcej"><i class="bi bi-three-dots"></i></button>
@@ -1257,6 +1264,12 @@ function regenerateEmail() {
 let followupMode = false;
 
 async function openEmailModal(leadId, myFeedback = '', forceRegen = false) {
+  const known = leadsById[leadId] || {};
+  const hasMail = !!(known.generated_email && known.generated_email.length > 10);
+  const hasReport = !!(known.ai_analysis && known.ai_analysis.length > 10);
+  if ((myFeedback || forceRegen || !hasMail)
+      && !confirmSpend(hasMail ? 'Mail zostanie napisany od nowa.' : `Ten lead nie ma jeszcze maila: ${known.business_name || ''}.`,
+                       COSTS.email, hasReport ? '' : 'Uwaga: nie ma raportu, więc mail będzie ogólny. Lepiej najpierw uruchomić analizę.')) return;
   currentLeadId = leadId;
   followupMode = false;
   document.getElementById('emailForBusiness').textContent = (leadsById[leadId] || {}).business_name || '';
@@ -1519,7 +1532,9 @@ async function setLeadAutopilot(leadId, enabled) {
 }
 
 async function adoptExistingLeads() {
-  if (!confirm('Oddać autopilotowi wszystkie nowe leady z adresem e-mail? Każdy dostanie analizę i mail w kolejce (koszt API).')) return;
+  const candidates = Object.values(leadsById).filter(l => l.status === 'new' && l.email && !l.autopilot).length;
+  const perLead = COSTS.analysis + COSTS.email;
+  if (!confirm(`Oddać autopilotowi ${candidates} nowych leadów z adresem e-mail? Każdy dostanie raport i mail w kolejce.\n\nŁącznie ${costLabel(perLead * candidates)} (${costLabel(perLead)} na leada).\n\nUruchomić?`)) return;
   const data = await (await fetch('/api/autopilot/adopt', { method:'POST' })).json();
   showToast(`Oddano ${data.adopted} leadów`, 'success');
   loadLeads();
@@ -1716,8 +1731,11 @@ async function testMailbox(id) {
 
 // ── Analyze modal ──
 async function openAnalyzeModal(leadId) {
+  const known = leadsById[leadId] || {};
+  const hasReport = !!(known.ai_analysis && known.ai_analysis.length > 10);
+  if (!hasReport && !confirmSpend(`Ten lead nie ma jeszcze raportu: ${known.business_name || ''}.`, COSTS.analysis)) return;
   currentLeadId = leadId;
-  document.getElementById('analyzeForBusiness').textContent = (leadsById[leadId] || {}).business_name || '';
+  document.getElementById('analyzeForBusiness').textContent = known.business_name || '';
   document.getElementById('analyzeLoadingState').classList.remove('d-none');
   document.getElementById('analyzeContent').classList.add('d-none');
   document.getElementById('analyzeError').classList.add('d-none');
@@ -1926,8 +1944,20 @@ async function deleteLead(leadId) {
 }
 
 // ── Stats ──
+let COSTS = { analysis: 0.13, email: 0.04, usd_pln: 3.7 };
+
+function costLabel(usd) {
+  const pln = usd * COSTS.usd_pln;
+  return `koszt ok. ${usd.toFixed(2)} USD (${pln.toFixed(2).replace('.', ',')} zł)`;
+}
+
+function confirmSpend(what, usd, extra = '') {
+  return confirm(`${what}\n\nTo wywoła modele AI, ${costLabel(usd)}.${extra ? '\n' + extra : ''}\n\nUruchomić?`);
+}
+
 async function refreshStats() {
   const s = await (await fetch('/api/stats')).json();
+  if (s.costs) COSTS = s.costs;
   document.getElementById('count-total').textContent     = s.total;
   document.getElementById('count-new').textContent       = s.new;
   document.getElementById('count-emailed').textContent   = s.emailed;

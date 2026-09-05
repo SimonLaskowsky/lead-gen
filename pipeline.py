@@ -18,6 +18,12 @@ MODEL_PRICES_PER_MILLION_TOKENS = {
 }
 FALLBACK_PRICE = (5.0, 25.0)
 
+COST_ESTIMATES_USD = {
+    "analysis": float(os.getenv("COST_ANALYSIS_USD", "0.13")),
+    "email": float(os.getenv("COST_EMAIL_USD", "0.04")),
+    "usd_pln": float(os.getenv("USD_PLN", "3.7")),
+}
+
 
 def record_usage(purpose, model, input_tokens, output_tokens):
     db.add_usage(purpose, model, input_tokens, output_tokens)

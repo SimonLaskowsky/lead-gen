@@ -57,7 +57,9 @@ def get_leads():
 
 @app.route("/api/stats")
 def get_stats():
-    return jsonify(db.get_stats())
+    stats = db.get_stats()
+    stats["costs"] = pipeline.COST_ESTIMATES_USD
+    return jsonify(stats)
 
 
 def _service_status(service, env_key):
