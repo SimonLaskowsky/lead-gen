@@ -3,45 +3,55 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lead Gen</title>
+  <title>leadgen :: konsola</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23050705'/%3E%3Crect x='3' y='3' width='6' height='10' fill='%2358d67c'/%3E%3C/svg%3E" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
-    /* ═══════════════════════════════════════════════════════════
-       LIFEINVADER SECURE TERMINAL — zielony fosfor, CRT, GTA-style
-    ═══════════════════════════════════════════════════════════ */
     *, *::before, *::after { box-sizing: border-box; }
 
     :root {
-      --bg: #000603;
-      --panel: rgba(0, 22, 11, 0.72);
-      --panel-solid: #01120a;
-      --green: #33ff88;
-      --green-dim: #0f8f4f;
-      --green-deep: #063b21;
-      --text: #a9ffcd;
-      --muted: #3f9d6c;
-      --red: #ff3b30;
-      --yellow: #ffe14d;
-      --cyan: #35d6ff;
-      --violet: #b98bff;
-      --mono: 'JetBrains Mono', ui-monospace, 'Courier New', monospace;
-      /* aliasy dla starych inline-style'ów */
-      --surface: var(--panel);
-      --border: var(--green-dim);
+      --bg: #050705;
+      --bg-1: #090c09;
+      --bg-2: #0e120f;
+      --bg-3: #151b16;
+      --line: #1b231d;
+      --line-2: #28332b;
+      --line-3: #3b4b40;
+      --fg: #c9d4cb;
+      --fg-2: #8b9b8f;
+      --fg-3: #566459;
+      --green: #58d67c;
+      --green-2: #9af2b3;
+      --green-ink: #06110a;
+      --amber: #d9ad4b;
+      --red: #dc5b5b;
+      --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+      --mono-blocks: Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', 'Courier New', monospace;
+      --panel: var(--bg-1);
+      --panel-solid: var(--bg-1);
+      --green-dim: var(--line-3);
+      --green-deep: var(--line-2);
+      --text: var(--fg);
+      --muted: var(--fg-2);
+      --yellow: var(--amber);
+      --cyan: var(--fg);
+      --violet: var(--green-2);
+      --surface: var(--bg-1);
+      --border: var(--line-2);
       --primary: var(--green);
-      --primary-dark: #7dffb5;
-      --primary-soft: rgba(51,255,136,0.12);
+      --primary-dark: var(--green-2);
+      --primary-soft: rgba(88,214,124,0.10);
       --success: var(--green);
-      --success-soft: rgba(51,255,136,0.12);
-      --warning: var(--yellow);
-      --warning-soft: rgba(255,225,77,0.12);
+      --success-soft: rgba(88,214,124,0.10);
+      --warning: var(--amber);
+      --warning-soft: rgba(217,173,75,0.12);
       --danger: var(--red);
-      --danger-soft: rgba(255,59,48,0.12);
-      --purple: var(--violet);
-      --purple-soft: rgba(185,139,255,0.12);
-      --gray-soft: rgba(63,157,108,0.12);
+      --danger-soft: rgba(220,91,91,0.12);
+      --purple: var(--green-2);
+      --purple-soft: rgba(154,242,179,0.10);
+      --gray-soft: rgba(139,155,143,0.10);
       --radius: 0px;
       --radius-sm: 0px;
     }
@@ -49,437 +59,429 @@
     html, body { min-height: 100%; }
     body {
       margin: 0;
-      background:
-        radial-gradient(1200px 700px at 50% -10%, rgba(51,255,136,0.09), transparent 65%),
-        radial-gradient(circle, rgba(51,255,136,0.05) 1px, transparent 1px) 0 0 / 22px 22px,
-        var(--bg);
-      background-attachment: fixed;
-      color: var(--text);
+      background: var(--bg);
+      color: var(--fg);
       font-family: var(--mono);
-      font-size: 13px;
+      font-size: 12.5px;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
+      font-variant-numeric: tabular-nums;
+    }
+    ::selection { background: var(--green); color: var(--green-ink); }
+
+    .crt {
+      position: fixed; inset: 0; pointer-events: none; z-index: 90;
+      background: repeating-linear-gradient(0deg, rgba(0,0,0,0.22) 0 1px, transparent 1px 3px);
+      opacity: 0.45;
+    }
+    .crt::after {
+      content: ''; position: absolute; inset: 0; opacity: 0.07;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+    .crt::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at center, transparent 70%, rgba(0,0,0,0.55) 100%);
     }
 
-    /* ── CRT: skanline, winieta, flicker ── */
-    .crt-scan, .crt-vignette {
-      position: fixed; inset: 0; pointer-events: none; z-index: 60;
-    }
-    .crt-scan {
-      background: repeating-linear-gradient(rgba(0,0,0,0.36) 0 1px, transparent 1px 3px);
-      opacity: 0.55;
-      animation: flicker 4s steps(2) infinite;
-    }
-    .crt-vignette {
-      background: radial-gradient(ellipse at center, transparent 52%, rgba(0,0,0,0.85) 100%);
-    }
-    @keyframes flicker { 0%,96%,100% { opacity: 0.55; } 97% { opacity: 0.4; } 98% { opacity: 0.62; } }
+    .term { position: relative; z-index: 1; max-width: 1680px; margin: 0 auto; padding: 0 14px 14px; }
+    .term-grid { display: grid; grid-template-columns: 252px minmax(0, 1fr); gap: 10px; align-items: start; }
+    .term-main { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 
-    /* ── Deszcz kasy ── */
-    .money { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
-    .money span {
-      position: absolute; top: -12vh;
-      font-family: var(--mono); font-weight: 700; color: var(--green);
-      text-shadow: 0 0 12px var(--green);
-      animation: fall linear infinite;
+    .topbar {
+      display: flex; align-items: center; gap: 14px;
+      margin: 0 -14px 12px; padding: 4px 14px;
+      background: var(--bg-2); border-bottom: 1px solid var(--line-2);
+      font-size: 10.5px; letter-spacing: 0.06em; color: var(--fg-2);
     }
-    @keyframes fall { to { transform: translateY(125vh); } }
-    @media (prefers-reduced-motion: reduce) { .money, .crt-scan { animation: none; } .money { display: none; } }
+    .topbar .tb-app { color: var(--green-ink); background: var(--green); font-weight: 800; padding: 0 7px; letter-spacing: 0.14em; text-transform: uppercase; }
+    .topbar .tb-sep { color: var(--line-3); font-family: var(--mono-blocks); }
+    .topbar .tb-right { margin-left: auto; display: flex; gap: 14px; }
+    .topbar b { color: var(--fg); font-weight: 600; }
 
-    /* ── Okna terminala ── */
-    .win {
-      position: relative;
-      background: var(--panel);
-      border: 1px solid var(--green-dim);
-      box-shadow: 0 0 0 1px rgba(51,255,136,0.06), 0 0 28px rgba(51,255,136,0.07), inset 0 0 60px rgba(51,255,136,0.03);
-      backdrop-filter: blur(2px);
+    .term-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 12px; }
+    .wordmark {
+      margin: 0; color: var(--green); font-family: var(--mono-blocks);
+      font-size: 10px; line-height: 1; letter-spacing: 0; font-weight: 400;
+      user-select: none;
     }
+    .head-sub { font-size: 10.5px; letter-spacing: 0.18em; color: var(--fg-3); text-transform: uppercase; margin-top: 8px; }
+    .head-sub b { color: var(--fg-2); font-weight: 600; }
+    .sys {
+      display: grid; grid-template-columns: auto auto; column-gap: 18px; row-gap: 2px;
+      margin: 0; font-size: 11px; align-self: flex-end;
+    }
+    .sys dt { color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.16em; font-size: 9.5px; font-weight: 600; align-self: baseline; }
+    .sys dd { margin: 0; text-align: right; color: var(--fg); font-weight: 700; font-size: 12px; }
+    .sys dd.big { font-size: 20px; line-height: 1.1; color: var(--green); }
+    .sys dd.warn { color: var(--amber); }
+
+    .win { position: relative; background: var(--bg-1); border: 1px solid var(--line-2); }
     .win-bar {
-      display: flex; align-items: center; gap: 10px;
-      background: #1fd472; color: #00160a;
-      font-size: 10.5px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
-      padding: 4px 10px;
+      display: flex; align-items: center; gap: 8px;
+      background: var(--bg-2); border-bottom: 1px solid var(--line-2);
+      padding: 5px 10px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg-2);
     }
+    .win-bar .wb-idx { color: var(--green); font-weight: 800; }
+    .win-bar .wb-idx::before { content: '['; color: var(--fg-3); }
+    .win-bar .wb-idx::after { content: ']'; color: var(--fg-3); }
     .win-bar .spacer { flex: 1; }
-    .win-bar .chips { letter-spacing: 0.28em; opacity: 0.7; }
-    .win-body { padding: 12px; }
+    .win-bar .wb-meta { color: var(--fg-3); letter-spacing: 0.08em; text-transform: none; font-weight: 500; }
+    .win-body { padding: 10px; }
 
-    /* ── Ekran ── */
-    .term { position: relative; z-index: 1; max-width: 1640px; margin: 0 auto; padding: 14px; }
-    .term-grid { display: grid; grid-template-columns: 244px minmax(0, 1fr); gap: 12px; align-items: start; }
-    .term-main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-
-    /* ── Nagłówek ── */
-    .term-head { margin-bottom: 12px; }
-    .head-body {
-      display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
-      padding: 12px 14px;
-    }
-    .head-id { display: flex; align-items: center; gap: 12px; }
-    .logo-box {
-      border: 1px solid var(--green); color: var(--green);
-      padding: 6px 9px; font-weight: 700; font-size: 17px; letter-spacing: 0.1em;
-      text-shadow: 0 0 12px var(--green); box-shadow: 0 0 18px rgba(51,255,136,0.25) inset;
-    }
-    .head-title { font-size: 17px; font-weight: 700; letter-spacing: 0.16em; color: var(--green); text-shadow: 0 0 14px rgba(51,255,136,0.5); text-transform: uppercase; }
-    .head-sub { font-size: 10px; letter-spacing: 0.2em; color: var(--muted); text-transform: uppercase; margin-top: 3px; }
-    .head-readouts { display: flex; gap: 22px; flex-wrap: wrap; }
-    .readout { text-align: right; }
-    .readout-label { display: block; font-size: 9.5px; letter-spacing: 0.2em; color: var(--muted); text-transform: uppercase; }
-    .readout-val { font-size: 21px; font-weight: 700; color: var(--green); text-shadow: 0 0 14px rgba(51,255,136,0.45); font-variant-numeric: tabular-nums; }
-    .readout-val.warn { color: var(--yellow); text-shadow: 0 0 14px rgba(255,225,77,0.4); }
-
-    /* ── Panel boczny ── */
-    .rail-section + .rail-section { margin-top: 12px; }
+    .rail-section + .rail-section { margin-top: 10px; }
+    .rail-nav { display: flex; flex-direction: column; gap: 1px; }
     .stat-card {
-      display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 8px;
+      display: grid; grid-template-columns: 10px 1fr auto; align-items: center; gap: 8px;
       width: 100%; text-align: left; cursor: pointer;
-      background: transparent; border: 0; color: var(--muted);
-      font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
-      padding: 6px 8px;
+      background: transparent; border: 0; border-left: 2px solid transparent; color: var(--fg-2);
+      font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 5px 8px 5px 6px;
+      transition: background 0.1s linear, color 0.1s linear;
     }
-    .stat-card::before { content: '>'; opacity: 0; color: var(--green); }
-    .stat-card:hover { color: var(--text); background: rgba(51,255,136,0.06); }
-    .stat-card:hover::before { opacity: 0.6; }
-    .stat-card.active { background: var(--green); color: #001a0c; font-weight: 700; }
-    .stat-card.active::before { opacity: 1; color: #001a0c; }
+    .stat-card::before { content: '>'; opacity: 0; color: var(--green); font-weight: 800; }
+    .stat-card:hover { color: var(--fg); background: var(--bg-2); }
+    .stat-card:hover::before { opacity: 0.7; }
+    .stat-card.active { background: var(--green); border-left-color: var(--green-2); color: var(--green-ink); font-weight: 800; }
+    .stat-card.active::before { opacity: 1; color: var(--green-ink); }
     .stat-label { grid-column: 2; }
-    .stat-number { font-variant-numeric: tabular-nums; font-weight: 700; }
-    .stat-card.active .stat-number { color: #001a0c; }
+    .stat-number { font-weight: 700; }
+    .stat-card.active .stat-number { color: var(--green-ink); }
 
-    .rail-actions { display: flex; flex-direction: column; gap: 6px; }
+    .rail-actions { display: flex; flex-direction: column; gap: 5px; }
     .btn-op {
-      display: block; width: 100%; cursor: pointer;
-      font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
-      padding: 9px 10px; text-align: center;
-      background: transparent; border: 1px solid var(--green-dim); color: var(--green);
-      transition: background 0.12s linear, color 0.12s linear;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; cursor: pointer;
+      font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 8px 10px; text-align: left;
+      background: var(--bg-2); border: 1px solid var(--line-3); color: var(--fg);
+      transition: background 0.1s linear, color 0.1s linear, border-color 0.1s linear, transform 0.05s linear;
     }
-    .btn-op:hover { background: var(--green); color: #001a0c; box-shadow: 0 0 22px rgba(51,255,136,0.35); }
-    .btn-op-danger { border-color: var(--red); color: var(--red); }
-    .btn-op-danger:hover { background: var(--red); color: #100000; box-shadow: 0 0 22px rgba(255,59,48,0.4); }
+    .btn-op::after { content: attr(data-key); color: var(--fg-3); font-weight: 500; font-size: 10px; letter-spacing: 0.1em; }
+    .btn-op:hover { background: var(--green); border-color: var(--green); color: var(--green-ink); }
+    .btn-op:hover::after { color: var(--green-ink); opacity: 0.7; }
+    .btn-op:active { transform: translateY(1px); }
+    .btn-op-danger { color: var(--red); border-color: var(--red); }
+    .btn-op-danger:hover { background: var(--red); border-color: var(--red); color: #140404; }
+    .btn-op.is-on { border-color: var(--green); color: var(--green); }
 
-    .rail-log { font-size: 10px; color: var(--muted); letter-spacing: 0.06em; line-height: 1.9; word-break: break-word; }
-    .rail-log b { color: var(--green); font-weight: 500; }
+    .rail-log { font-size: 10.5px; color: var(--fg-2); letter-spacing: 0.02em; line-height: 1.75; word-break: break-word; }
+    .rail-log b { color: var(--fg); font-weight: 600; }
     .rail-log .st-ok    { color: var(--green); }
     .rail-log .st-error { color: var(--red); }
-    .rail-log .st-no_key{ color: var(--yellow); }
-    .rail-log .st-idle  { color: var(--muted); }
-    .rail-log .det { display: block; padding-left: 12px; opacity: 0.75; font-size: 9.5px; }
+    .rail-log .st-no_key{ color: var(--amber); }
+    .rail-log .st-idle  { color: var(--fg-2); }
+    .rail-log .det { display: block; padding-left: 14px; color: var(--fg-3); font-size: 10px; }
     .bar-btn {
-      background: transparent; border: 1px solid #00160a; color: #00160a; cursor: pointer;
-      font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 0.18em;
-      text-transform: uppercase; padding: 0 6px; line-height: 15px;
+      background: transparent; border: 1px solid var(--line-3); color: var(--fg-2); cursor: pointer;
+      font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 0.16em;
+      text-transform: uppercase; padding: 0 7px; line-height: 15px;
     }
-    .bar-btn:hover { background: #00160a; color: #1fd472; }
+    .bar-btn:hover { background: var(--green); border-color: var(--green); color: var(--green-ink); }
 
-    /* ── Pasek narzędzi / filtry ── */
-    .filter-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 12px; }
-    .prompt { color: var(--green); font-weight: 700; }
+    .filter-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; }
+    .prompt { color: var(--green); font-weight: 800; }
     .form-control, .form-select {
-      background: #000a05; border: 1px solid var(--green-deep); color: var(--text);
-      font-family: var(--mono); font-size: 12px; border-radius: 0; padding: 7px 10px;
+      background: var(--bg); border: 1px solid var(--line-2); color: var(--fg);
+      font-family: var(--mono); font-size: 12px; border-radius: 0; padding: 6px 10px;
+      transition: border-color 0.1s linear;
     }
-    .form-control::placeholder { color: #2c6a4b; }
+    .form-control::placeholder { color: var(--fg-3); }
     .form-control:focus, .form-select:focus {
-      background: #000a05; color: var(--text); border-color: var(--green);
-      box-shadow: 0 0 0 1px var(--green), 0 0 18px rgba(51,255,136,0.25); outline: none;
+      background: var(--bg); color: var(--fg); border-color: var(--green); box-shadow: none; outline: none;
     }
-    .form-select option { background: #01120a; color: var(--text); }
-    .form-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--green); margin-bottom: 5px; }
-    .form-check-input { background-color: #000a05; border: 1px solid var(--green-dim); border-radius: 0; }
+    .form-select { background-image: none; }
+    .form-select option { background: var(--bg-1); color: var(--fg); }
+    .form-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-2); margin-bottom: 4px; }
+    .form-check-input { background-color: var(--bg); border: 1px solid var(--line-3); border-radius: 0; box-shadow: none; }
     .form-check-input:checked { background-color: var(--green); border-color: var(--green); }
-    .form-check-label { font-size: 11.5px; color: var(--text); }
-    .record-count { margin-left: auto; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+    .form-check-input:focus { box-shadow: none; border-color: var(--green); }
+    .form-check-label { font-size: 11.5px; color: var(--fg); }
+    .record-count { margin-left: auto; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-3); }
 
-    /* ── Tabela ── */
     .table-responsive { overflow-x: auto; }
     .table {
-      width: 100%; margin: 0; border-collapse: collapse; color: var(--text); font-size: 12px;
-      --bs-table-bg: transparent; --bs-table-color: var(--text); --bs-table-accent-bg: transparent;
+      width: 100%; margin: 0; border-collapse: collapse; color: var(--fg); font-size: 12px;
+      --bs-table-bg: transparent; --bs-table-color: var(--fg); --bs-table-accent-bg: transparent;
     }
     .table > :not(caption) > * > * { background-color: transparent; box-shadow: none; color: inherit; }
     .table thead th {
-      background: #1fd472; color: #00160a;
-      font-size: 9.5px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
-      padding: 5px 10px; text-align: left; white-space: nowrap;
+      background: var(--bg-2); color: var(--fg-2);
+      font-size: 9.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+      padding: 6px 10px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--line-3);
     }
-    .table td { padding: 9px 10px; border-bottom: 1px dashed rgba(15,143,79,0.35); vertical-align: middle; }
-    .table tbody tr:hover { background: rgba(51,255,136,0.07); }
-    /* znacznik trzyma miejsce zawsze, na hover tylko sie odslania, inaczej tabela skacze */
-    .table tbody td:first-child::before { content: '>'; color: var(--green); margin-right: 4px; opacity: 0; }
+    .table td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    .table tbody tr { transition: background 0.08s linear; }
+    .table tbody tr:hover { background: var(--bg-2); }
+    .table tbody td:first-child::before { content: '>'; color: var(--green); font-weight: 800; margin-right: 4px; opacity: 0; }
     .table tbody tr:hover td:first-child::before { opacity: 1; }
     .table tbody tr:last-child td { border-bottom: 0; }
-    .table td:first-child { color: var(--muted); font-variant-numeric: tabular-nums; }
+    .table td:first-child { color: var(--fg-3); }
 
-    /* Kolumna akcji przypięta z prawej, reszta tabeli scrolluje się pod nią */
     .table th:last-child, .table td:last-child {
       position: sticky; right: 0; z-index: 2;
-      background-color: var(--panel-solid);
-      border-left: 1px solid var(--green-dim);
+      background-color: var(--bg-1);
+      border-left: 1px solid var(--line-2);
     }
-    .table thead th:last-child { background-color: #1fd472; z-index: 3; }
-    .table tbody tr:hover td:last-child { background-color: #04291a; }
-    /* otwarte menu musi byc nad przypietymi komorkami nizszych wierszy */
+    .table thead th:last-child { background-color: var(--bg-2); z-index: 3; }
+    .table tbody tr:hover td:last-child { background-color: var(--bg-2); }
     .table td:last-child:has(.dropdown-menu.show) { z-index: 1050; }
-    /* wiersze "ładowanie"/"brak wyników" rozciagaja sie na cala szerokosc, nie przypinamy ich */
     .table td[colspan] { position: static; border-left: 0; background-color: transparent; }
-    .biz-name { display: block; font-weight: 700; color: var(--green); letter-spacing: 0.04em; text-transform: uppercase; font-size: 12.5px; text-decoration: none; }
-    .biz-name:hover { color: var(--green); text-decoration: underline; }
-    .biz-phone, .emailed-date { font-size: 10.5px; color: var(--muted); }
-    .biz-meta { font-size: 11px; color: var(--text); text-transform: uppercase; letter-spacing: 0.06em; }
-    .email-cell { font-size: 11px; }
-    .email-cell a { color: var(--cyan); text-decoration: none; }
-    .email-cell a:hover { text-decoration: underline; }
-    .notes-cell { max-width: 280px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--muted); }
-    .notes-cell:hover { color: var(--green); text-decoration: underline; }
+    .biz-name { display: block; font-weight: 700; color: var(--fg); font-size: 12.5px; text-decoration: none; letter-spacing: 0.01em; }
+    .biz-name:hover { color: var(--green); text-decoration: underline; text-underline-offset: 3px; }
+    .biz-phone, .emailed-date { font-size: 10.5px; color: var(--fg-3); margin-top: 2px; }
+    .biz-meta { font-size: 11px; color: var(--fg-2); text-transform: uppercase; letter-spacing: 0.06em; }
+    .email-cell { font-size: 11.5px; }
+    .email-cell a { color: var(--green); text-decoration: none; }
+    .email-cell a:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .notes-cell { max-width: 280px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--fg-2); }
+    .notes-cell:hover { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
 
     .site-link, .no-site {
       display: inline-flex; align-items: center; gap: 5px;
-      font-size: 10.5px; letter-spacing: 0.06em; text-decoration: none;
-      padding: 2px 7px; border: 1px solid;
+      font-size: 11px; text-decoration: none; letter-spacing: 0.01em;
     }
-    .site-link { color: var(--green); border-color: var(--green-dim); background: rgba(51,255,136,0.07); }
-    .site-link:hover { background: var(--green); color: #001a0c; }
-    .no-site { color: var(--red); border-color: rgba(255,59,48,0.5); background: rgba(255,59,48,0.08); }
+    .site-link { color: var(--fg-2); border-bottom: 1px dotted var(--line-3); }
+    .site-link:hover { color: var(--green); border-bottom-color: var(--green); }
+    .no-site { color: var(--red); }
     .tech-pills { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
     .tech-pill, .platform-pill {
-      font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; padding: 1px 5px;
-      border: 1px solid currentColor; background: transparent !important; filter: none;
+      font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 1px 5px;
+      border: 1px solid var(--line-2); background: transparent !important; filter: none;
     }
-    .platform-pill { color: var(--yellow) !important; border-color: var(--yellow); }
-    .tech-pill { color: var(--muted) !important; }
+    .tech-pill { color: var(--fg-3) !important; }
+    .platform-pill { color: var(--amber) !important; border-color: var(--amber); }
 
-    /* ── Statusy: [NOWY] ── */
     .status-badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+      font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
     }
-    .status-badge::before { content: '['; opacity: 0.55; }
-    .status-badge::after  { content: ']'; opacity: 0.55; }
-    .status-badge .dot { display: none; }
-    .s-new       { color: var(--cyan); }
-    .s-emailed   { color: var(--yellow); }
-    .s-replied   { color: var(--violet); }
-    .s-converted { color: var(--green); text-shadow: 0 0 10px rgba(51,255,136,0.6); }
-    .s-skipped   { color: var(--muted); }
+    .status-badge .dot { display: inline-block; width: 7px; height: 7px; background: currentColor; }
+    .s-new       { color: var(--fg); }
+    .s-ready     { color: var(--green); }
+    .s-emailed   { color: var(--amber); }
+    .s-replied   { color: var(--green-2); }
+    .s-converted { color: var(--green-ink); background: var(--green); padding: 1px 6px; }
+    .s-converted .dot { display: none; }
+    .s-skipped   { color: var(--fg-3); }
+    .s-failed    { color: var(--red); }
+    .auto-mark { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg-3); margin-top: 3px; }
+    .auto-mark::before { content: '// '; }
+    .lead-error { font-size: 10px; color: var(--red); margin-top: 3px; max-width: 220px; white-space: normal; }
+    .ap-row { border: 1px solid var(--line-2); background: var(--bg); padding: 10px 12px; margin-bottom: 8px; font-size: 12px; }
+    .ap-row-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .ap-row-head .spacer { flex: 1; }
+    .ap-meta { font-size: 10.5px; color: var(--fg-3); letter-spacing: 0.04em; }
+    .ap-bar { height: 5px; background: var(--line); margin-top: 8px; }
+    .ap-bar span { display: block; height: 100%; background: var(--green); }
+    .ap-body { display: none; margin-top: 10px; }
+    .ap-row.open .ap-body { display: block; }
+    .ap-kind { font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--green); border: 1px solid var(--line-3); padding: 1px 6px; }
+    .ap-kind.failed { color: var(--red); border-color: var(--red); }
+    .msg-hist { margin-top: 10px; font-size: 11px; color: var(--fg-2); border-top: 1px solid var(--line-2); padding-top: 8px; }
+    .msg-hist div { padding: 2px 0; }
+    .msg-hist b { color: var(--fg); font-weight: 600; }
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-    /* ── Akcje w wierszu ── */
-    .action-row { display: flex; align-items: center; gap: 4px; }
+    .action-row { display: flex; align-items: center; gap: 3px; }
     .btn-ai, .btn-email, .btn-sms, .btn-more {
       width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center;
-      background: transparent; border: 1px solid var(--green-deep); color: var(--muted);
+      background: transparent; border: 1px solid var(--line-2); color: var(--fg-2);
       font-size: 12px; cursor: pointer; border-radius: 0; padding: 0;
+      transition: background 0.1s linear, color 0.1s linear, border-color 0.1s linear;
     }
-    .btn-ai:hover, .btn-email:hover, .btn-sms:hover, .btn-more:hover { background: var(--green); border-color: var(--green); color: #001a0c; }
+    .btn-ai:hover, .btn-email:hover, .btn-sms:hover, .btn-more:hover { background: var(--green); border-color: var(--green); color: var(--green-ink); }
+    .btn-ai.done { color: var(--green); border-color: var(--line-3); }
+    .btn-ai.platform { color: var(--amber); border-color: var(--line-3); }
     .btn-more::after { display: none; }
     .dropdown-menu {
-      background: var(--panel-solid); border: 1px solid var(--green-dim); border-radius: 0; padding: 4px;
-      box-shadow: 0 0 30px rgba(0,0,0,0.9), 0 0 20px rgba(51,255,136,0.12);
+      background: var(--bg-1); border: 1px solid var(--line-3); border-radius: 0; padding: 3px;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.75);
       font-family: var(--mono); font-size: 11.5px; min-width: 210px;
     }
-    .dropdown-item { color: var(--text); padding: 6px 9px; border-radius: 0; letter-spacing: 0.04em; }
-    .dropdown-item:hover, .dropdown-item:focus { background: var(--green); color: #001a0c; }
+    .dropdown-item { color: var(--fg); padding: 6px 9px; border-radius: 0; letter-spacing: 0.02em; }
+    .dropdown-item::before { content: '> '; color: var(--fg-3); }
+    .dropdown-item:hover, .dropdown-item:focus { background: var(--green); color: var(--green-ink); }
+    .dropdown-item:hover::before, .dropdown-item:focus::before { color: var(--green-ink); }
     .dropdown-item.text-danger { color: var(--red) !important; }
-    .dropdown-item.text-danger:hover { background: var(--red); color: #100000 !important; }
-    .dropdown-divider { border-top: 1px dashed var(--green-deep); opacity: 1; margin: 4px 0; }
+    .dropdown-item.text-danger:hover { background: var(--red); color: #140404 !important; }
+    .dropdown-divider { border-top: 1px solid var(--line-2); opacity: 1; margin: 3px 0; }
 
-    /* ── Stopka ── */
     .term-foot {
       display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-      margin-top: 12px; padding: 6px 12px;
-      border-top: 1px solid var(--green-deep);
-      font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted);
+      margin: 12px -14px 0; padding: 5px 14px;
+      background: var(--bg-2); border-top: 1px solid var(--line-2);
+      font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg-3);
     }
-    .term-foot .ok { color: var(--green); }
-    .caret { display: inline-block; width: 8px; height: 13px; background: var(--green); animation: blink 1.1s steps(2) infinite; vertical-align: -2px; }
+    .term-foot .ok { color: var(--fg); }
+    .term-foot .ft-prompt { color: var(--green); font-weight: 800; letter-spacing: 0.04em; text-transform: none; }
+    .term-foot .keys { margin-left: auto; display: flex; gap: 12px; }
+    .term-foot kbd { font-family: var(--mono); font-size: 9.5px; color: var(--fg); background: var(--bg-3); border: 1px solid var(--line-3); padding: 0 5px; margin-right: 3px; }
+    .caret { display: inline-block; width: 7px; height: 12px; background: var(--green); animation: blink 1.1s steps(2) infinite; vertical-align: -2px; }
     @keyframes blink { 50% { opacity: 0; } }
 
-    /* ── Przyciski ogólne (modale) ── */
     .btn {
-      font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-      border-radius: 0; padding: 8px 16px; border: 1px solid;
+      font-family: var(--mono); font-size: 11.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      border-radius: 0; padding: 8px 14px; border: 1px solid;
+      transition: background 0.1s linear, color 0.1s linear, border-color 0.1s linear, transform 0.05s linear;
     }
-    .btn-primary { background: var(--green); border-color: var(--green); color: #001a0c; }
-    .btn-primary:hover { background: #7dffb5; border-color: #7dffb5; color: #001a0c; }
-    .btn-ghost { background: transparent; border-color: var(--green-dim); color: var(--green); }
-    .btn-ghost:hover { background: var(--green); border-color: var(--green); color: #001a0c; }
-    .btn-sm { padding: 6px 12px; font-size: 11px; }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary { background: var(--green); border-color: var(--green); color: var(--green-ink); }
+    .btn-primary:hover { background: var(--green-2); border-color: var(--green-2); color: var(--green-ink); }
+    .btn-ghost { background: transparent; border-color: var(--line-3); color: var(--fg); }
+    .btn-ghost:hover { background: var(--green); border-color: var(--green); color: var(--green-ink); }
+    .btn-sm { padding: 6px 11px; font-size: 10.5px; }
 
-    /* ── Modale jako okna ── */
     .modal-content {
-      background: var(--panel-solid); border: 1px solid var(--green); border-radius: 0;
-      box-shadow: 0 0 60px rgba(0,0,0,0.9), 0 0 40px rgba(51,255,136,0.12);
-      color: var(--text);
+      background: var(--bg-1); border: 1px solid var(--line-3); border-radius: 0;
+      box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+      color: var(--fg);
     }
-    .modal-header {
-      background: #1fd472; color: #00160a; border: 0; border-radius: 0; padding: 5px 10px;
-    }
-    .modal-title {
-      font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #001a0c;
-    }
-    .modal-title i { color: #001a0c !important; }
+    .modal-header { background: var(--bg-2); border: 0; border-bottom: 1px solid var(--line-2); border-radius: 0; padding: 7px 12px; }
+    .modal-title { font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg); }
+    .modal-title i { color: var(--green) !important; }
     .modal-body { background: transparent; padding: 16px; }
-    .modal-footer { background: rgba(51,255,136,0.04); border-top: 1px dashed var(--green-deep); padding: 10px 14px; }
-    .modal-backdrop.show { opacity: 0.88; }
-    .btn-close {
-      background: none; opacity: 1; width: 18px; height: 18px; padding: 0; position: relative;
-    }
-    .btn-close::before { content: '×'; position: absolute; inset: 0; color: #001a0c; font-size: 18px; font-weight: 700; line-height: 16px; text-align: center; }
-    .btn-close:hover::before { color: #fff; }
+    .modal-footer { background: var(--bg-1); border-top: 1px solid var(--line-2); padding: 10px 14px; }
+    .modal-backdrop.show { opacity: 0.82; }
+    .btn-close { background: none; opacity: 1; width: 18px; height: 18px; padding: 0; position: relative; box-shadow: none; }
+    .btn-close::before { content: '×'; position: absolute; inset: 0; color: var(--fg-2); font-size: 18px; font-weight: 700; line-height: 16px; text-align: center; }
+    .btn-close:hover::before { color: var(--fg); }
     .alert-info-soft {
-      background: rgba(51,255,136,0.06); border: 1px dashed var(--green-dim); color: var(--green);
-      padding: 9px 12px; font-size: 11px; letter-spacing: 0.04em;
+      background: var(--bg); border: 1px solid var(--line-2); border-left: 2px solid var(--green); color: var(--fg-2);
+      padding: 9px 12px; font-size: 11px; letter-spacing: 0.01em;
     }
     .subject-pill {
       display: flex; align-items: center; gap: 8px;
-      background: #000a05; border: 1px solid var(--green-deep); padding: 9px 12px; margin-bottom: 10px;
-      font-size: 12px; color: var(--green);
+      background: var(--bg); border: 1px solid var(--line-2); padding: 8px 12px; margin-bottom: 8px;
+      font-size: 12px; color: var(--fg); font-weight: 600;
     }
-    .pill-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.2em; color: var(--muted); text-transform: uppercase; }
-    .email-textarea, textarea.form-control {
-      min-height: 380px; resize: vertical; line-height: 1.75; font-size: 12.5px; color: var(--text);
-      background: #000a05;
-    }
+    .pill-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.18em; color: var(--fg-3); text-transform: uppercase; }
+    .email-textarea, textarea.form-control { min-height: 380px; resize: vertical; line-height: 1.75; font-size: 12.5px; color: var(--fg); background: var(--bg); }
     textarea.form-control[rows] { min-height: 0; }
-    .obs-chip {
-      display: inline-block; font-size: 10px; padding: 2px 7px; margin: 3px 3px 0 0; cursor: pointer;
-      border: 1px dashed var(--green-deep); color: var(--muted);
-    }
+    .obs-chip { display: inline-block; font-size: 10px; padding: 2px 7px; margin: 3px 3px 0 0; cursor: pointer; border: 1px solid var(--line-2); color: var(--fg-2); }
     .obs-chip:hover { border-color: var(--green); color: var(--green); }
 
-    /* ── Analiza ── */
     .analyze-loading { text-align: center; padding: 2.5rem 1rem; }
-    .analyze-steps { display: flex; flex-direction: column; gap: 6px; margin: 18px auto 0; max-width: 340px; text-align: left; }
-    .step { display: flex; align-items: center; gap: 9px; font-size: 11px; color: var(--muted); padding: 6px 10px; border: 1px dashed var(--green-deep); }
-    .step.active { color: var(--green); border-color: var(--green); border-style: solid; }
-    .step.done { color: var(--green); opacity: 0.6; }
-    .step-icon { font-size: 13px; }
-    .analysis-output { font-size: 12.5px; line-height: 1.8; color: var(--text); max-height: 480px; overflow-y: auto; padding-right: 6px; }
-    .analysis-h1, .analysis-h2, .analysis-h3 { color: var(--green); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
-    .analysis-h1 { font-size: 13px; margin: 16px 0 8px; }
-    .analysis-h2 { font-size: 12px; margin: 14px 0 6px; padding: 4px 8px; border-left: 2px solid var(--green); background: rgba(51,255,136,0.05); }
-    .analysis-h3 { font-size: 11.5px; margin: 10px 0 4px; color: var(--text); }
-    .analysis-hr { border: 0; border-top: 1px dashed var(--green-deep); margin: 12px 0; }
+    .analyze-steps { display: flex; flex-direction: column; gap: 4px; margin: 18px auto 0; max-width: 360px; text-align: left; }
+    .step { font-size: 11px; color: var(--fg-3); padding: 5px 10px; border: 1px solid var(--line); letter-spacing: 0.02em; }
+    .step::before { content: '[ ] '; color: var(--fg-3); font-weight: 700; }
+    .step.active { color: var(--fg); border-color: var(--line-3); }
+    .step.active::before { content: '[>] '; color: var(--green); }
+    .step.done { color: var(--fg-2); }
+    .step.done::before { content: '[x] '; color: var(--green); }
+    .analysis-output { font-size: 12.5px; line-height: 1.8; color: var(--fg); max-height: 480px; overflow-y: auto; padding-right: 6px; }
+    .analysis-h1, .analysis-h2, .analysis-h3 { color: var(--fg); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
+    .analysis-h1 { font-size: 13px; margin: 16px 0 8px; color: var(--green); }
+    .analysis-h2 { font-size: 11.5px; margin: 14px 0 6px; padding: 4px 8px; border-left: 2px solid var(--green); background: var(--bg-2); }
+    .analysis-h3 { font-size: 11px; margin: 10px 0 4px; color: var(--fg-2); }
+    .analysis-hr { border: 0; border-top: 1px solid var(--line-2); margin: 12px 0; }
     .analysis-bullet { padding: 2px 0 2px 16px; position: relative; }
-    .analysis-bullet::before { content: '·'; position: absolute; left: 4px; color: var(--green); }
+    .analysis-bullet::before { content: '-'; position: absolute; left: 4px; color: var(--green); font-weight: 800; }
     .analysis-p { margin-bottom: 9px; }
-    .check-grid { display: flex; flex-wrap: wrap; gap: 6px; }
-    .check-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; font-size: 10.5px; font-weight: 700; border: 1px solid currentColor; }
+    .analysis-output strong { color: var(--green-2); font-weight: 700; }
+    .section-label { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em; color: var(--fg-3); margin-bottom: 8px; }
+    .section-label::before { content: '## '; color: var(--green); }
+    .score-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; margin-bottom: 14px; }
+    .score { border: 1px solid var(--line-2); background: var(--bg); padding: 7px 8px; text-align: center; }
+    .score b { display: block; font-size: 20px; font-weight: 800; line-height: 1; }
+    .score span { display: block; font-size: 9px; font-weight: 700; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.12em; margin-top: 4px; }
+    .score-hi b { color: var(--green); }
+    .score-mid b { color: var(--amber); }
+    .score-lo b { color: var(--red); }
+    .check-grid { display: flex; flex-wrap: wrap; gap: 5px; }
+    .check-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; font-size: 10.5px; font-weight: 700; border: 1px solid var(--line-2); background: var(--bg); }
     .check-ok   { color: var(--green); }
-    .check-warn { color: var(--yellow); }
+    .check-warn { color: var(--amber); }
     .check-bad  { color: var(--red); }
 
-    /* ── Overlay ładowania ── */
-    .loading-overlay {
-      position: fixed; inset: 0; z-index: 3000;
-      background: rgba(0,4,2,0.93);
-      display: flex; align-items: center; justify-content: center;
-    }
-    .loading-card { background: var(--panel-solid); border: 1px solid var(--green); padding: 2rem 2.6rem; text-align: center; max-width: 380px; box-shadow: 0 0 50px rgba(51,255,136,0.15); }
-    .loading-spinner {
-      width: 40px; height: 40px; margin: 0 auto 16px;
-      border: 2px solid var(--green-deep); border-top-color: var(--green); border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-title { font-size: 13px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--green); margin-bottom: 8px; }
-    .loading-sub { font-size: 10.5px; color: var(--muted); line-height: 1.7; letter-spacing: 0.06em; }
+    .loading-overlay { position: fixed; inset: 0; z-index: 3000; background: rgba(5,7,5,0.9); display: flex; align-items: center; justify-content: center; }
+    .loading-card { background: var(--bg-1); border: 1px solid var(--line-3); padding: 1.6rem 2.2rem; text-align: center; min-width: 380px; box-shadow: 0 40px 100px rgba(0,0,0,0.8); }
+    .ascii-bar { font-family: var(--mono-blocks); font-size: 13px; letter-spacing: 0; color: var(--green); margin-bottom: 12px; white-space: pre; }
+    .spin { display: inline-block; width: 1ch; color: var(--green); font-family: var(--mono-blocks); }
+    .loading-title { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg); margin-bottom: 6px; }
+    .loading-sub { font-size: 10.5px; color: var(--fg-3); line-height: 1.7; letter-spacing: 0.04em; }
 
-    /* ── Toasty ── */
-    .toast-container { position: fixed; bottom: 16px; right: 16px; z-index: 4000; display: flex; flex-direction: column; gap: 6px; }
+    .toast-container { position: fixed; bottom: 42px; right: 16px; z-index: 4000; display: flex; flex-direction: column; gap: 6px; }
     .app-toast {
-      display: flex; align-items: center; gap: 10px; min-width: 260px;
-      background: var(--panel-solid); border: 1px solid var(--green-dim);
-      padding: 10px 12px; font-size: 11.5px; color: var(--text);
-      box-shadow: 0 0 30px rgba(0,0,0,0.8);
-      animation: slideIn 0.18s ease-out;
+      display: flex; align-items: center; gap: 10px; min-width: 280px; max-width: 460px;
+      background: var(--bg-1); border: 1px solid var(--line-3); border-left-width: 3px;
+      padding: 9px 12px; font-size: 11.5px; color: var(--fg);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.75);
+      animation: slideIn 0.16s ease-out;
     }
-    @keyframes slideIn { from { transform: translateX(16px); opacity: 0; } to { transform: none; opacity: 1; } }
-    .toast-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px currentColor; flex: none; }
-    .toast-close { margin-left: auto; background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 14px; line-height: 1; }
-    .toast-close:hover { color: var(--green); }
+    @keyframes slideIn { from { transform: translateX(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+    .toast-tag { font-weight: 800; letter-spacing: 0.08em; flex: none; }
+    .toast-success { border-left-color: var(--green); }
+    .toast-success .toast-tag { color: var(--green); }
+    .toast-warning { border-left-color: var(--amber); }
+    .toast-warning .toast-tag { color: var(--amber); }
+    .toast-danger { border-left-color: var(--red); }
+    .toast-danger .toast-tag { color: var(--red); }
+    .toast-close { margin-left: auto; background: none; border: 0; color: var(--fg-3); cursor: pointer; font-size: 14px; line-height: 1; }
+    .toast-close:hover { color: var(--fg); }
 
-    /* ── Pusty stan ── */
-    .empty-state { text-align: center; padding: 3.5rem 1rem; color: var(--muted); }
-    .empty-icon { font-size: 28px; margin-bottom: 10px; }
-    .empty-state h5 { font-size: 13px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--green); }
-    .empty-state p { font-size: 11px; letter-spacing: 0.05em; }
+    .empty-state { text-align: center; padding: 3.5rem 1rem; color: var(--fg-3); }
+    .empty-glyph { font-size: 13px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg-2); margin-bottom: 8px; }
+    .empty-state p { font-size: 11px; letter-spacing: 0.03em; margin: 0; }
 
-    /* ── Focus ── */
     :focus-visible { outline: 1px solid var(--green); outline-offset: 2px; }
     .btn:focus, .btn-op:focus, .stat-card:focus { box-shadow: none; }
 
-    /* ── Scrollbar ── */
-    * { scrollbar-width: thin; scrollbar-color: var(--green-dim) transparent; }
+    * { scrollbar-width: thin; scrollbar-color: var(--line-3) transparent; }
     ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-thumb { background: var(--green-deep); }
-    ::-webkit-scrollbar-thumb:hover { background: var(--green-dim); }
+    ::-webkit-scrollbar-thumb { background: var(--line-2); }
+    ::-webkit-scrollbar-thumb:hover { background: var(--line-3); }
 
-    /* ── Responsywność ── */
+    @media (prefers-reduced-motion: reduce) { .caret, .app-toast { animation: none; } }
     @media (max-width: 1040px) {
       .term-grid { grid-template-columns: 1fr; }
-      .rail-nav { display: flex; flex-wrap: wrap; gap: 4px; }
-      .stat-card { width: auto; grid-template-columns: 10px auto auto; }
-      .rail-actions { flex-direction: row; }
-      .head-readouts { gap: 16px; }
+      .rail-nav { flex-direction: row; flex-wrap: wrap; gap: 4px; }
+      .stat-card { width: auto; grid-template-columns: 10px auto auto; border: 1px solid var(--line-2); }
+      .rail-actions { flex-direction: row; flex-wrap: wrap; }
+      .rail-actions .btn-op { width: auto; flex: 1 1 140px; }
+      .wordmark { font-size: 7px; }
     }
     @media (max-width: 560px) {
-      .term { padding: 8px; }
-      .head-title { font-size: 14px; }
-      .readout-val { font-size: 17px; }
+      .term { padding: 0 8px 8px; }
+      .topbar, .term-foot { margin-left: -8px; margin-right: -8px; }
+      .wordmark { font-size: 5.5px; }
+      .sys dd.big { font-size: 16px; }
+      .term-foot .keys { display: none; }
     }
   </style>
 </head>
 <body>
 
-<!-- CRT + deszcz kasy -->
-<div class="money" id="money" aria-hidden="true"></div>
-<div class="crt-scan" aria-hidden="true"></div>
-<div class="crt-vignette" aria-hidden="true"></div>
-<script>
-  document.getElementById('money').innerHTML = Array.from({length: 26}, () => {
-    const glyph = ['$','$','$','€','¥','₿'][Math.floor(Math.random() * 6)];
-    const style = `left:${Math.random()*100}%;font-size:${11 + Math.random()*13}px;` +
-                  `animation-duration:${9 + Math.random()*14}s;animation-delay:-${Math.random()*22}s;` +
-                  `opacity:${0.1 + Math.random()*0.22}`;
-    return `<span style="${style}">${glyph}</span>`;
-  }).join('');
-</script>
+<div class="crt" aria-hidden="true"></div>
 
 <div class="term">
 
-  <!-- ── Nagłówek terminala ── -->
-  <header class="win term-head">
-    <div class="win-bar">
-      <span>lifeinvader :: secure shell</span>
-      <span class="spacer"></span>
-      <span>node pl-07</span>
-      <span class="chips">▪▪▪</span>
+  <div class="topbar">
+    <span class="tb-app">leadgen</span>
+    <span><b id="tbUser">operator</b>@<b id="tbHost">local</b></span>
+    <span class="tb-sep">│</span>
+    <span>sesja <b id="uptime">00:00:00</b></span>
+    <span class="tb-right">
+      <span id="tbDate"></span>
+      <span><b id="clock">--:--:--</b></span>
+    </span>
+  </div>
+
+  <header class="term-head">
+    <div>
+      <pre class="wordmark" aria-label="leadgen">██╗      ███████╗  █████╗  ██████╗   ██████╗  ███████╗ ███╗   ██╗
+██║      ██╔════╝ ██╔══██╗ ██╔══██╗ ██╔════╝  ██╔════╝ ████╗  ██║
+██║      █████╗   ███████║ ██║  ██║ ██║  ███╗ █████╗   ██╔██╗ ██║
+██║      ██╔══╝   ██╔══██║ ██║  ██║ ██║   ██║ ██╔══╝   ██║╚██╗██║
+███████╗ ███████╗ ██║  ██║ ██████╔╝ ╚██████╔╝ ███████╗ ██║ ╚████║
+╚══════╝ ╚══════╝ ╚═╝  ╚═╝ ╚═════╝   ╚═════╝  ╚══════╝ ╚═╝  ╚═══╝</pre>
+      <div class="head-sub">konsola outreach <b>v3.0</b> · baza celów · autopilot</div>
     </div>
-    <div class="head-body">
-      <div class="head-id">
-        <div class="logo-box">LG</div>
-        <div>
-          <div class="head-title">Lead//Gen Terminal</div>
-          <div class="head-sub">baza celów · outreach v2.1</div>
-        </div>
-      </div>
-      <div class="head-readouts">
-        <div class="readout">
-          <span class="readout-label">Rekordy</span>
-          <span class="readout-val" id="metric-total">{{ stats.total }}</span>
-        </div>
-        <div class="readout">
-          <span class="readout-label">Klienci</span>
-          <span class="readout-val warn" id="metric-converted">{{ stats.converted }}</span>
-        </div>
-        <div class="readout">
-          <span class="readout-label">Czas</span>
-          <span class="readout-val" id="clock">--:--:--</span>
-        </div>
-      </div>
-    </div>
+    <dl class="sys">
+      <dt>rekordy</dt><dd class="big" id="metric-total">{{ stats.total }}</dd>
+      <dt>do wysłania</dt><dd id="metric-ready">{{ stats.ready }}</dd>
+      <dt>wysłane</dt><dd id="metric-emailed">{{ stats.emailed }}</dd>
+      <dt>klienci</dt><dd class="warn" id="metric-converted">{{ stats.converted }}</dd>
+    </dl>
   </header>
 
   <div class="term-grid">
@@ -487,7 +489,7 @@
     <!-- ── Panel boczny ── -->
     <aside>
       <div class="win rail-section">
-        <div class="win-bar"><span>sektory</span><span class="spacer"></span><span class="chips">▪▪</span></div>
+        <div class="win-bar"><span class="wb-idx">0</span><span>statusy</span></div>
         <div class="win-body">
           <nav class="rail-nav">
             <button class="stat-card active" onclick="filterByStatus('all')" id="stat-all">
@@ -497,6 +499,10 @@
             <button class="stat-card" onclick="filterByStatus('new')" id="stat-new">
               <span class="stat-label">Nowe</span>
               <span class="stat-number" id="count-new">{{ stats.new }}</span>
+            </button>
+            <button class="stat-card" onclick="filterByStatus('ready')" id="stat-ready">
+              <span class="stat-label">Do wysłania</span>
+              <span class="stat-number" id="count-ready">{{ stats.ready }}</span>
             </button>
             <button class="stat-card" onclick="filterByStatus('emailed')" id="stat-emailed">
               <span class="stat-label">Wysłane</span>
@@ -514,35 +520,51 @@
               <span class="stat-label">Pominięte</span>
               <span class="stat-number" id="count-skipped">{{ stats.skipped }}</span>
             </button>
+            <button class="stat-card" onclick="filterByStatus('failed')" id="stat-failed">
+              <span class="stat-label">Błędy</span>
+              <span class="stat-number" id="count-failed">{{ stats.failed }}</span>
+            </button>
           </nav>
         </div>
       </div>
 
       <div class="win rail-section">
-        <div class="win-bar"><span>operacje</span><span class="spacer"></span><span class="chips">▪▪</span></div>
+        <div class="win-bar"><span class="wb-idx">1</span><span>operacje</span></div>
         <div class="win-body">
           <div class="rail-actions">
-            <button class="btn-op btn-op-danger" data-bs-toggle="modal" data-bs-target="#searchModal">
-              Skanuj rynek
-            </button>
-            <button class="btn-op" data-bs-toggle="modal" data-bs-target="#manualModal">
-              Wpisz cel
-            </button>
-            <button class="btn-op" data-bs-toggle="modal" data-bs-target="#profilesModal">
-              Profile
-            </button>
+            <button class="btn-op btn-op-danger" data-key="S" data-bs-toggle="modal" data-bs-target="#searchModal">Skanuj rynek</button>
+            <button class="btn-op" data-key="N" data-bs-toggle="modal" data-bs-target="#manualModal">Dodaj cel</button>
+            <button class="btn-op" data-key="P" data-bs-toggle="modal" data-bs-target="#profilesModal">Profile</button>
           </div>
         </div>
       </div>
 
       <div class="win rail-section">
         <div class="win-bar">
-          <span>log</span>
+          <span class="wb-idx">2</span><span>autopilot</span>
+          <span class="spacer"></span>
+          <button class="bar-btn" onclick="runTickNow()" title="Uruchom jeden cykl autopilota od razu">cykl</button>
+        </div>
+        <div class="win-body">
+          <div class="rail-log" id="autopilotStatus">&gt; sprawdzam...</div>
+          <div class="rail-actions" style="margin-top:10px">
+            <button class="btn-op" id="autoSendBtn" data-key="A" onclick="toggleAutoSend()">Auto-wysyłka</button>
+            <button class="btn-op" data-key="K" onclick="openCampaigns()">Kampanie</button>
+            <button class="btn-op" data-key="Q" onclick="openQueue()">Kolejka</button>
+            <button class="btn-op" data-key="U" onclick="openAutopilotSettings()">Ustawienia</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="win rail-section">
+        <div class="win-bar">
+          <span class="wb-idx">3</span><span>log</span>
           <span class="spacer"></span>
           <button class="bar-btn" onclick="probeApis()" title="Wyślij prawdziwe zapytanie do Google Maps (płatne)">test</button>
         </div>
         <div class="win-body">
           <div class="rail-log" id="railLog">&gt; sprawdzam...</div>
+          <div class="rail-log" id="workerLog" style="margin-top:8px;border-top:1px dashed var(--green-deep);padding-top:6px"></div>
         </div>
       </div>
     </aside>
@@ -551,7 +573,7 @@
     <main class="term-main">
 
       <div class="win">
-        <div class="win-bar"><span>filtry zapytania</span><span class="spacer"></span><span class="chips">▪▪▪</span></div>
+        <div class="win-bar"><span class="wb-idx">4</span><span>filtr</span><span class="spacer"></span><span class="wb-meta">/ przeszukuje bazę</span></div>
         <div class="filter-bar">
           <span class="prompt">&gt;</span>
           <input type="text" id="searchInput" class="form-control" style="max-width:230px" placeholder="szukaj firmy..." oninput="debounceLoad()" />
@@ -572,7 +594,7 @@
       </div>
 
       <div class="win">
-        <div class="win-bar"><span>baza celów // live</span><span class="spacer"></span><span class="chips">▪▪▪</span></div>
+        <div class="win-bar"><span class="wb-idx">5</span><span>cele</span><span class="spacer"></span><span class="wb-meta">live</span></div>
         <div class="table-responsive">
           <table class="table">
             <thead>
@@ -598,19 +620,23 @@
   </div>
 
   <footer class="term-foot">
-    <span>połączenie: <span class="ok" id="footProto">—</span></span>
-    <span>baza: <span class="ok" id="footDb">—</span></span>
-    <span>ping: <span class="ok" id="footPing">—</span></span>
-    <span style="margin-left:auto">gotowy <span class="caret"></span></span>
+    <span><span class="ft-prompt">leadgen$</span> <span class="caret"></span></span>
+    <span>połączenie <span class="ok" id="footProto">…</span></span>
+    <span>baza <span class="ok" id="footDb">…</span></span>
+    <span>ping <span class="ok" id="footPing">…</span></span>
+    <span class="keys">
+      <span><kbd>/</kbd>szukaj</span><span><kbd>s</kbd>skan</span><span><kbd>n</kbd>cel</span>
+      <span><kbd>q</kbd>kolejka</span><span><kbd>k</kbd>kampanie</span><span><kbd>a</kbd>auto</span>
+    </span>
   </footer>
 </div>
 
 <!-- Loading Overlay -->
 <div class="loading-overlay d-none" id="loadingOverlay">
   <div class="loading-card">
-    <div class="loading-spinner"></div>
-    <div class="loading-title" id="loadingText">Szukam leadów...</div>
-    <div class="loading-sub">Google Maps + analiza stron.<br>Może potrwać chwilę ☕</div>
+    <div class="ascii-bar" aria-hidden="true">[░░░░░░░░░░░░░░░░░░░░░░]</div>
+    <div class="loading-title"><span class="spin"></span> <span id="loadingText">Szukam leadów...</span></div>
+    <div class="loading-sub">Google Maps, scraping stron, szukanie adresów. To potrwa chwilę.</div>
   </div>
 </div>
 
@@ -660,6 +686,10 @@
           <label class="form-label">Notatki</label>
           <textarea id="manualNotes" class="form-control" rows="2" placeholder="np. polecenie od Kasi"></textarea>
         </div>
+        <div class="form-check">
+          <input type="checkbox" id="manualAutopilot" class="form-check-input" />
+          <label class="form-check-label" for="manualAutopilot" style="font-size:13px">Oddaj autopilotowi (mail napisze się sam i trafi do kolejki)</label>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-ghost" data-bs-dismiss="modal">Anuluj</button>
@@ -702,11 +732,18 @@
           <input type="checkbox" id="searchNoWebsite" class="form-check-input" />
           <label class="form-check-label" for="searchNoWebsite" style="font-size:13px">
             Tylko bez własnej strony
-            <span style="color:var(--muted)">— brak strony lub tylko Instagram / Facebook / Booksy</span>
+            <span style="color:var(--muted)">(brak strony albo tylko Instagram, Facebook, Booksy)</span>
+          </label>
+        </div>
+        <div class="form-check mb-3">
+          <input type="checkbox" id="searchAutopilot" class="form-check-input" />
+          <label class="form-check-label" for="searchAutopilot" style="font-size:13px">
+            Oddaj znalezione firmy autopilotowi
+            <span style="color:var(--muted)">(analiza, mail i kolejka wysyłki bez klikania)</span>
           </label>
         </div>
         <div class="alert-info-soft">
-          💡 Firmy już w bazie zostaną automatycznie pominięte.
+          Firmy już w bazie zostaną pominięte.
         </div>
       </div>
       <div class="modal-footer">
@@ -726,21 +763,18 @@
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-envelope-paper me-2" style="color:var(--primary)"></i>Wiadomość — <span id="emailForBusiness"></span></h5>
+        <h5 class="modal-title"><i class="bi bi-envelope-paper me-2" style="color:var(--primary)"></i>Wiadomość :: <span id="emailForBusiness"></span></h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <div id="emailLoadingState" class="text-center" style="padding:3rem 0">
-          <div class="loading-spinner" style="width:36px;height:36px;margin-bottom:14px"></div>
-          <div style="font-weight:600;font-size:14px;color:var(--text)">Generuję email z AI...</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:4px">Analizuję stronę i piszę spersonalizowaną wiadomość ✍️</div>
-        </div>
+        <div id="emailLoadingState" class="text-center" style="padding:3rem 0"></div>
         <div id="emailContent" class="d-none">
           <div class="subject-pill">
             <span class="pill-label">Temat</span>
             <span id="emailSubject" style="flex:1"></span>
           </div>
           <textarea id="emailBody" class="form-control email-textarea"></textarea>
+          <div class="msg-hist" id="emailHistory" style="display:none"></div>
         </div>
       </div>
       <div class="modal-footer" id="emailFooter" style="display:none!important">
@@ -759,6 +793,12 @@
         </button>
         <button class="btn btn-ghost btn-sm" onclick="openInGmail()">
           <i class="bi bi-envelope-arrow-up me-1"></i> Otwórz w Gmail
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="queueCurrentEmail(false)" title="Dodaj do kolejki autopilota, wyjdzie w oknie wysyłki">
+          <i class="bi bi-hourglass-split me-1"></i> Do kolejki
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="queueCurrentEmail(true)" title="Wyślij od razu ze skrzynki wybranego profilu">
+          <i class="bi bi-send me-1"></i> Wyślij teraz
         </button>
         <button class="btn btn-ghost btn-sm" id="smsBtn" style="display:none" onclick="openInSms()"
                 title="Otwórz SMS z treścią z pola powyżej">
@@ -779,20 +819,20 @@
   <div class="modal-dialog modal-dialog-centered modal-xl">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-cpu me-2" style="color:var(--primary)"></i>Analiza AI — <span id="analyzeForBusiness"></span></h5>
+        <h5 class="modal-title"><i class="bi bi-cpu me-2" style="color:var(--primary)"></i>Analiza AI :: <span id="analyzeForBusiness"></span></h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
 
         <!-- Loading state -->
         <div id="analyzeLoadingState" class="analyze-loading">
-          <img src="/static/loading.gif" style="width:200px;height:200px;object-fit:cover;margin-bottom:14px;border:1px solid var(--green-dim);filter:hue-rotate(75deg) saturate(1.4) contrast(1.1)">
-          <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:6px">Przeprowadzam pełny audyt...</div>
-          <div style="font-size:12.5px;color:var(--muted);margin-bottom:24px">Może potrwać ~30 sekund</div>
+          <div class="ascii-bar" aria-hidden="true">[░░░░░░░░░░░░░░░░░░░░░░]</div>
+          <div class="loading-title"><span class="spin"></span> Pełny audyt strony</div>
+          <div class="loading-sub">około 30 do 60 sekund</div>
           <div class="analyze-steps">
-            <div class="step active" id="step1"><span class="step-icon">📸</span> Robię zrzuty ekranu (desktop + mobile)</div>
-            <div class="step" id="step2"><span class="step-icon">🔬</span> Sprawdzam parametry techniczne</div>
-            <div class="step" id="step3"><span class="step-icon">🤖</span> Claude analizuje jak człowiek</div>
+            <div class="step active" id="step1">zrzuty ekranu desktop i mobile</div>
+            <div class="step" id="step2">parametry techniczne strony</div>
+            <div class="step" id="step3">analiza wizualna modelu</div>
           </div>
         </div>
 
@@ -800,17 +840,17 @@
         <div id="analyzeContent" class="d-none">
           <div class="row g-4">
             <div class="col-lg-8">
-              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:10px">🤖 Co widzi AI</div>
+              <div class="section-label">Co widzi model</div>
               <div class="analysis-output" id="analyzeResult"></div>
             </div>
             <div class="col-lg-4">
-              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:10px">📊 Oceny AI (1-10)</div>
+              <div class="section-label">Oceny (1 do 10)</div>
               <div id="analyzeScores" style="display:none;margin-bottom:16px"></div>
-              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:10px">🔬 Sprawdzenia techniczne</div>
+              <div class="section-label">Sprawdzenia techniczne</div>
               <div class="check-grid" id="analyzeChecks"></div>
 
               <div id="myFeedbackBox" class="d-none" style="margin-top:16px">
-                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:6px">✍️ Twoja obserwacja</div>
+                <div class="section-label">Twoja obserwacja</div>
                 <textarea id="myFeedback" rows="3" placeholder="np. okropna kolorystyka, tekst nieczytelny, wygląda jak z 2008..." class="form-control" style="width:100%;resize:vertical"></textarea>
                 <div id="obsHistory" style="margin-top:6px"></div>
               </div>
@@ -822,8 +862,8 @@
         <div id="analyzeError" class="d-none" style="background:rgba(255,59,48,0.08);border:1px solid var(--red);padding:14px 16px;color:var(--red);font-size:12px"></div>
       </div>
       <div class="modal-footer" id="analyzeFooter" style="display:none!important">
-        <span id="cachedBadge" style="display:none;align-items:center;gap:5px;font-size:10.5px;letter-spacing:0.1em;color:var(--muted);padding:4px 8px;border:1px dashed var(--green-deep)">
-          💾 Z pamięci podręcznej
+        <span id="cachedBadge" style="display:none;align-items:center;gap:5px;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--fg-3);padding:4px 8px;border:1px solid var(--line-2)">
+          Z pamięci podręcznej
         </span>
         <button id="regenBtn" class="btn btn-ghost btn-sm" style="display:none" onclick="runAnalysis(currentLeadId)">
           <i class="bi bi-arrow-clockwise me-1"></i> Regeneruj
@@ -858,11 +898,97 @@
   </div>
 </div>
 
+<div class="modal fade" id="campaignsModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-broadcast me-2" style="color:var(--primary)"></i>Kampanie autopilota</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert-info-soft" style="margin-bottom:14px">
+          Kampania to zlecenie dla autopilota: szuka firm w Google Maps partiami, analizuje strony, pisze maile i wstawia je do kolejki. Wysyłka rusza dopiero, gdy włączysz auto-wysyłkę albo klikniesz „Wyślij teraz” w kolejce.
+        </div>
+        <div id="campaignsList"></div>
+        <div style="border-top:1px dashed var(--green-deep);margin-top:14px;padding-top:14px">
+          <div class="row g-2">
+            <div class="col-md-4"><label class="form-label">Typ biznesu</label><input class="form-control" id="campType" placeholder="np. fryzjer"></div>
+            <div class="col-md-3"><label class="form-label">Miasto</label><input class="form-control" id="campCity" placeholder="np. Kraków"></div>
+            <div class="col-md-2"><label class="form-label">Ile firm</label><input class="form-control" id="campTarget" type="number" value="20" min="1" max="500"></div>
+            <div class="col-md-3"><label class="form-label">Nadawca</label><select class="form-select" id="campProfile"></select></div>
+          </div>
+          <div class="form-check" style="margin-top:10px">
+            <input type="checkbox" id="campNoWebsite" class="form-check-input" />
+            <label class="form-check-label" for="campNoWebsite" style="font-size:13px">Tylko firmy bez własnej strony</label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost btn-sm" onclick="adoptExistingLeads()" title="Wszystkie nowe leady z adresem e-mail trafią pod autopilota">
+          <i class="bi bi-robot me-1"></i> Oddaj autopilotowi istniejące nowe leady
+        </button>
+        <span style="flex:1"></span>
+        <button class="btn btn-primary" onclick="createCampaign()"><i class="bi bi-plus-lg me-1"></i> Dodaj kampanię</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="queueModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-hourglass-split me-2" style="color:var(--primary)"></i>Kolejka wysyłki</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="queueList"></div>
+      <div class="modal-footer">
+        <span id="queueNote" class="ap-meta" style="flex:1"></span>
+        <button class="btn btn-ghost" onclick="loadQueue()"><i class="bi bi-arrow-clockwise me-1"></i> Odśwież</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="autopilotSettingsModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-sliders me-2" style="color:var(--primary)"></i>Ustawienia autopilota</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-check mb-3">
+          <input type="checkbox" id="setAutoSend" class="form-check-input" />
+          <label class="form-check-label" for="setAutoSend" style="font-size:13px">Auto-wysyłka włączona (maile z kolejki wychodzą same)</label>
+        </div>
+        <div class="settings-grid">
+          <div><label class="form-label">Limit maili dziennie</label><input class="form-control" id="setDailyLimit" type="number" min="1" max="200"></div>
+          <div><label class="form-label">Odstęp między mailami (min)</label><input class="form-control" id="setGap" type="number" min="1" max="240"></div>
+          <div><label class="form-label">Wysyłka od godziny</label><input class="form-control" id="setFromHour" type="number" min="0" max="23"></div>
+          <div><label class="form-label">Wysyłka do godziny</label><input class="form-control" id="setToHour" type="number" min="1" max="24"></div>
+        </div>
+        <div class="form-check" style="margin-top:14px">
+          <input type="checkbox" id="setWeekdays" class="form-check-input" />
+          <label class="form-check-label" for="setWeekdays" style="font-size:13px">Tylko w dni robocze</label>
+        </div>
+        <div class="alert-info-soft" style="margin-top:14px">
+          Bezpiecznik: po trzech nieudanych wysyłkach z rzędu auto-wysyłka wyłącza się sama.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-bs-dismiss="modal">Anuluj</button>
+        <button class="btn btn-primary" onclick="saveAutopilotSettings()">Zapisz</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="notesModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered" style="max-width:420px">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-journal-text me-2" style="color:var(--primary)"></i>Notatka — <span id="notesForBusiness"></span></h5>
+        <h5 class="modal-title"><i class="bi bi-journal-text me-2" style="color:var(--primary)"></i>Notatka :: <span id="notesForBusiness"></span></h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
@@ -897,6 +1023,10 @@ let debounceTimer = null;
 // dane leadów z ostatniego renderu; onclick dostaje tylko id, nigdy teksty
 // (apostrof albo enter w nazwie/notatce rozwalałby inline JS w atrybucie)
 let leadsById = {};
+const EMAIL_LOADING_HTML = `
+  <div class="ascii-bar" aria-hidden="true">[░░░░░░░░░░░░░░░░░░░░░░]</div>
+  <div class="loading-title"><span class="spin"></span> Piszę mail</div>
+  <div class="loading-sub">audyt strony i spersonalizowana treść, kilkadziesiąt sekund</div>`;
 
 // ── Status badge HTML ──
 const STATUS_BADGES = {
@@ -905,6 +1035,8 @@ const STATUS_BADGES = {
   replied:   '<span class="status-badge s-replied"><i class="dot"></i>Odpowiedź</span>',
   converted: '<span class="status-badge s-converted"><i class="dot"></i>Klient</span>',
   skipped:   '<span class="status-badge s-skipped"><i class="dot"></i>Pominięty</span>',
+  ready:     '<span class="status-badge s-ready"><i class="dot"></i>Do wysłania</span>',
+  failed:    '<span class="status-badge s-failed"><i class="dot"></i>Błąd</span>',
 };
 
 // ── Simple markdown renderer ──
@@ -955,27 +1087,12 @@ function renderTable(leads) {
   if (!leads.length) {
     tbody.innerHTML = `<tr><td colspan="8">
       <div class="empty-state">
-        <div class="empty-icon">📭</div>
-        <h5>Brak leadów</h5>
-        <p>Kliknij "Szukaj leadów" aby znaleźć nowych potencjalnych klientów.</p>
+        <div class="empty-glyph">[ brak wyników ]</div>
+        <p>Uruchom „Skanuj rynek” albo dodaj kampanię w panelu autopilota.</p>
       </div>
     </td></tr>`;
     return;
   }
-
-  const TECH_COLORS = {
-    'WordPress':   ['#e8f4fd','#1d6fa5'],
-    'Elementor':   ['#fce7f3','#9d174d'],
-    'Divi':        ['#ede9fe','#5b21b6'],
-    'Wix':         ['#f3f4f6','#111827'],
-    'Squarespace': ['#f3f4f6','#111827'],
-    'Shopify':     ['#ecfdf5','#065f46'],
-    'Webflow':     ['#eff6ff','#1d4ed8'],
-    'Next.js':     ['#f3f4f6','#111827'],
-    'Nuxt.js':     ['#ecfdf5','#065f46'],
-    'Joomla':      ['#fff7ed','#c2410c'],
-    'Drupal':      ['#eff6ff','#1d4ed8'],
-  };
 
   tbody.innerHTML = leads.map(lead => {
     let techPills = '';
@@ -984,14 +1101,11 @@ function renderTable(leads) {
       const checks = lead.website_checks ? JSON.parse(lead.website_checks) : {};
       outsourcedPlatform = checks.outsourced_platform || null;
       if (outsourcedPlatform) {
-        techPills = `<div class="tech-pills"><span class="platform-pill">⚠️ ${escHtml(outsourcedPlatform)}</span></div>`;
+        techPills = `<div class="tech-pills"><span class="platform-pill">${escHtml(outsourcedPlatform)}</span></div>`;
       } else {
         const stack = checks.tech_stack || [];
         if (stack.length) {
-          techPills = `<div class="tech-pills">${stack.map(t => {
-            const [bg, fg] = TECH_COLORS[t] || ['#f3f4f6','#374151'];
-            return `<span class="tech-pill" style="background:${bg};color:${fg}">${escHtml(t)}</span>`;
-          }).join('')}</div>`;
+          techPills = `<div class="tech-pills">${stack.map(t => `<span class="tech-pill">${escHtml(t)}</span>`).join('')}</div>`;
         }
       }
     } catch(e) {}
@@ -1005,24 +1119,20 @@ function renderTable(leads) {
       : `<span style="color:var(--muted);font-size:12px">—</span>`;
 
     const emailedDate = lead.emailed_at
-      ? `<div class="emailed-date">📅 ${lead.emailed_at.slice(0,10)}</div>` : '';
+      ? `<div class="emailed-date">wysł. ${lead.emailed_at.slice(0,10)}</div>` : '';
 
     const hasAnalysis = !!(lead.ai_analysis && lead.ai_analysis.length > 10);
-    const aiStyle = hasAnalysis
-      ? (outsourcedPlatform ? 'background:#fff7ed;color:#c2410c' : 'background:#d1fae5;color:#065f46')
-      : (outsourcedPlatform ? 'background:#fff7ed;color:#c2410c' : '');
-    const aiIcon = hasAnalysis
-      ? (outsourcedPlatform ? 'lightning-charge-fill' : 'check-circle-fill')
-      : (outsourcedPlatform ? 'lightning-charge' : 'stars');
+    const aiClass = hasAnalysis ? 'btn-ai done' : (outsourcedPlatform ? 'btn-ai platform' : 'btn-ai');
+    const aiIcon  = hasAnalysis ? 'check2' : (outsourcedPlatform ? 'lightning-charge' : 'cpu');
     const aiTitle = hasAnalysis
-      ? (outsourcedPlatform ? `✅ Pitch gotowy (${outsourcedPlatform}) — kliknij by otworzyć` : '✅ Analiza gotowa — kliknij by otworzyć')
-      : (outsourcedPlatform ? `💡 Generuj pitch sprzedażowy (${outsourcedPlatform})` : 'Uruchom analizę AI ✨');
+      ? (outsourcedPlatform ? `Pitch gotowy (${outsourcedPlatform}), kliknij by otworzyć` : 'Analiza gotowa, kliknij by otworzyć')
+      : (outsourcedPlatform ? `Generuj pitch sprzedażowy (${outsourcedPlatform})` : 'Uruchom analizę AI');
     const aiBtn = lead.website_url
-      ? `<button class="btn-ai" title="${aiTitle}" style="${aiStyle}"
-           onclick="openAnalyzeModal(${lead.id})">
-           <i class="bi bi-${aiIcon}"></i>
-         </button>`
+      ? `<button class="${aiClass}" title="${aiTitle}" onclick="openAnalyzeModal(${lead.id})"><i class="bi bi-${aiIcon}"></i></button>`
       : '';
+
+    const autoMark  = lead.autopilot ? '<div class="auto-mark">autopilot</div>' : '';
+    const errorNote = (lead.status === 'failed' && lead.last_error) ? `<div class="lead-error">${escHtml(lead.last_error)}</div>` : '';
 
     return `<tr>
       <td style="color:var(--muted);font-size:12px">${lead.id}</td>
@@ -1034,7 +1144,7 @@ function renderTable(leads) {
       <td class="biz-meta">${escHtml(lead.business_type)}<br>${escHtml(lead.city)}</td>
       <td>${websiteCell}</td>
       <td>${emailCell}</td>
-      <td>${STATUS_BADGES[lead.status] || lead.status}${emailedDate}</td>
+      <td>${STATUS_BADGES[lead.status] || lead.status}${emailedDate}${autoMark}${errorNote}</td>
       <td><div class="notes-cell" title="${escHtml(lead.notes || 'Kliknij aby dodać notatkę')}"
                onclick="openNotesModal(${lead.id})">${escHtml(lead.notes || '—')}</div></td>
       <td>
@@ -1045,14 +1155,15 @@ function renderTable(leads) {
           <div class="dropdown">
             <button class="btn-more dropdown-toggle" data-bs-toggle="dropdown" title="Więcej"><i class="bi bi-three-dots"></i></button>
             <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" href="javascript:void(0)" onclick="setStatus(${lead.id},'emailed')">📤 Wysłano email</a></li>
-              <li><a class="dropdown-item" href="javascript:void(0)" onclick="setStatus(${lead.id},'replied')">💬 Odpowiedział</a></li>
-              <li><a class="dropdown-item" href="javascript:void(0)" onclick="setStatus(${lead.id},'converted')">⭐ Został klientem</a></li>
-              <li><a class="dropdown-item" href="javascript:void(0)" onclick="setStatus(${lead.id},'new')">🔄 Wróć do Nowy</a></li>
-              <li><a class="dropdown-item" href="javascript:void(0)" onclick="setStatus(${lead.id},'skipped')">⏭️ Pomiń</a></li>
+              <li><a class="dropdown-item" href="javascript:void(0)" onclick="setStatus(${lead.id},'emailed')">Wysłano email</a></li>
+              <li><a class="dropdown-item" href="javascript:void(0)" onclick="setStatus(${lead.id},'replied')">Odpowiedział</a></li>
+              <li><a class="dropdown-item" href="javascript:void(0)" onclick="setStatus(${lead.id},'converted')">Został klientem</a></li>
+              <li><a class="dropdown-item" href="javascript:void(0)" onclick="setStatus(${lead.id},'new')">Wróć do Nowy</a></li>
+              <li><a class="dropdown-item" href="javascript:void(0)" onclick="setStatus(${lead.id},'skipped')">Pomiń</a></li>
+              <li><a class="dropdown-item" href="javascript:void(0)" onclick="setLeadAutopilot(${lead.id}, ${lead.autopilot ? 'false' : 'true'})">${lead.autopilot ? 'Zabierz autopilotowi' : 'Oddaj autopilotowi'}</a></li>
               <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="javascript:void(0)" onclick="openNotesModal(${lead.id})">📝 Notatki / email</a></li>
-              <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="deleteLead(${lead.id})">🗑️ Usuń</a></li>
+              <li><a class="dropdown-item" href="javascript:void(0)" onclick="openNotesModal(${lead.id})">Notatki / email</a></li>
+              <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="deleteLead(${lead.id})">Usuń</a></li>
             </ul>
           </div>
         </div>
@@ -1072,6 +1183,7 @@ async function doSearch() {
   const city          = document.getElementById('searchCity').value.trim();
   const max_results   = document.getElementById('searchMax').value;
   const no_website    = document.getElementById('searchNoWebsite').checked;
+  const autopilot     = document.getElementById('searchAutopilot').checked;
 
   if (!business_type || !city) { showToast('Podaj typ biznesu i miasto', 'warning'); return; }
 
@@ -1080,11 +1192,11 @@ async function doSearch() {
   document.getElementById('loadingOverlay').classList.remove('d-none');
 
   try {
-    const res  = await fetch('/api/search', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({business_type, city, max_results, no_website}) });
+    const res  = await fetch('/api/search', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({business_type, city, max_results, no_website, autopilot}) });
     const data = await res.json();
     if (data.error) { showToast('Błąd: ' + data.error, 'danger'); }
     else {
-      showToast(`✅ Dodano ${data.added} nowych leadów (${data.skipped} duplikatów pominięto)`, 'success');
+      showToast(`Dodano ${data.added} nowych leadów (${data.skipped} duplikatów pominięto)`, 'success');
       await refreshStats();
       location.reload();
     }
@@ -1102,6 +1214,7 @@ async function addManualLead() {
     city:          document.getElementById('manualCity').value.trim(),
     notes:         document.getElementById('manualNotes').value.trim(),
     profile_id:    +document.getElementById('manualProfile').value || null,
+    autopilot:     document.getElementById('manualAutopilot').checked,
   };
   if (!body.business_name) { showToast('Podaj nazwę firmy', 'warning'); return; }
 
@@ -1113,7 +1226,7 @@ async function addManualLead() {
     const res  = await fetch('/api/lead/manual', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
     const data = await res.json();
     if (data.error) { showToast('Błąd: ' + data.error, 'danger'); }
-    else { showToast('✅ Dodano leada' + (data.email ? ` (${data.email})` : ''), 'success'); location.reload(); }
+    else { showToast('Dodano leada' + (data.email ? ` (${data.email})` : ''), 'success'); location.reload(); }
   } catch(e) { showToast('Błąd połączenia: ' + e.message, 'danger'); }
   finally    { document.getElementById('loadingOverlay').classList.add('d-none'); }
 }
@@ -1129,10 +1242,11 @@ async function generateFollowup() {
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     const subj = document.getElementById('emailSubject');
-    if (subj.textContent && !subj.textContent.startsWith('Re:')) subj.textContent = 'Re: ' + subj.textContent;
+    if (data.subject) subj.textContent = data.subject;
+    else if (subj.textContent && !subj.textContent.startsWith('Re:')) subj.textContent = 'Re: ' + subj.textContent;
     ta.value = data.followup;
     followupMode = true;
-    showToast(`✉️ Follow-up nr ${data.number}. Wyślij jako odpowiedź w wątku pierwszego maila`, 'success');
+    showToast(`Follow-up nr ${data.number}. Wyślij jako odpowiedź w wątku pierwszego maila`, 'success');
   } catch(e) { ta.value = prev; showToast('Błąd: ' + e.message, 'danger'); }
 }
 
@@ -1146,9 +1260,11 @@ async function openEmailModal(leadId, myFeedback = '', forceRegen = false) {
   currentLeadId = leadId;
   followupMode = false;
   document.getElementById('emailForBusiness').textContent = (leadsById[leadId] || {}).business_name || '';
+  document.getElementById('emailLoadingState').innerHTML = EMAIL_LOADING_HTML;
   document.getElementById('emailLoadingState').classList.remove('d-none');
   document.getElementById('emailContent').classList.add('d-none');
   document.getElementById('emailFooter').style.setProperty('display','none','important');
+  document.getElementById('emailHistory').style.display = 'none';
 
   new bootstrap.Modal(document.getElementById('emailModal')).show();
 
@@ -1174,7 +1290,7 @@ async function openEmailModal(leadId, myFeedback = '', forceRegen = false) {
       if (data.error) throw new Error(data.error);
       emailText = data.email;
     } catch(e) {
-      document.getElementById('emailLoadingState').innerHTML = `<div style="color:var(--danger);padding:2rem;text-align:center">❌ ${escHtml(e.message)}</div>`;
+      document.getElementById('emailLoadingState').innerHTML = `<div style="color:var(--danger);padding:2rem;text-align:center">[ERR] ${escHtml(e.message)}</div>`;
       return;
     }
   }
@@ -1192,6 +1308,7 @@ async function openEmailModal(leadId, myFeedback = '', forceRegen = false) {
   document.getElementById('emailLoadingState').classList.add('d-none');
   document.getElementById('emailContent').classList.remove('d-none');
   document.getElementById('emailFooter').style.removeProperty('display');
+  loadEmailHistory(leadId);
 }
 
 // "?&body=" działa i na iOS/macOS, i na Androidzie
@@ -1228,8 +1345,10 @@ let profiles = [];
 
 async function loadProfiles() {
   profiles = await (await fetch('/api/profiles')).json();
+  const operator = ((profiles[0] || {}).name || 'operator').split(' ')[0].toLowerCase();
+  document.getElementById('tbUser').textContent = operator;
   const opts = profiles.map(p => `<option value="${p.id}">${escHtml(p.name)}</option>`).join('');
-  for (const id of ['senderSelect', 'manualProfile', 'notesProfile']) {
+  for (const id of ['senderSelect', 'manualProfile', 'notesProfile', 'campProfile']) {
     const el = document.getElementById(id);
     if (el) { const v = el.value; el.innerHTML = opts; if (v) el.value = v; }
   }
@@ -1254,6 +1373,11 @@ function renderProfilesList() {
         <div class="col-md-4"><label class="form-label">Telefon</label><input class="form-control" id="pf-phone-${p.id}" value="${escHtml(p.phone || '')}" placeholder="+48 ..."></div>
         <div class="col-12"><label class="form-label">Doświadczenie</label><input class="form-control" id="pf-experience-${p.id}" value="${escHtml(p.experience || '')}" placeholder="np. 3 lata komercyjnego doświadczenia jako programista"></div>
         <div class="col-12"><label class="form-label">Realizacje (imienne, po przecinku)</label><textarea class="form-control" id="pf-realizations-${p.id}" rows="2" placeholder="np. strona urzędu X, sklep Y">${escHtml(p.realizations || '')}</textarea></div>
+        <div class="col-md-4"><label class="form-label">Skrzynka (adres e-mail)</label><input class="form-control" id="pf-mailbox_address-${p.id}" value="${escHtml(p.mailbox_address || '')}" placeholder="np. jan@gmail.com"></div>
+        <div class="col-md-4"><label class="form-label">Hasło aplikacji</label><input class="form-control" type="password" id="pf-mailbox_password-${p.id}" value="" placeholder="${p.has_mailbox_password ? 'zapisane, wpisz aby zmienić' : 'hasło aplikacji, nie do konta'}"></div>
+        <div class="col-md-4" style="display:flex;align-items:flex-end"><button class="btn btn-ghost btn-sm" onclick="testMailbox(${p.id})" style="width:100%"><i class="bi bi-plug me-1"></i> Zapisz i testuj skrzynkę</button></div>
+        <div class="col-md-4"><label class="form-label">Host SMTP</label><input class="form-control" id="pf-smtp_host-${p.id}" value="${escHtml(p.smtp_host || '')}" placeholder="puste = domyślny (Gmail, WP, Onet...)"></div>
+        <div class="col-md-4"><label class="form-label">Port SMTP</label><input class="form-control" id="pf-smtp_port-${p.id}" value="${escHtml(p.smtp_port || '')}" placeholder="587 lub 465"></div>
       </div>
       <div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end">
         <button class="btn btn-ghost btn-sm" onclick="deleteProfile(${p.id})"><i class="bi bi-trash me-1"></i> Usuń</button>
@@ -1264,10 +1388,10 @@ function renderProfilesList() {
 
 async function saveProfile(id) {
   const body = {};
-  for (const f of ['name', 'domain', 'phone', 'experience', 'realizations'])
+  for (const f of ['name', 'domain', 'phone', 'experience', 'realizations', 'mailbox_address', 'mailbox_password', 'smtp_host', 'smtp_port'])
     body[f] = document.getElementById(`pf-${f}-${id}`).value;
   await fetch(`/api/profiles/${id}/update`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
-  showToast('💾 Zapisano profil', 'success');
+  showToast('Zapisano profil', 'success');
   loadProfiles();
 }
 
@@ -1298,7 +1422,7 @@ function copyEmail() {
   const subject = document.getElementById('emailSubject').textContent;
   const body    = document.getElementById('emailBody').value;
   navigator.clipboard.writeText((subject ? 'Temat: ' + subject + '\n\n' : '') + body)
-    .then(() => showToast('📋 Skopiowano do schowka!', 'success'));
+    .then(() => showToast('Skopiowano do schowka!', 'success'));
 }
 
 async function markEmailed() {
@@ -1310,9 +1434,284 @@ async function markEmailed() {
   const payload  = followupMode ? {status:'emailed'} : {status:'emailed', generated_email: full};
   await fetch(`/api/lead/${currentLeadId}/update`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
   bootstrap.Modal.getInstance(document.getElementById('emailModal')).hide();
-  showToast('📤 Oznaczono jako wysłany!', 'success');
+  showToast('Oznaczono jako wysłany!', 'success');
   await refreshStats();
   loadLeads();
+}
+
+// ── Autopilot ──
+let autopilotInfo = null;
+const KIND_LABEL = { initial: 'pierwszy mail', followup: 'follow-up' };
+const MSG_STATUS_LABEL = { queued: 'w kolejce', sent: 'wysłano', failed: 'błąd', cancelled: 'wycofano' };
+
+function inlineDet(text) {
+  return `<span class="det" style="display:inline;padding:0">${escHtml(text)}</span>`;
+}
+
+async function loadAutopilot() {
+  try {
+    autopilotInfo = await (await fetch('/api/autopilot')).json();
+  } catch (e) { return; }
+  const a = autopilotInfo;
+  const lines = [
+    `&gt; silnik: <b class="${a.started ? 'st-ok' : 'st-error'}">${a.started ? 'PRACUJE' : 'STOI'}</b>${a.busy_with ? `<span class="det">${escHtml(a.busy_with)}</span>` : ''}`,
+    `&gt; auto-wysyłka: <b class="${a.auto_send ? 'st-ok' : 'st-idle'}">${a.auto_send ? 'WŁĄCZONA' : 'WYŁĄCZONA'}</b>${a.send_note ? `<span class="det">${escHtml(a.send_note)}</span>` : ''}`,
+    `&gt; dziś wysłano: <b>${a.sent_today}/${a.settings.daily_limit}</b>`,
+    `&gt; koszt AI: dziś <b>$${a.spend.today_usd.toFixed(2)}</b> (${a.spend.today_calls} wywołań), miesiąc <b>$${a.spend.month_usd.toFixed(2)}</b>`,
+    `&gt; kolejka: <b>${a.queued}</b>, do napisania: <b>${a.awaiting_preparation}</b>, kampanie: <b>${a.campaigns_active}</b>`,
+    ...a.mailboxes.map(m => `&gt; ${escHtml(m.profile)}: ${inlineDet(m.state)}`),
+  ];
+  document.getElementById('autopilotStatus').innerHTML = lines.join('<br>');
+  const btn = document.getElementById('autoSendBtn');
+  btn.textContent = a.auto_send ? 'Auto-wysyłka: WŁ' : 'Auto-wysyłka: WYŁ';
+  btn.classList.toggle('is-on', a.auto_send);
+  const logLines = (a.log || []).slice(0, 8).map(l => `&gt; ${inlineDet(l.at)} ${escHtml(l.text)}`);
+  document.getElementById('workerLog').innerHTML = logLines.join('<br>') || '&gt; autopilot: cisza';
+}
+
+async function toggleAutoSend() {
+  const turnOn = !(autopilotInfo && autopilotInfo.auto_send);
+  if (turnOn && !confirm('Włączyć auto-wysyłkę? Maile z kolejki zaczną wychodzić same, w oknie wysyłki i z dziennym limitem.')) return;
+  await fetch('/api/autopilot/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ auto_send: turnOn }) });
+  showToast(turnOn ? 'Auto-wysyłka włączona' : 'Auto-wysyłka wyłączona', turnOn ? 'success' : 'warning');
+  loadAutopilot();
+}
+
+async function runTickNow() {
+  const res = await (await fetch('/api/autopilot/tick', { method:'POST' })).json();
+  showToast(res.started ? 'Cykl autopilota uruchomiony' : 'Autopilot właśnie pracuje, poczekaj na koniec cyklu', res.started ? 'success' : 'warning');
+  setTimeout(loadAutopilot, 1500);
+}
+
+function openAutopilotSettings() {
+  const s = (autopilotInfo || {}).settings || {};
+  document.getElementById('setAutoSend').checked  = s.auto_send === 'on';
+  document.getElementById('setDailyLimit').value  = s.daily_limit || 20;
+  document.getElementById('setGap').value         = s.send_gap_minutes || 6;
+  document.getElementById('setFromHour').value    = s.send_from_hour || 9;
+  document.getElementById('setToHour').value      = s.send_to_hour || 17;
+  document.getElementById('setWeekdays').checked  = s.weekdays_only !== '0';
+  new bootstrap.Modal(document.getElementById('autopilotSettingsModal')).show();
+}
+
+async function saveAutopilotSettings() {
+  const body = {
+    auto_send:        document.getElementById('setAutoSend').checked,
+    daily_limit:      document.getElementById('setDailyLimit').value,
+    send_gap_minutes: document.getElementById('setGap').value,
+    send_from_hour:   document.getElementById('setFromHour').value,
+    send_to_hour:     document.getElementById('setToHour').value,
+    weekdays_only:    document.getElementById('setWeekdays').checked,
+  };
+  const res  = await fetch('/api/autopilot/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const data = await res.json();
+  if (data.error) { showToast('Błąd: ' + data.error, 'danger'); return; }
+  bootstrap.Modal.getInstance(document.getElementById('autopilotSettingsModal')).hide();
+  showToast('Ustawienia zapisane', 'success');
+  loadAutopilot();
+}
+
+async function setLeadAutopilot(leadId, enabled) {
+  await fetch(`/api/lead/${leadId}/autopilot`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ enabled }) });
+  showToast(enabled ? 'Lead oddany autopilotowi' : 'Lead zabrany autopilotowi', 'success');
+  loadLeads();
+  loadAutopilot();
+}
+
+async function adoptExistingLeads() {
+  if (!confirm('Oddać autopilotowi wszystkie nowe leady z adresem e-mail? Każdy dostanie analizę i mail w kolejce (koszt API).')) return;
+  const data = await (await fetch('/api/autopilot/adopt', { method:'POST' })).json();
+  showToast(`Oddano ${data.adopted} leadów`, 'success');
+  loadLeads();
+  loadAutopilot();
+}
+
+// ── Kampanie ──
+async function openCampaigns() {
+  await loadCampaigns();
+  new bootstrap.Modal(document.getElementById('campaignsModal')).show();
+}
+
+async function loadCampaigns() {
+  const campaigns = await (await fetch('/api/campaigns')).json();
+  const box = document.getElementById('campaignsList');
+  if (!campaigns.length) { box.innerHTML = '<div style="color:var(--muted)">Brak kampanii. Dodaj pierwszą poniżej.</div>'; return; }
+  box.innerHTML = campaigns.map(c => {
+    const pct   = Math.min(100, Math.round(100 * c.found_count / Math.max(1, c.target_count)));
+    const state = c.active ? '<span class="ap-kind">aktywna</span>' : '<span class="ap-kind" style="color:var(--muted)">zatrzymana</span>';
+    const err   = c.last_error ? `<div class="lead-error" style="max-width:none">${escHtml(c.last_error)}</div>` : '';
+    const meta  = [
+      `${c.found_count}/${c.target_count} firm`,
+      c.no_website ? 'tylko bez strony' : '',
+      c.last_run_at ? 'ostatnio ' + c.last_run_at.slice(0, 16).replace('T', ' ') : '',
+    ].filter(Boolean).join(', ');
+    return `<div class="ap-row">
+      <div class="ap-row-head">
+        <b>${escHtml(c.business_type)} / ${escHtml(c.city)}</b> ${state}
+        <span class="ap-meta">${escHtml(meta)}</span>
+        <span class="spacer"></span>
+        <button class="btn btn-ghost btn-sm" onclick="toggleCampaign(${c.id}, ${c.active ? 'false' : 'true'})">${c.active ? 'Zatrzymaj' : 'Wznów'}</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteCampaign(${c.id})" title="Usuń kampanię"><i class="bi bi-trash"></i></button>
+      </div>
+      <div class="ap-bar"><span style="width:${pct}%"></span></div>
+      ${err}
+    </div>`;
+  }).join('');
+}
+
+async function createCampaign() {
+  const body = {
+    business_type: document.getElementById('campType').value.trim(),
+    city:          document.getElementById('campCity').value.trim(),
+    target_count:  document.getElementById('campTarget').value,
+    no_website:    document.getElementById('campNoWebsite').checked,
+    profile_id:    +document.getElementById('campProfile').value || null,
+  };
+  if (!body.business_type || !body.city) { showToast('Podaj typ biznesu i miasto', 'warning'); return; }
+  const data = await (await fetch('/api/campaigns', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })).json();
+  if (data.error) { showToast('Błąd: ' + data.error, 'danger'); return; }
+  document.getElementById('campType').value = '';
+  document.getElementById('campCity').value = '';
+  showToast('Kampania dodana, autopilot ruszy w najbliższym cyklu', 'success');
+  loadCampaigns();
+  loadAutopilot();
+}
+
+async function toggleCampaign(id, active) {
+  await fetch(`/api/campaigns/${id}/update`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ active }) });
+  loadCampaigns();
+  loadAutopilot();
+}
+
+async function deleteCampaign(id) {
+  if (!confirm('Usunąć kampanię? Znalezione leady zostają w bazie.')) return;
+  await fetch(`/api/campaigns/${id}`, { method:'DELETE' });
+  loadCampaigns();
+  loadAutopilot();
+}
+
+// ── Kolejka wysyłki ──
+async function openQueue() {
+  await loadQueue();
+  new bootstrap.Modal(document.getElementById('queueModal')).show();
+}
+
+async function loadQueue() {
+  const items = await (await fetch('/api/queue')).json();
+  const box   = document.getElementById('queueList');
+  document.getElementById('queueNote').textContent = items.length ? `${items.length} wiadomości. Kliknij wiersz, aby podejrzeć i poprawić treść.` : '';
+  if (!items.length) {
+    box.innerHTML = '<div style="color:var(--muted)">Kolejka pusta. Autopilot dopisze maile z kampanii, albo dodaj coś przyciskiem „Do kolejki” w oknie maila.</div>';
+    return;
+  }
+  box.innerHTML = items.map(m => {
+    const kindLabel = m.status === 'failed' ? 'błąd' : (KIND_LABEL[m.kind] || m.kind);
+    const err = m.error ? `<div class="lead-error" style="max-width:none">${escHtml(m.error)}</div>` : '';
+    const requeueBtn = m.status === 'failed'
+      ? `<button class="btn btn-ghost btn-sm" onclick="requeueMessage(${m.id})"><i class="bi bi-arrow-repeat me-1"></i> Do kolejki ponownie</button>`
+      : '';
+    return `<div class="ap-row" id="q-${m.id}">
+      <div class="ap-row-head" style="cursor:pointer" onclick="document.getElementById('q-${m.id}').classList.toggle('open')">
+        <span class="ap-kind ${m.status === 'failed' ? 'failed' : ''}">${kindLabel}</span>
+        <b>${escHtml(m.business_name)}</b>
+        <span class="ap-meta">${escHtml(m.email)} · ${escHtml(m.city || '')}</span>
+        <span class="spacer"></span>
+        <span class="ap-meta">${escHtml(m.subject)}</span>
+      </div>
+      ${err}
+      <div class="ap-body">
+        <input class="form-control mb-2" id="qs-${m.id}" value="${escHtml(m.subject)}">
+        <textarea class="form-control" id="qb-${m.id}" rows="10">${escHtml(m.body)}</textarea>
+        <div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="cancelQueued(${m.id})"><i class="bi bi-x-lg me-1"></i> Wycofaj</button>
+          <button class="btn btn-ghost btn-sm" onclick="saveQueued(${m.id})"><i class="bi bi-check2 me-1"></i> Zapisz poprawki</button>
+          ${requeueBtn}
+          <button class="btn btn-primary btn-sm" onclick="sendQueuedNow(${m.id})"><i class="bi bi-send me-1"></i> Wyślij teraz</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function saveQueued(id, silent = false) {
+  const body = { subject: document.getElementById(`qs-${id}`).value, body: document.getElementById(`qb-${id}`).value };
+  const data = await (await fetch(`/api/messages/${id}/update`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })).json();
+  if (data.error) { showToast('Błąd: ' + data.error, 'danger'); return false; }
+  if (!silent) { showToast('Poprawki zapisane', 'success'); loadQueue(); }
+  return true;
+}
+
+async function sendQueuedNow(id) {
+  const saved = await saveQueued(id, true);
+  if (!saved) return;
+  const data = await (await fetch(`/api/messages/${id}/send`, { method:'POST' })).json();
+  if (data.error) { showToast('Nie wysłano: ' + data.error, 'danger'); loadQueue(); return; }
+  showToast('Wysłano', 'success');
+  loadQueue();
+  loadAutopilot();
+  refreshStats();
+  loadLeads();
+}
+
+async function cancelQueued(id) {
+  await fetch(`/api/messages/${id}/cancel`, { method:'POST' });
+  showToast('Wycofano z kolejki', 'warning');
+  loadQueue();
+  loadAutopilot();
+  refreshStats();
+  loadLeads();
+}
+
+async function requeueMessage(id) {
+  await fetch(`/api/messages/${id}/requeue`, { method:'POST' });
+  showToast('Wiadomość wróciła do kolejki', 'success');
+  loadQueue();
+  loadAutopilot();
+}
+
+// ── Wysyłka z okna maila ──
+async function queueCurrentEmail(sendNow) {
+  if (!currentLeadId) return;
+  if (!currentLeadEmail) { showToast('Ten lead nie ma adresu e-mail, uzupełnij go w notatkach', 'warning'); return; }
+  if (sendNow && !confirm(`Wysłać teraz do ${currentLeadEmail}?`)) return;
+  const body = {
+    subject:  document.getElementById('emailSubject').textContent,
+    body:     document.getElementById('emailBody').value,
+    kind:     followupMode ? 'followup' : 'initial',
+    send_now: sendNow,
+    profile_id: +((document.getElementById('senderSelect') || {}).value) || null,
+  };
+  const data = await (await fetch(`/api/lead/${currentLeadId}/queue`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })).json();
+  if (data.error) { showToast((sendNow ? 'Nie wysłano: ' : 'Błąd: ') + data.error, 'danger'); return; }
+  bootstrap.Modal.getInstance(document.getElementById('emailModal')).hide();
+  showToast(sendNow ? 'Wysłano ze skrzynki profilu' : 'Dodano do kolejki wysyłki', 'success');
+  await refreshStats();
+  loadLeads();
+  loadAutopilot();
+}
+
+async function loadEmailHistory(leadId) {
+  const box = document.getElementById('emailHistory');
+  try {
+    const items = await (await fetch(`/api/lead/${leadId}/messages`)).json();
+    if (!items.length) { box.style.display = 'none'; return; }
+    const rows = items.map(m => {
+      const when = (m.sent_at || m.created_at || '').slice(0, 16).replace('T', ' ');
+      return `<div><b>${KIND_LABEL[m.kind] || m.kind}</b> · ${MSG_STATUS_LABEL[m.status] || m.status} · ${when}</div>`;
+    });
+    box.innerHTML = '<div style="letter-spacing:0.16em;text-transform:uppercase;font-size:9.5px;margin-bottom:4px">Historia wątku</div>' + rows.join('');
+    box.style.display = '';
+  } catch (e) { box.style.display = 'none'; }
+}
+
+async function testMailbox(id) {
+  await saveProfile(id);
+  showToast('Testuję połączenie ze skrzynką...', 'success');
+  const data = await (await fetch(`/api/profiles/${id}/mailbox-test`, { method:'POST' })).json();
+  if (data.error) { showToast('Błąd: ' + data.error, 'danger'); return; }
+  const ok = data.smtp === 'ok';
+  showToast(ok ? 'Skrzynka działa, wysyłka gotowa' : 'SMTP: ' + data.smtp, ok ? 'success' : 'danger');
+  loadAutopilot();
 }
 
 // ── Analyze modal ──
@@ -1363,7 +1762,7 @@ async function runAnalysis(leadId) {
     document.getElementById('analyzeLoadingState').classList.add('d-none');
     const err = document.getElementById('analyzeError');
     err.classList.remove('d-none');
-    err.textContent = '❌ Błąd: ' + e.message;
+    err.textContent = '[ERR] ' + e.message;
   }
 }
 
@@ -1375,16 +1774,11 @@ async function showAnalysisResult(analysis, websiteData, scores, fromCache) {
   const SCORE_LABELS = { design: 'Design', mobile: 'Mobile', seo: 'SEO', cta: 'CTA', speed: 'Szybkość' };
   const scoreEntries = Object.entries(scores || {}).filter(([, v]) => v != null);
   if (scoreEntries.length) {
-    scoresEl.style.display = 'grid';
-    scoresEl.style.gridTemplateColumns = 'repeat(auto-fill, minmax(80px, 1fr))';
-    scoresEl.style.gap = '6px';
+    scoresEl.style.display = '';
+    scoresEl.className = 'score-grid';
     scoresEl.innerHTML = scoreEntries.map(([k, v]) => {
-      const color = v >= 7 ? '#22c55e' : v >= 5 ? '#f59e0b' : '#ef4444';
-      const bg    = v >= 7 ? '#f0fdf4' : v >= 5 ? '#fffbeb' : '#fef2f2';
-      return `<div style="background:${bg};border:1.5px solid ${color};border-radius:8px;padding:6px 8px;text-align:center">
-        <div style="font-size:18px;font-weight:800;color:${color};line-height:1">${v}</div>
-        <div style="font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-top:2px">${SCORE_LABELS[k] || k}</div>
-      </div>`;
+      const level = v >= 7 ? 'score-hi' : v >= 5 ? 'score-mid' : 'score-lo';
+      return `<div class="score ${level}"><b>${v}</b><span>${SCORE_LABELS[k] || k}</span></div>`;
     }).join('');
   } else {
     scoresEl.style.display = 'none';
@@ -1392,18 +1786,18 @@ async function showAnalysisResult(analysis, websiteData, scores, fromCache) {
 
   const wd     = websiteData || {};
   const checks = [
-    { label:'🔒 SSL',             ok: wd.has_ssl },
-    { label:'📱 Responsywna',      ok: wd.has_mobile_viewport },
-    { label:'🔍 Meta desc.',       ok: !!wd.meta_description },
-    { label:'👆 CTA',              ok: wd.has_cta },
-    { label:'📬 Formularz',        ok: wd.has_contact_form },
-    { label:'📲 Social media',     ok: wd.has_social },
-    { label:'🏗️ Nowoczesny układ', ok: !wd.uses_tables_layout },
-    { label:'📊 Analityki OK',     ok: !wd.has_dead_analytics },
+    { label:'SSL',             ok: wd.has_ssl },
+    { label:'Responsywna',      ok: wd.has_mobile_viewport },
+    { label:'Meta desc.',       ok: !!wd.meta_description },
+    { label:'CTA',              ok: wd.has_cta },
+    { label:'Formularz',        ok: wd.has_contact_form },
+    { label:'Social media',     ok: wd.has_social },
+    { label:'Nowoczesny układ', ok: !wd.uses_tables_layout },
+    { label:'Analityki OK',     ok: !wd.has_dead_analytics },
   ];
   if (wd.pagespeed_score != null) {
     const s = wd.pagespeed_score;
-    checks.push({ label: `⚡ PageSpeed ${s}/100`, ok: s >= 80, warn: s >= 60 });
+    checks.push({ label: `PageSpeed ${s}/100`, ok: s >= 80, warn: s >= 60 });
   }
   document.getElementById('analyzeChecks').innerHTML = checks.map(c => {
     const cls = c.ok ? 'check-ok' : (c.warn ? 'check-warn' : 'check-bad');
@@ -1520,7 +1914,7 @@ async function saveNotes() {
   const profile_id = +document.getElementById('notesProfile').value || null;
   await fetch(`/api/lead/${currentLeadId}/update`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({notes, email, profile_id}) });
   bootstrap.Modal.getInstance(document.getElementById('notesModal')).hide();
-  showToast('💾 Zapisano', 'success');
+  showToast('Zapisano', 'success');
   loadLeads();
 }
 
@@ -1540,17 +1934,22 @@ async function refreshStats() {
   document.getElementById('count-replied').textContent   = s.replied;
   document.getElementById('count-converted').textContent = s.converted;
   document.getElementById('count-skipped').textContent   = s.skipped;
+  document.getElementById('count-ready').textContent     = s.ready;
+  document.getElementById('count-failed').textContent    = s.failed;
   document.getElementById('metric-total').textContent     = s.total;
   document.getElementById('metric-converted').textContent = s.converted;
+  document.getElementById('metric-ready').textContent     = s.ready;
+  document.getElementById('metric-emailed').textContent   = s.emailed;
 }
 
 // ── Toasts ──
+const TOAST_TAG = { success: '[OK]', warning: '[!]', danger: '[ERR]' };
 function showToast(message, type = 'success') {
   const container = document.getElementById('toastContainer');
   const id = 'toast-' + Date.now();
   container.insertAdjacentHTML('beforeend', `
     <div id="${id}" class="app-toast toast-${type}">
-      <div class="toast-dot"></div>
+      <span class="toast-tag">${TOAST_TAG[type] || '[i]'}</span>
       <span>${escHtml(message)}</span>
       <button class="toast-close" onclick="document.getElementById('${id}').remove()">×</button>
     </div>
@@ -1586,7 +1985,7 @@ async function refreshHealth(probe = false) {
       healthLine('google maps', h.google),
       healthLine('silnik ai', h.ai),
     ].join('<br>');
-    if (probe) showToast(h.google.state === 'ok' ? '✅ Google Maps API działa' : '❌ ' + h.google.detail,
+    if (probe) showToast(h.google.state === 'ok' ? 'Google Maps API działa' : '' + h.google.detail,
                          h.google.state === 'ok' ? 'success' : 'danger');
   } catch (e) {
     log.innerHTML = `&gt; serwer: <b class="st-error">BRAK ODPOWIEDZI</b><span class="det">${escHtml(e.message)}</span>`;
@@ -1598,12 +1997,56 @@ function probeApis() { refreshHealth(true); }
 
 refreshHealth();
 loadProfiles();
+loadAutopilot();
 setInterval(() => refreshHealth(), 60000);
+setInterval(() => loadAutopilot(), 30000);
 
 // ── Zegar operacyjny ──
 setInterval(() => {
   document.getElementById('clock').textContent = new Date().toLocaleTimeString('pl-PL');
 }, 1000);
+
+// ── Pasek sesji, spinnery ASCII, skróty klawiszowe ──
+const bootedAt = Date.now();
+document.getElementById('tbHost').textContent = ['localhost', '127.0.0.1'].includes(location.hostname) ? 'local' : location.hostname;
+document.getElementById('tbDate').textContent = new Date().toLocaleDateString('pl-PL', { year: 'numeric', month: '2-digit', day: '2-digit' });
+setInterval(() => {
+  const total = Math.floor((Date.now() - bootedAt) / 1000);
+  const parts = [Math.floor(total / 3600), Math.floor(total % 3600 / 60), total % 60];
+  document.getElementById('uptime').textContent = parts.map(n => String(n).padStart(2, '0')).join(':');
+}, 1000);
+
+const SPIN_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+let spinFrame = 0;
+setInterval(() => {
+  spinFrame++;
+  const glyph = SPIN_FRAMES[spinFrame % SPIN_FRAMES.length];
+  document.querySelectorAll('.spin').forEach(el => { el.textContent = glyph; });
+  const cells = 22, width = 6, head = spinFrame % (cells + width);
+  let bar = '';
+  for (let i = 0; i < cells; i++) bar += (i >= head - width && i < head) ? '█' : '░';
+  document.querySelectorAll('.ascii-bar').forEach(el => { el.textContent = '[' + bar + ']'; });
+}, 90);
+
+function hotkeysBlocked() {
+  const tag = (document.activeElement || {}).tagName;
+  return ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag) || !!document.querySelector('.modal.show');
+}
+const HOTKEYS = {
+  s: () => bootstrap.Modal.getOrCreateInstance(document.getElementById('searchModal')).show(),
+  n: () => bootstrap.Modal.getOrCreateInstance(document.getElementById('manualModal')).show(),
+  p: () => bootstrap.Modal.getOrCreateInstance(document.getElementById('profilesModal')).show(),
+  q: openQueue,
+  k: openCampaigns,
+  u: openAutopilotSettings,
+  a: toggleAutoSend,
+};
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || hotkeysBlocked()) return;
+  if (e.key === '/') { e.preventDefault(); document.getElementById('searchInput').focus(); return; }
+  const action = HOTKEYS[e.key.toLowerCase()];
+  if (action) { e.preventDefault(); action(); }
+});
 
 // Init
 loadLeads();
