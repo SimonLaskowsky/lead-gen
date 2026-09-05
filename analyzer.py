@@ -29,8 +29,21 @@ STYLE_RULES = """
 """
 
 
+ANALYSIS_MODEL = os.getenv("ANALYSIS_MODEL", "claude-opus-5")
+EMAIL_MODEL = os.getenv("EMAIL_MODEL", "claude-opus-5")
+
+on_usage = None
+
+
 def _client():
     return anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+
+def _record(message, purpose: str) -> None:
+    usage = getattr(message, "usage", None)
+    if on_usage is None or usage is None:
+        return
+    on_usage(purpose, getattr(message, "model", ""), usage.input_tokens, usage.output_tokens)
 
 
 def _text(message) -> str:
@@ -218,11 +231,12 @@ Potem pusta linia i pełna analiza."""
 
     # max_tokens z zapasem: na Opusie 5 tokeny myslenia wliczaja sie w limit
     message = client.messages.create(
-        model="claude-opus-5",
+        model=ANALYSIS_MODEL,
         max_tokens=16000,
         output_config={"effort": "medium"},
         messages=[{"role": "user", "content": content}],
     )
+    _record(message, "analiza")
 
     return _parse_analysis(_text(message))
 
@@ -375,11 +389,12 @@ Zasady:
 - NIE dodawaj P.S., CTA w punkcie 5 jest wystarczające
 """
         message = client.messages.create(
-            model="claude-opus-5",
+            model=EMAIL_MODEL,
             max_tokens=8000,
             output_config={"effort": "medium"},
             messages=[{"role": "user", "content": prompt}],
         )
+        _record(message, "mail")
         return _text(message)
 
     if not has_website:
@@ -544,11 +559,12 @@ Podpisz maila dokladnie tak:
 {sig}"""
 
     message = client.messages.create(
-        model="claude-opus-5",
+        model=EMAIL_MODEL,
         max_tokens=8000,
         output_config={"effort": "medium"},
         messages=[{"role": "user", "content": prompt}],
     )
+    _record(message, "mail")
 
     return _text(message)
 
@@ -587,9 +603,10 @@ def generate_followup(lead: dict, followup_number: int = 1) -> str:
 - Podpisz sie DOKLADNIE tak samo jak w pierwszym mailu, te same linie podpisu.
 """
     message = client.messages.create(
-        model="claude-opus-5",
+        model=EMAIL_MODEL,
         max_tokens=4000,
         output_config={"effort": "medium"},
         messages=[{"role": "user", "content": prompt}],
     )
+    _record(message, "follow-up")
     return _text(message)

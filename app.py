@@ -4,8 +4,10 @@ from datetime import datetime
 import json
 import os
 import db
+import mailer
+import pipeline
 import scraper
-import analyzer
+import worker
 
 from pathlib import Path
 load_dotenv(Path(__file__).parent / ".env")
@@ -48,7 +50,6 @@ def get_leads():
         business_type=business_type or None,
         search=search or None,
     )
-    # Strip binary fields before JSON serialization
     for lead in leads:
         lead.pop("mockup_image", None)
     return jsonify(leads)
@@ -59,23 +60,10 @@ def get_stats():
     return jsonify(db.get_stats())
 
 
-# ponytail: stan ostatniego wywołania trzymany w pamięci procesu — znika po
-# restarcie i nie jest współdzielony między workerami. Wystarczy na panel LOG.
-LAST_CALL = {"google": None, "ai": None}
-
-
-def _mark(service, ok, detail=""):
-    LAST_CALL[service] = {
-        "ok": ok,
-        "detail": detail,
-        "at": datetime.now().strftime("%H:%M:%S"),
-    }
-
-
 def _service_status(service, env_key):
     if not os.getenv(env_key):
         return {"state": "no_key", "detail": f"brak {env_key}"}
-    last = LAST_CALL[service]
+    last = pipeline.LAST_CALL[service]
     if not last:
         return {"state": "idle", "detail": "klucz jest, brak wywołań"}
     return {
@@ -96,12 +84,12 @@ def health():
 
 @app.route("/api/health/probe", methods=["POST"])
 def health_probe():
-    """Prawdziwe zapytanie do Google Maps — płatne, więc tylko na żądanie."""
+    """Prawdziwe zapytanie do Google Maps, płatne, więc tylko na żądanie."""
     try:
         found = scraper.search_leads("kawiarnia", "Kraków", 1)
-        _mark("google", True, f"test ok, {len(found)} wynik(ów)")
+        pipeline.mark("google", True, f"test ok, {len(found['leads'])} wynik(ów)")
     except Exception as e:
-        _mark("google", False, str(e)[:140])
+        pipeline.mark("google", False, str(e)[:140])
     return health()
 
 
@@ -112,62 +100,25 @@ def search():
     city = data.get("city", "").strip()
     max_results = min(int(data.get("max_results", 10)), 60)
     no_website = bool(data.get("no_website"))
+    autopilot = bool(data.get("autopilot"))
 
     if not business_type or not city:
         return jsonify({"error": "Podaj typ biznesu i miasto"}), 400
 
     try:
-        leads = scraper.search_leads(business_type, city, max_results, no_website=no_website)
-        _mark("google", True, f"{len(leads)} wyników: {business_type}, {city}")
+        result = pipeline.import_leads(business_type, city, max_results, no_website=no_website, autopilot=autopilot)
     except ValueError as e:
-        _mark("google", False, str(e)[:140])
         return jsonify({"error": str(e)}), 500
     except Exception as e:
-        _mark("google", False, str(e)[:140])
         return jsonify({"error": f"Błąd Google Maps API: {e}"}), 500
-
-    added = 0
-    skipped = 0
-    results = []
-
-    for lead in leads:
-        # Duplikat sprawdzamy PRZED scrapowaniem, żeby nie palić minut na
-        # PageSpeed i szukanie maila dla firmy, którą baza i tak odrzuci
-        if db.lead_exists(lead["business_name"], city):
-            skipped += 1
-            continue
-
-        website_data = None
-        if lead.get("website_url"):
-            website_data = scraper.scrape_website(lead["website_url"])
-            email = scraper.find_contact_email(lead["website_url"], website_data)
-        else:
-            email = ""
-
-        lead_id = db.add_lead(
-            business_name=lead["business_name"],
-            email=email,
-            phone=lead.get("phone", ""),
-            website_url=lead.get("website_url", ""),
-            address=lead.get("address", ""),
-            business_type=business_type,
-            city=city,
-            website_checks=json.dumps(website_data or {}),
-        )
-
-        if lead_id:
-            added += 1
-            results.append({"id": lead_id, "name": lead["business_name"]})
-        else:
-            skipped += 1
-
-    return jsonify({"added": added, "skipped": skipped, "total_found": len(leads)})
+    return jsonify(result)
 
 
+# ── Profile nadawców ──
 @app.route("/api/profiles", methods=["GET", "POST"])
 def profiles_collection():
     if request.method == "GET":
-        return jsonify(db.get_profiles())
+        return jsonify(db.get_public_profiles())
     pid = db.add_profile(**(request.json or {}))
     if not pid:
         return jsonify({"error": "Podaj unikalne imię i nazwisko"}), 400
@@ -176,7 +127,10 @@ def profiles_collection():
 
 @app.route("/api/profiles/<int:profile_id>/update", methods=["POST"])
 def update_profile(profile_id):
-    db.update_profile(profile_id, **(request.json or {}))
+    fields = dict(request.json or {})
+    if not fields.get("mailbox_password"):
+        fields.pop("mailbox_password", None)
+    db.update_profile(profile_id, **fields)
     return jsonify({"ok": True})
 
 
@@ -186,6 +140,20 @@ def delete_profile(profile_id):
     return jsonify({"ok": True})
 
 
+@app.route("/api/profiles/<int:profile_id>/mailbox-test", methods=["POST"])
+def test_profile_mailbox(profile_id):
+    profile = db.get_profile(profile_id)
+    if not profile:
+        return jsonify({"error": "Nie znaleziono profilu"}), 404
+    mailbox = mailer.mailbox_for(profile)
+    if mailbox is None:
+        return jsonify({"error": "Uzupełnij adres skrzynki i hasło aplikacji w profilu"}), 400
+    result = mailer.test_connection(mailbox)
+    result["description"] = mailer.describe(mailbox)
+    return jsonify(result)
+
+
+# ── Leady ──
 @app.route("/api/lead/manual", methods=["POST"])
 def add_manual_lead():
     data = request.json or {}
@@ -210,6 +178,7 @@ def add_manual_lead():
         notes=data.get("notes", "").strip(),
         profile_id=data.get("profile_id") or None,
         website_checks=json.dumps(website_data or {}),
+        autopilot=1 if data.get("autopilot") else 0,
     )
     if not lead_id:
         return jsonify({"error": "Taki lead już jest w bazie (ta sama nazwa i miasto)"}), 409
@@ -229,76 +198,27 @@ def get_lead(lead_id):
     return jsonify(lead)
 
 
+@app.route("/api/lead/<int:lead_id>/messages")
+def lead_messages(lead_id):
+    return jsonify(db.get_lead_messages(lead_id))
+
+
 @app.route("/api/lead/<int:lead_id>/analyze", methods=["GET", "POST"])
 def analyze_lead(lead_id):
     lead = db.get_lead(lead_id)
     if not lead:
         return jsonify({"error": "Nie znaleziono"}), 404
 
-    # GET — return cached result
     if request.method == "GET":
-        raw = lead.get("ai_analysis", "") or ""
-        checks_raw = lead.get("website_checks", "") or ""
-        if not raw:
-            return jsonify({"cached": False})
-        try:
-            website_data = json.loads(checks_raw) if checks_raw else {}
-        except Exception:
-            website_data = {}
-        # Support both new format (JSON with scores) and old plain-text records
-        try:
-            stored = json.loads(raw)
-            if isinstance(stored, dict) and "analysis" in stored:
-                return jsonify({"cached": True, "analysis": stored["analysis"],
-                                "scores": stored.get("scores", {}), "website_data": website_data})
-        except Exception:
-            pass
-        return jsonify({"cached": True, "analysis": raw, "scores": {}, "website_data": website_data})
+        return jsonify(pipeline.cached_analysis(lead))
 
-    # POST — run fresh analysis
     if not lead.get("website_url"):
         return jsonify({"error": "Brak strony do analizy"}), 400
-
-    website_data = scraper.scrape_website(lead["website_url"])
-
-    # Outsourced platform — skip Claude analysis, return instant pitch
-    outsourced = (website_data or {}).get("outsourced_platform")
-    if outsourced:
-        pitch = (website_data or {}).get("outsourced_pitch", "korzystają z zewnętrznej platformy")
-        analysis = f"""## Strona na platformie {outsourced}
-
-Ten biznes korzysta z **{outsourced}** zamiast własnej strony — {pitch}.
-
-### Szansa sprzedażowa
-To idealny lead do zaproponowania własnej strony. Argumenty:
-- **Zero prowizji** — własna strona nie pobiera % od rezerwacji/wizyt
-- **Własna marka i domena** — niezależność od platformy
-- **Lepsza widoczność w Google** — własne SEO, własna domena
-- **Pełna kontrola** nad wyglądem, treścią i danymi klientów
-- Platforma może zmienić warunki lub podnieść prowizje w każdej chwili
-
-### Rekomendacja
-Zaproponuj prostą stronę z formularzem kontaktowym lub systemem rezerwacji. 500 PLN za stronę która sprawi że przestają płacić prowizje."""
-        db.update_lead(lead_id, ai_analysis=analysis, website_checks=json.dumps(website_data), generated_email="")
-        return jsonify({"analysis": analysis, "website_data": website_data})
-
-    screenshots = scraper.screenshot_website(lead["website_url"])
-    # screenshots may be empty if Playwright/Chromium is unavailable — fall back to text-only
-
     try:
-        result = analyzer.analyze_website_visually(lead, screenshots, website_data)
-        _mark("ai", True, f"analiza: {lead['business_name']}")
-        db.update_lead(
-            lead_id,
-            ai_analysis=json.dumps(result),
-            website_checks=json.dumps(website_data or {}),
-            generated_email="",
-        )
-        return jsonify({"analysis": result["analysis"], "scores": result.get("scores", {}), "website_data": website_data})
+        return jsonify(pipeline.run_analysis(lead))
     except Exception as e:
-        _mark("ai", False, str(e)[:140])
         import traceback
-        traceback.print_exc()  # full traceback in Railway logs
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
@@ -307,35 +227,13 @@ def generate_email(lead_id):
     lead = db.get_lead(lead_id)
     if not lead:
         return jsonify({"error": "Nie znaleziono"}), 404
-
-    website_data = None
-    if lead.get("website_url"):
-        website_data = scraper.scrape_website(lead["website_url"])
-
-    ai_analysis = lead.get("ai_analysis") or None
     payload = request.json or {}
     my_feedback = payload.get("my_feedback", "").strip()
-    profiles = db.get_profiles()
-    wanted = payload.get("profile_id") or lead.get("profile_id")
-    profile = next((p for p in profiles if p["id"] == wanted), profiles[0] if profiles else None)
-
     try:
-        email_text = analyzer.generate_email(lead, website_data, ai_analysis=ai_analysis, my_feedback=my_feedback or None, profile=profile)
-        _mark("ai", True, f"email: {lead['business_name']}")
-        updates = {"generated_email": email_text}
-        if profile:
-            updates["profile_id"] = profile["id"]
-        if my_feedback:
-            existing = json.loads(lead.get("observations") or "[]")
-            if my_feedback not in existing:
-                existing.append(my_feedback)
-            updates["observations"] = json.dumps(existing, ensure_ascii=False)
-        db.update_lead(lead_id, **updates)
+        email_text = pipeline.prepare_email(lead, profile_id=payload.get("profile_id"), my_feedback=my_feedback)
         return jsonify({"email": email_text})
     except Exception as e:
-        _mark("ai", False, str(e)[:140])
         return jsonify({"error": str(e)}), 500
-
 
 
 @app.route("/api/lead/<int:lead_id>/generate-followup", methods=["POST"])
@@ -343,20 +241,47 @@ def generate_followup(lead_id):
     lead = db.get_lead(lead_id)
     if not lead:
         return jsonify({"error": "Nie znaleziono"}), 404
-    if not (lead.get("generated_email") or "").strip():
-        return jsonify({"error": "Najpierw wygeneruj pierwszy mail"}), 400
-    followups = json.loads(lead.get("followups") or "[]")
-    if len(followups) >= 2:
-        return jsonify({"error": "Maksymalnie 2 follow-upy, dalsze przypominanie to spam"}), 400
     try:
-        text = analyzer.generate_followup(lead, followup_number=len(followups) + 1)
-        _mark("ai", True, f"follow-up {len(followups) + 1}: {lead['business_name']}")
-        followups.append(text)
-        db.update_lead(lead_id, followups=json.dumps(followups, ensure_ascii=False))
-        return jsonify({"followup": text, "number": len(followups)})
+        result = pipeline.create_followup(lead)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
-        _mark("ai", False, str(e)[:140])
         return jsonify({"error": str(e)}), 500
+    return jsonify({"followup": result["text"], "number": result["number"], "subject": result["subject"]})
+
+
+@app.route("/api/lead/<int:lead_id>/queue", methods=["POST"])
+def queue_lead_message(lead_id):
+    lead = db.get_lead(lead_id)
+    if not lead:
+        return jsonify({"error": "Nie znaleziono"}), 404
+    if not lead.get("email"):
+        return jsonify({"error": "Lead nie ma adresu e-mail, uzupełnij go w notatkach"}), 400
+    payload = request.json or {}
+    subject = (payload.get("subject") or "").strip() or pipeline.default_subject(lead)
+    body = (payload.get("body") or "").strip()
+    if not body:
+        return jsonify({"error": "Treść maila jest pusta"}), 400
+    kind = "followup" if payload.get("kind") == "followup" else "initial"
+    already_contacted = lead["status"] in ("emailed", "replied") or db.sent_outbound_for_lead(lead_id)
+    if already_contacted:
+        kind = "followup"
+    if payload.get("profile_id"):
+        db.update_lead(lead_id, profile_id=payload["profile_id"])
+        lead = db.get_lead(lead_id)
+    send_now = bool(payload.get("send_now"))
+    try:
+        row_id = pipeline.queue_message(lead, kind, subject, body, send_now=send_now)
+    except Exception as e:
+        return jsonify({"error": str(e), "queued": True}), 500
+    return jsonify({"id": row_id, "sent": send_now})
+
+
+@app.route("/api/lead/<int:lead_id>/autopilot", methods=["POST"])
+def set_lead_autopilot(lead_id):
+    enabled = bool((request.json or {}).get("enabled"))
+    db.update_lead(lead_id, autopilot=1 if enabled else 0)
+    return jsonify({"ok": True, "enabled": enabled})
 
 
 @app.route("/api/lead/<int:lead_id>/update", methods=["POST"])
@@ -367,6 +292,8 @@ def update_lead(lead_id):
 
     if updates.get("status") == "emailed":
         updates["emailed_at"] = datetime.now().isoformat(timespec="seconds")
+    if updates.get("status") in ("new", "replied", "converted", "skipped"):
+        db.cancel_queued_for_lead(lead_id)
 
     db.update_lead(lead_id, **updates)
     return jsonify({"ok": True})
@@ -374,9 +301,168 @@ def update_lead(lead_id):
 
 @app.route("/api/lead/<int:lead_id>", methods=["DELETE"])
 def delete_lead(lead_id):
-    with db.get_conn() as conn:
-        conn.execute("DELETE FROM leads WHERE id = ?", (lead_id,))
+    db.delete_lead(lead_id)
     return jsonify({"ok": True})
+
+
+# ── Autopilot ──
+SETTING_LIMITS = {
+    "daily_limit": (1, 200),
+    "send_from_hour": (0, 23),
+    "send_to_hour": (1, 24),
+    "send_gap_minutes": (1, 240),
+}
+
+
+@app.route("/api/autopilot")
+def autopilot_status():
+    return jsonify(worker.status())
+
+
+@app.route("/api/autopilot/settings", methods=["POST"])
+def autopilot_settings():
+    data = request.json or {}
+    updates = {}
+    if "auto_send" in data:
+        updates["auto_send"] = "on" if data["auto_send"] in (True, "on", 1, "1") else "off"
+    if "weekdays_only" in data:
+        updates["weekdays_only"] = "1" if data["weekdays_only"] in (True, "1", 1, "on") else "0"
+    for key, (low, high) in SETTING_LIMITS.items():
+        if key not in data:
+            continue
+        try:
+            value = int(data[key])
+        except (TypeError, ValueError):
+            return jsonify({"error": f"{key}: podaj liczbę"}), 400
+        if not (low <= value <= high):
+            return jsonify({"error": f"{key}: dozwolony zakres {low} do {high}"}), 400
+        updates[key] = str(value)
+    if updates:
+        db.set_settings(**updates)
+    if updates.get("auto_send") == "on":
+        worker.STATE["consecutive_send_failures"] = 0
+    return jsonify(db.get_settings())
+
+
+@app.route("/api/autopilot/tick", methods=["POST"])
+def autopilot_tick():
+    started = worker.run_tick_in_background()
+    return jsonify({"started": started})
+
+
+@app.route("/api/autopilot/adopt", methods=["POST"])
+def autopilot_adopt():
+    count = db.adopt_new_leads_with_email()
+    return jsonify({"adopted": count})
+
+
+# ── Kampanie ──
+@app.route("/api/campaigns", methods=["GET", "POST"])
+def campaigns_collection():
+    if request.method == "GET":
+        return jsonify(db.get_campaigns())
+    data = request.json or {}
+    business_type = (data.get("business_type") or "").strip()
+    city = (data.get("city") or "").strip()
+    if not business_type or not city:
+        return jsonify({"error": "Podaj typ biznesu i miasto"}), 400
+    target_count = max(1, min(int(data.get("target_count") or 20), 500))
+    campaign_id = db.add_campaign(
+        business_type, city, target_count,
+        no_website=bool(data.get("no_website")),
+        profile_id=data.get("profile_id") or None,
+    )
+    return jsonify({"id": campaign_id})
+
+
+@app.route("/api/campaigns/<int:campaign_id>/update", methods=["POST"])
+def update_campaign(campaign_id):
+    data = request.json or {}
+    updates = {}
+    if "active" in data:
+        updates["active"] = 1 if data["active"] else 0
+        updates["last_error"] = ""
+    if "target_count" in data:
+        updates["target_count"] = max(1, min(int(data["target_count"]), 500))
+    db.update_campaign(campaign_id, **updates)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/campaigns/<int:campaign_id>", methods=["DELETE"])
+def delete_campaign(campaign_id):
+    db.delete_campaign(campaign_id)
+    return jsonify({"ok": True})
+
+
+# ── Kolejka wysyłki ──
+@app.route("/api/queue")
+def queue_list():
+    return jsonify(db.get_queue())
+
+
+@app.route("/api/messages/<int:row_id>/send", methods=["POST"])
+def send_message_now(row_id):
+    message = db.get_message(row_id)
+    if not message:
+        return jsonify({"error": "Nie znaleziono wiadomości"}), 404
+    if message["status"] == "sent":
+        return jsonify({"error": "Ta wiadomość już poszła"}), 400
+    try:
+        message_id = pipeline.deliver(message)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    return jsonify({"ok": True, "message_id": message_id})
+
+
+@app.route("/api/messages/<int:row_id>/update", methods=["POST"])
+def update_message(row_id):
+    message = db.get_message(row_id)
+    if not message:
+        return jsonify({"error": "Nie znaleziono wiadomości"}), 404
+    if message["status"] == "sent":
+        return jsonify({"error": "Wysłanej wiadomości nie da się edytować"}), 400
+    data = request.json or {}
+    updates = {}
+    if "subject" in data:
+        updates["subject"] = (data["subject"] or "").strip()
+    if "body" in data:
+        updates["body"] = (data["body"] or "").strip()
+    if "scheduled_at" in data:
+        updates["scheduled_at"] = data["scheduled_at"] or db.now_iso()
+    db.update_message(row_id, **updates)
+    if message["kind"] == "initial" and ("subject" in updates or "body" in updates):
+        fresh = db.get_message(row_id)
+        db.update_lead(message["lead_id"], generated_email=pipeline.join_subject(fresh["subject"], fresh["body"]))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/messages/<int:row_id>/cancel", methods=["POST"])
+def cancel_message(row_id):
+    message = db.get_message(row_id)
+    if not message:
+        return jsonify({"error": "Nie znaleziono wiadomości"}), 404
+    db.update_message(row_id, status="cancelled")
+    lead = db.get_lead(message["lead_id"])
+    if lead and lead["status"] == "ready" and message["kind"] == "initial":
+        db.update_lead(lead["id"], status="new")
+    return jsonify({"ok": True})
+
+
+@app.route("/api/messages/<int:row_id>/requeue", methods=["POST"])
+def requeue_message(row_id):
+    message = db.get_message(row_id)
+    if not message:
+        return jsonify({"error": "Nie znaleziono wiadomości"}), 404
+    if message["status"] == "sent":
+        return jsonify({"error": "Ta wiadomość już poszła"}), 400
+    db.update_message(row_id, status="queued", error="", scheduled_at=db.now_iso())
+    if message["kind"] == "initial":
+        db.update_lead(message["lead_id"], status="ready", last_error="")
+    return jsonify({"ok": True})
+
+
+if os.getenv("AUTOPILOT_WORKER", "1") == "1":
+    worker.start(interval_seconds=int(os.getenv("AUTOPILOT_INTERVAL_SECONDS", "60")))
 
 
 if __name__ == "__main__":

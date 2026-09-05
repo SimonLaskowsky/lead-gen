@@ -49,7 +49,8 @@ def _attr(tag, key, default=""):
         return default
 
 
-def search_leads(business_type: str, city: str, max_results: int = 10, no_website: bool = False) -> list[dict]:
+def search_leads(business_type: str, city: str, max_results: int = 10, no_website: bool = False,
+                 known_names: set | None = None) -> dict:
     api_key = os.getenv("GOOGLE_MAPS_API_KEY")
     if not api_key:
         raise ValueError("GOOGLE_MAPS_API_KEY not set in .env")
@@ -58,7 +59,10 @@ def search_leads(business_type: str, city: str, max_results: int = 10, no_websit
 
     gmaps = googlemaps.Client(key=api_key)
     query = f"{business_type} {city}"
+    known_names = known_names or set()
     leads = []
+    skipped_known = 0
+    exhausted = False
     next_page_token = None
 
     while len(leads) < max_results:
@@ -72,6 +76,9 @@ def search_leads(business_type: str, city: str, max_results: int = 10, no_websit
         for place in results.get("results", []):
             if len(leads) >= max_results:
                 break
+            if place.get("name") in known_names:
+                skipped_known += 1
+                continue
             try:
                 details = gmaps.place(
                     place["place_id"],
@@ -94,9 +101,10 @@ def search_leads(business_type: str, city: str, max_results: int = 10, no_websit
 
         next_page_token = results.get("next_page_token")
         if not next_page_token:
+            exhausted = True
             break
 
-    return leads
+    return {"leads": leads, "skipped_known": skipped_known, "exhausted": exhausted}
 
 
 def get_pagespeed_score(url: str) -> dict | None:
