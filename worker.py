@@ -149,8 +149,11 @@ def step_prepare():
     for lead in db.leads_awaiting_preparation(limit=1):
         STATE["busy_with"] = f"piszę mail: {lead['business_name']}"
         try:
-            pipeline.prepare_lead(lead)
-            log(f"mail gotowy: {lead['business_name']}")
+            row_id = pipeline.prepare_lead(lead)
+            if row_id:
+                log(f"mail gotowy: {lead['business_name']}")
+            else:
+                log(f"pominięty, strona jest dobra: {lead['business_name']}")
         except Exception as error:
             db.update_lead(lead["id"], status="failed", last_error=str(error)[:300])
             log(f"nie udało się przygotować {lead['business_name']}: {str(error)[:120]}")

@@ -1,6 +1,9 @@
 import json
 from datetime import datetime
 
+import os
+
+import agent_audit
 import analyzer
 import db
 import mailer
@@ -21,6 +24,7 @@ def record_usage(purpose, model, input_tokens, output_tokens):
 
 
 analyzer.on_usage = record_usage
+agent_audit.on_usage = record_usage
 
 
 def price_for(model: str) -> tuple[float, float]:
@@ -144,6 +148,21 @@ def run_analysis(lead) -> dict:
         db.update_lead(lead["id"], ai_analysis=analysis, website_checks=json.dumps(website_data), generated_email="")
         return {"analysis": analysis, "scores": {}, "website_data": website_data}
 
+    if os.getenv("AUDIT_MODE", "agent") == "agent":
+        try:
+            agent_result = agent_audit.audit(lead)
+            mark("ai", True, f"audyt agentowy: {lead['business_name']}")
+            primary_url = agent_result.get("primary_url") or lead["website_url"]
+            if primary_url != lead["website_url"]:
+                website_data = scraper.scrape_website(primary_url) or website_data
+            stored = {key: agent_result[key] for key in ("analysis", "scores", "verdict", "story", "primary_url", "log")}
+            db.update_lead(lead["id"], ai_analysis=json.dumps(stored, ensure_ascii=False),
+                           website_checks=json.dumps(website_data or {}), generated_email="")
+            return {"analysis": agent_result["analysis"], "scores": agent_result["scores"],
+                    "website_data": website_data, "verdict": agent_result["verdict"], "story": agent_result["story"]}
+        except Exception as error:
+            mark("ai", False, f"audyt agentowy nie wyszedł, klasyczny w zamian: {str(error)[:100]}")
+
     screenshots = scraper.screenshot_website(lead["website_url"])
     impression = None
     try:
@@ -258,10 +277,16 @@ def queue_message(lead, kind, subject, body, send_now=False) -> int:
     return row_id
 
 
-def prepare_lead(lead) -> int:
+def prepare_lead(lead) -> int | None:
     website_data = None
     if lead.get("website_url") and not lead.get("ai_analysis"):
-        website_data = run_analysis(lead)["website_data"]
+        analysis = run_analysis(lead)
+        website_data = analysis["website_data"]
+        if analysis.get("verdict") == "pomin":
+            note = (lead.get("notes") or "").strip()
+            reason = "Autopilot: strona jest dobra, mail pominięty. " + (analysis.get("story") or "")
+            db.update_lead(lead["id"], status="skipped", notes=(note + "\n" + reason).strip())
+            return None
         lead = db.get_lead(lead["id"])
     email_text = prepare_email(lead, website_data=website_data)
     subject, body = split_subject(email_text)

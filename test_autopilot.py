@@ -1,5 +1,6 @@
 # Testy autopilota bez sieci: python test_autopilot.py
 import os
+os.environ["AUDIT_MODE"] = "classic"
 import tempfile
 from datetime import datetime, timedelta
 from types import SimpleNamespace
