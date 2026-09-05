@@ -153,7 +153,7 @@ def run_analysis(lead) -> dict:
             agent_result = agent_audit.audit(lead)
             mark("ai", True, f"audyt agentowy: {lead['business_name']}")
             primary_url = agent_result.get("primary_url") or lead["website_url"]
-            if primary_url != lead["website_url"]:
+            if primary_url != lead["website_url"] and agent_audit._url_allowed(primary_url, lead["website_url"]):
                 website_data = scraper.scrape_website(primary_url) or website_data
             stored = {key: agent_result[key] for key in ("analysis", "scores", "verdict", "story", "primary_url", "log")}
             db.update_lead(lead["id"], ai_analysis=json.dumps(stored, ensure_ascii=False),

@@ -5,6 +5,10 @@ import os
 import re
 import html as html_lib
 
+import ipaddress
+import socket
+from urllib.parse import urlparse
+
 import anthropic
 import requests
 from bs4 import BeautifulSoup
@@ -27,6 +31,40 @@ def _client():
 def _record(message, purpose):
     if on_usage:
         on_usage(purpose, message.model, message.usage.input_tokens, message.usage.output_tokens)
+
+
+def _registered_domain(host):
+    parts = host.lower().strip(".").split(".")
+    return ".".join(parts[-2:]) if len(parts) >= 2 else host.lower()
+
+
+def _url_allowed(url, base_url):
+    """Agent oglada tylko strone audytowanej firmy. Adresy spoza jej domeny, IP zamiast nazwy
+    i hosty rozwiazujace sie na adresy prywatne sa odrzucane, zeby strona nie mogla
+    naprowadzic modelu na siec wewnetrzna serwera."""
+    try:
+        target = urlparse(url)
+        base = urlparse(base_url)
+    except Exception:
+        return False
+    if target.scheme not in ("http", "https") or not target.hostname or not base.hostname:
+        return False
+    if _registered_domain(target.hostname) != _registered_domain(base.hostname):
+        return False
+    try:
+        ipaddress.ip_address(target.hostname)
+        return False
+    except ValueError:
+        pass
+    try:
+        resolved = {info[4][0] for info in socket.getaddrinfo(target.hostname, None)}
+    except socket.gaierror:
+        return False
+    for address in resolved:
+        ip = ipaddress.ip_address(address)
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
+            return False
+    return bool(resolved)
 
 
 def _absolute(base_url, href):
@@ -186,8 +224,10 @@ OCENA: {"pierwsze_wrazenie": 1-10, "rok_wygladu": "RRRR", "werdykt": "napisz" al
 
 
 def _tool_result_content(name, args, state):
+    url = args.get("url", "")
+    if name in ("otworz_strone", "zrzut_ekranu") and not _url_allowed(url, state["base_url"]):
+        return [{"type": "text", "text": "Ten adres jest poza domeną audytowanej firmy, pomijam. Oglądaj tylko strony w tej domenie."}]
     if name == "otworz_strone":
-        url = args.get("url", "")
         if state["pages"] >= MAX_PAGES:
             return [{"type": "text", "text": "Limit otwieranych stron wyczerpany. Oceniaj na podstawie tego, co masz."}]
         state["pages"] += 1
@@ -197,7 +237,6 @@ def _tool_result_content(name, args, state):
             state["primary_data"] = data
         return [{"type": "text", "text": facts}]
     if name == "zrzut_ekranu":
-        url = args.get("url", "")
         width = int(args.get("szerokosc", 1280))
         whole = args.get("zakres") == "cala"
         if state["shots"] >= MAX_SCREENSHOTS:
@@ -246,7 +285,8 @@ def _serialize_assistant(message):
 def explore(lead):
     """Etap 1: Sonnet oglada strone narzedziami i prowadzi dziennik. Zwraca stan z faktami, obrazami i dziennikiem."""
     client = _client()
-    state = {"pages": 0, "shots": 0, "facts": {}, "images": [], "log": [], "summary": ""}
+    state = {"pages": 0, "shots": 0, "facts": {}, "images": [], "log": [], "summary": "",
+             "base_url": lead.get("website_url", "")}
     messages = [{"role": "user", "content": [{"type": "text", "text":
         f"Firma: {lead.get('business_name', '')}\nTyp biznesu: {lead.get('business_type', '')}\nMiasto: {lead.get('city', '')}\nStrona: {lead.get('website_url', '')}\n\nZacznij od otwarcia strony głównej i zrzutu jej pierwszego ekranu w 1280."}]}]
     system = SYSTEM_STEPS.format(max_steps=MAX_TOOL_ROUNDS)
@@ -342,7 +382,7 @@ def audit(lead):
         "scores": numeric,
         "verdict": verdict,
         "story": scores.get("historia", ""),
-        "primary_url": scores.get("wlasciwa_strona") or lead.get("website_url", ""),
+        "primary_url": (scores.get("wlasciwa_strona") if _url_allowed(str(scores.get("wlasciwa_strona") or ""), lead.get("website_url", "")) else None) or lead.get("website_url", ""),
         "website_data": state.get("primary_data") or {},
         "log": log,
     }
