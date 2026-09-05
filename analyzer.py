@@ -29,8 +29,13 @@ STYLE_RULES = """
 """
 
 
-ANALYSIS_MODEL = os.getenv("ANALYSIS_MODEL", "claude-opus-5")
+ANALYSIS_MODEL = os.getenv("ANALYSIS_MODEL", "claude-sonnet-5")
+ANALYSIS_EFFORT = os.getenv("ANALYSIS_EFFORT", "low")
 EMAIL_MODEL = os.getenv("EMAIL_MODEL", "claude-opus-5")
+EMAIL_EFFORT = os.getenv("EMAIL_EFFORT", "medium")
+FOLLOWUP_MODEL = os.getenv("FOLLOWUP_MODEL", "claude-sonnet-5")
+DESKTOP_STRIPS = int(os.getenv("DESKTOP_STRIPS", "4"))
+MOBILE_STRIPS = int(os.getenv("MOBILE_STRIPS", "2"))
 
 on_usage = None
 
@@ -223,17 +228,17 @@ Potem pusta linia i pełna analiza."""
             content.append({"type": "text", "text": f"({label}: strona jest dłuższa, dolna część poza kadrem)"})
 
     if desktop_bytes:
-        _add_strips(desktop_bytes, "DESKTOP")
+        _add_strips(desktop_bytes, "DESKTOP", max_width=900, strip_height=1000, max_strips=DESKTOP_STRIPS)
     if mobile_bytes:
-        _add_strips(mobile_bytes, "MOBILE 390px", max_width=600, strip_height=1500, max_strips=5)
+        _add_strips(mobile_bytes, "MOBILE 390px", max_width=500, strip_height=1500, max_strips=MOBILE_STRIPS)
 
     content.append({"type": "text", "text": prompt})
 
     # max_tokens z zapasem: na Opusie 5 tokeny myslenia wliczaja sie w limit
     message = client.messages.create(
         model=ANALYSIS_MODEL,
-        max_tokens=16000,
-        output_config={"effort": "medium"},
+        max_tokens=6000,
+        output_config={"effort": ANALYSIS_EFFORT},
         messages=[{"role": "user", "content": content}],
     )
     _record(message, "analiza")
@@ -254,6 +259,7 @@ def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: st
         ) if x) or "programista, robi strony dla lokalnych firm",
     }
     sig = "\n".join(x for x in (snd["name"], snd["domain"], snd["phone"]) if x)
+    sig += "\n\nJeśli nie chce Pan/Pani takich wiadomości, wystarczy odpisać jedno słowo: nie. Więcej nie napiszę."
 
     business_name = lead.get("business_name", "")
     business_type = lead.get("business_type", "firma")
@@ -391,7 +397,7 @@ Zasady:
         message = client.messages.create(
             model=EMAIL_MODEL,
             max_tokens=8000,
-            output_config={"effort": "medium"},
+            output_config={"effort": EMAIL_EFFORT},
             messages=[{"role": "user", "content": prompt}],
         )
         _record(message, "mail")
@@ -561,7 +567,7 @@ Podpisz maila dokladnie tak:
     message = client.messages.create(
         model=EMAIL_MODEL,
         max_tokens=8000,
-        output_config={"effort": "medium"},
+        output_config={"effort": EMAIL_EFFORT},
         messages=[{"role": "user", "content": prompt}],
     )
     _record(message, "mail")
@@ -603,9 +609,9 @@ def generate_followup(lead: dict, followup_number: int = 1) -> str:
 - Podpisz sie DOKLADNIE tak samo jak w pierwszym mailu, te same linie podpisu.
 """
     message = client.messages.create(
-        model=EMAIL_MODEL,
+        model=FOLLOWUP_MODEL,
         max_tokens=4000,
-        output_config={"effort": "medium"},
+        output_config={"effort": "low"},
         messages=[{"role": "user", "content": prompt}],
     )
     _record(message, "follow-up")
