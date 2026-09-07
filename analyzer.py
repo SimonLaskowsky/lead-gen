@@ -1,4 +1,5 @@
 import os
+import json
 import base64
 import io
 import anthropic
@@ -29,6 +30,14 @@ STYLE_RULES = """
 8. Polskie znaki sa OBOWIAZKOWE w calym mailu: ą, ę, ć, ł, ń, ó, ś, ź, ż ("Dzień dobry",
    "wizytówka", "własnej"). Te instrukcje sa pisane bez polskich znakow, ale mail ma je miec
    w kazdym slowie. Mail bez polskich znakow wyglada jak spam z automatu.
+9. Nazwa firmy: nazwa z Google bywa inna niż ta, którą firma sama nosi na stronie i na szyldzie.
+   Nie odmieniaj, nie tłumacz i nie skracaj nazwy z Google (nie rób z "Willa" ani "Villa" formy
+   "Villi"). Gdy nazwa ze strony różni się od nazwy z Google albo masz wątpliwość, pisz
+   "Państwa stronę" albo podaj domenę. Nazwa własna ma wyglądać dokładnie tak, jak firma ją pisze.
+10. Liczby z audytu przepisujesz, nie opisujesz: jeśli audyt podaje wagę, czas ładowania, liczbę
+   ekranów albo kontrast, w mailu ma być ta liczba, nie "bardzo długo" ani "ogromny".
+   Liczb, których w audycie nie ma, nie wymyślasz: żadnych własnych sekund, procentów ani godzin
+   pracy. Czas ładowania bierzesz z szacunku w audycie, w tej samej skali.
 """
 
 
@@ -355,6 +364,25 @@ def _with_opt_out(text: str) -> str:
     return "\n".join(lines).rstrip() + "\n\n" + OPT_OUT_LINE
 
 
+AUDIT_LOG_MARKER = "\n\nJak model do tego doszedł:"
+
+
+def _audit_for_email(ai_analysis: str) -> tuple[str, str]:
+    analysis_text = ai_analysis
+    story = ""
+    try:
+        parsed = json.loads(ai_analysis)
+    except Exception:
+        parsed = None
+    if isinstance(parsed, dict):
+        analysis_text = parsed.get("analysis") or ai_analysis
+        story = str(parsed.get("story") or "").strip()
+    log_start = analysis_text.find(AUDIT_LOG_MARKER)
+    if log_start != -1:
+        analysis_text = analysis_text[:log_start].rstrip()
+    return analysis_text, story
+
+
 def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: str | None = None, my_feedback: str | None = None, profile: dict | None = None) -> str:
     client = _client()
     p = profile or {}
@@ -612,20 +640,13 @@ Dwa maile do dwoch roznych firm nie moga brzmiec jak ten sam tekst z podmieniona
                     issues.append(f"H1 \"{website_data['h1_text']}\" nie zawiera frazy kluczowej, marketingowy, ale SEO-neutralny")
 
         if ai_analysis:
-            # ai_analysis may be a JSON blob ({"scores":..., "analysis":...}), extract clean text
-            analysis_text = ai_analysis
-            try:
-                import json as _json
-                parsed = _json.loads(ai_analysis)
-                if isinstance(parsed, dict) and parsed.get("analysis"):
-                    analysis_text = parsed["analysis"]
-            except Exception:
-                pass
+            analysis_text, story = _audit_for_email(ai_analysis)
+            story_line = f"Dominująca historia wg audytu (o tym ma być mail): {story}\n\n" if story else ""
             site_context = (
-                f"Szczegółowa analiza AI strony:\n{analysis_text}\n\n"
+                f"{story_line}Szczegółowa analiza AI strony:\n{analysis_text}\n\n"
                 f"Dane techniczne (mogą być niepełne dla stron JS-rendered, traktuj jako wskazówki, nie pewniki):\n"
                 + "\n".join(f"- {i}" for i in issues)
-            ) if issues else f"Szczegółowa analiza AI strony:\n{analysis_text}"
+            ) if issues else f"{story_line}Szczegółowa analiza AI strony:\n{analysis_text}"
         elif issues:
             site_context = (
                 "Dane techniczne (automatyczny skaner, mogą być niepełne dla stron z JavaScriptem):\n"
@@ -642,7 +663,8 @@ Dwa maile do dwoch roznych firm nie moga brzmiec jak ten sam tekst z podmieniona
         prompt = f"""Jesteś genialnym copywriterem specjalizującym się w cold mailingu B2B do lokalnych firm handlowo-usługowych w Polsce. Twoim zadaniem jest napisanie otwierającej wiadomości e-mail na podstawie dostarczonego audytu strony internetowej.
 
 === DANE FIRMY ===
-Firma: {business_name}
+Nazwa w Google (bywa inna niż na stronie, nie odmieniaj jej): {business_name}
+Nazwa, którą firma nosi na własnej stronie (tytuł strony): {(website_data or {}).get('title') or 'brak'}
 Typ biznesu: {business_type}
 URL: {lead.get('website_url', '')}
 
@@ -653,12 +675,12 @@ URL: {lead.get('website_url', '')}
 === WYTYCZNE DLA COLD MAILA ===
 1. Zwrot do adresata: "Dzień dobry" lub "Panie/Pani [imię]", ale imienia uzyj TYLKO jesli wystepuje w nazwie firmy, nigdy go nie zgaduj. Pisz per Pan/Pani, szanując tradycyjne podejście lokalnych przedsiębiorców. Żadnego "Cześć" na start.
 2. Temat maila: najwyzej 60 znakow, oparty na CIEKAWOSCI, nie na strachu. Nazwij konkretną obserwację ze strony i zostaw lukę informacyjną (np. "Rzut oka na [domena] oczami klienta z telefonu", "Kilka rzeczy na [domena], które łatwo poprawić"). Zakaz straszenia utratą klientów w temacie.
-3. Wstęp: Wykorzystaj kontekst lokalny i psychologiczny (np. "Wyszukałem [Nazwa Firmy] na telefonie, udając klienta z [Miasto/Region], któremu pilnie potrzebna jest pomoc...").
+3. Wstęp: Wykorzystaj kontekst lokalny i psychologiczny, ale opisuj to, co nadawca naprawdę zrobił: obejrzał stronę tak, jak widzi ją klient na telefonie i na komputerze (np. "Obejrzałem Państwa stronę tak, jak widzi ją klient z [Miasto/Region] szukający [usługi] na telefonie..."). Nie pisz o wpisywaniu nazwy w Google ani o innych czynnościach, których audyt nie obejmował.
 4. Rozwinięcie (NAJWAŻNIEJSZE, tu pokazujesz głębię analizy): najpierw ustal DOMINUJĄCĄ HISTORIĘ audytu, czyli to, co naprawdę kosztuje firmę klientów, i o niej napisz. Nie wybieraj pojedynczego technicznego detalu, gdy audyt mówi, że problemem jest całość.
    - Jeśli audyt stwierdza, że strona jest wizualnie niespójna, przestarzała lub wygląda nieprofesjonalnie, historią jest ZAUFANIE: klient ocenia wiarygodność firmy po stronie zanim zadzwoni i część wybiera konkurenta, który wygląda poważniej. Napisz to dyplomatycznie, nigdy "brzydka" ani "amatorska", tylko np. "strona nie gra w tej samej lidze co Państwa usługi" albo "odstaje od konkurencji, przez co część klientów odpada zanim zadzwoni". Poprzyj to DWOMA najbardziej widocznymi konkretami z audytu, wplecionymi w zdania.
    - Jeśli strona wygląda porządnie, a audyt wskazuje jeden krytyczny błąd konwersji, rozwiń ten jeden błąd w 2-3 zdaniach językiem korzyści.
-   Zawsze wybieraj to, co właściciel sam zobaczy w 10 sekund po otwarciu własnej strony na telefonie.
-5. Sygnał głębi BEZ listy: po głównym problemie dodaj JEDNO zdanie, że przy przeglądzie wyszło jeszcze kilka mniejszych rzeczy (możesz nazwać najwyżej dwie, wplecione w naturalne zdanie, żadnych wypunktowań) i że pełną spisaną listę, z opisem co i jak poprawić, dostanie w raporcie z przeglądu. Wybieraj usterki REALNIE obecne w audycie, nie zmyślaj.
+   Zawsze wybieraj to, co właściciel sam zobaczy w 10 sekund po otwarciu własnej strony na telefonie. Jeśli audyt podaje dominującą historię, to jest ta historia; nie zastępuj jej własnym wyborem.
+5. Sygnał głębi BEZ listy: po głównym problemie dodaj JEDNO zdanie, że przy przeglądzie wyszło jeszcze kilka mniejszych rzeczy (możesz nazwać najwyżej dwie, wplecione w naturalne zdanie, żadnych wypunktowań) i że pełną spisaną listę, z opisem co i jak poprawić, dostanie w raporcie z przeglądu. Wybieraj usterki REALNIE obecne w audycie, nie zmyślaj. Do tego zdania bierz rzeczy, które klient firmy odczuwa (przycisk prowadzący donikąd, brak mapy, brak formularza, regulamin przed kontaktem, literówka), a nie technikalia (przekierowanie https, analityka, robots, sitemap, canonical). Technikalia zostają na raport, chyba że audyt nie ma nic innego.
 6. Kim jestem: przedstaw nadawcę w jednym-dwóch zdaniach na bazie sekcji "Kim jest nadawca": imię i nazwisko, doświadczenie, jedna-dwie imienne realizacje. Zero ogólników typu "wiele firm mi zaufało". (dane kontaktowe są w podpisie, nie powtarzaj ich w treści).
 7. Wycena: to sa ULEPSZENIA istniejacej strony, a nie budowa nowej, wiec zakres i cena sa zawsze indywidualne. NIE podawaj ZADNEJ kwoty, ani widelek, ani stawek agencji, ani warunkow platnosci. Napisz tylko, ze wycene przygotowuje indywidualnie po obejrzeniu zakresu i ze dolacza ja do raportu.
 8. Call to Action: Zaproponuj, że podeślesz bezpłatny raport z przeglądu: pełną listę tego, co znalazłeś, z opisem co i jak poprawić, oraz indywidualną wycenę. Dopiero potem zapytaj, np.: "Czy mogę podesłać taki raport do rzucenia okiem?". Słowo "raport" musi być wprowadzone zdanie wcześniej, zanim o nim zapytasz. Żadnego "podglądu", "makiety" ani "projektu" strony, to oferta dla firm bez strony. To jest JEDYNA prośba w mailu, nie dodawaj innych pytań ani ofert.
