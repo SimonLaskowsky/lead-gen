@@ -26,6 +26,9 @@ STYLE_RULES = """
    wytykajacym cudze niedorobki kompromituje cala wiadomosc.
 7. BADZ MILY. Piszemy do wlasciciela firmy, ktorej idzie dobrze. Braku strony nie stawiaj
    jako werdyktu ("Wlasnej strony brak."), tylko wplec go w zdanie o tym, co mozna zyskac.
+8. Polskie znaki sa OBOWIAZKOWE w calym mailu: ą, ę, ć, ł, ń, ó, ś, ź, ż ("Dzień dobry",
+   "wizytówka", "własnej"). Te instrukcje sa pisane bez polskich znakow, ale mail ma je miec
+   w kazdym slowie. Mail bez polskich znakow wyglada jak spam z automatu.
 """
 
 
