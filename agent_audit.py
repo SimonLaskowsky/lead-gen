@@ -20,7 +20,8 @@ MEMO_MODEL = os.getenv("AUDIT_MEMO_MODEL", "claude-opus-5")
 STEP_EFFORT = os.getenv("AUDIT_STEP_EFFORT", "medium")
 MAX_TOOL_ROUNDS = int(os.getenv("AUDIT_MAX_STEPS", "14"))
 MAX_PAGES = 5
-MAX_SCREENSHOTS = 12
+MAX_SCREENSHOTS = 16
+MAX_SCREENS_PER_SCROLL = 4
 
 DESKTOP_WIDTH = 1280
 VIEWPORT_HEIGHTS = {1280: 800, 1024: 768, 390: 844}
@@ -504,7 +505,15 @@ def _weights_line(browser):
     if heaviest:
         size, url = heaviest[0]
         line += f" Najcięższy plik: {url[-80:]} ({_megabytes(size)})."
+    line += f" Szacowany czas pobrania: {_seconds_at(total, 10)} przy 10 Mb/s (słabe LTE), {_seconds_at(total, 30)} przy 30 Mb/s (dobre LTE)."
     return line
+
+
+def _seconds_at(size_bytes, megabits_per_second):
+    seconds = size_bytes * 8 / (megabits_per_second * 1_000_000)
+    if seconds < 1:
+        return "poniżej sekundy"
+    return f"ok. {seconds:.0f} s"
 
 
 def _animation_libraries(page_html):
@@ -661,8 +670,8 @@ TOOLS = [
     },
     {
         "name": "przewin",
-        "description": "Pokazuje wybrany ekran bieżącej strony, tak jak widzi go człowiek po przewinięciu. Ekran 1 to pierwszy ekran, 2 to następny i tak dalej; wynik mówi, ile ekranów ma strona. Szerokość 1280 (desktop), 1024 (laptop) albo 390 (telefon). Tym samym narzędziem wracasz, żeby spojrzeć drugi raz.",
-        "input_schema": {"type": "object", "properties": {"ekran": {"type": "integer"}, "szerokosc": {"type": "integer", "enum": [1280, 1024, 390]}}, "required": ["ekran", "szerokosc"], "additionalProperties": False},
+        "description": "Pokazuje wybrane ekrany bieżącej strony, tak jak widzi je człowiek po przewinięciu. Ekran 1 to pierwszy ekran, 2 to następny i tak dalej; wynik mówi, ile ekranów ma strona. Podaj od 1 do 4 numerów naraz, np. [2, 3, 4], żeby obejrzeć kilka ekranów w jednej rundzie. Szerokość 1280 (desktop), 1024 (laptop) albo 390 (telefon). Tym samym narzędziem wracasz, żeby spojrzeć drugi raz.",
+        "input_schema": {"type": "object", "properties": {"ekrany": {"type": "array", "items": {"type": "integer"}, "minItems": 1, "maxItems": 4}, "szerokosc": {"type": "integer", "enum": [1280, 1024, 390]}}, "required": ["ekrany", "szerokosc"], "additionalProperties": False},
         "strict": True,
     },
     {
@@ -695,9 +704,10 @@ Co oglądasz:
 2. Główny przycisk i najważniejszy link: kliknij. Strona główna bywa rozdzielnią, właściwa treść jest o klik dalej. Oceniaj stronę, którą zobaczy gość.
 3. Praca gościa: 3 do 5 rzeczy, po które przychodzi klient tej branży (cena, termin, kontakt, dojazd, oferta). Dla każdej: czy da się załatwić na stronie i ile to klików.
 4. Telefon: pierwszy ekran i co najmniej jeden głębszy ekran w 390 oraz zweryfikuj telefon.
-5. Liczby wyłącznie z narzędzi: waga, wysokość w ekranach, kontrast, liczba słów. Prędkości ani kontrastu nie oceniasz na oko. Klikalność telefonu bierzesz z faktów, nie ze zrzutu.
-6. Tekst: literówki, ton (zakazy i dopłaty przed zaletami), obietnice bez konkretu, zdjęcia stockowe obok własnych. Zweryfikuj tekst daje pełną treść.
-7. Co jest dobre, zapisz równie konkretnie jak to, co złe.
+5. Liczby wyłącznie z narzędzi: waga, czas pobrania, wysokość w ekranach, kontrast, liczba słów. Czas ładowania jest policzony w pomiarze wagi, nie przeliczaj go sam. Prędkości ani kontrastu nie oceniasz na oko. Klikalność telefonu bierzesz z faktów, nie ze zrzutu.
+6. Tekst: na stronie z właściwą treścią zawsze wywołaj zweryfikuj tekst i przeczytaj całość pod kątem literówek, zdań bez sensu, tonu (zakazy i dopłaty przed zaletami) i obietnic bez konkretu. Wypisz znalezione literówki dosłownie.
+7. Zdjęcia: przy każdym ekranie ze zdjęciami nazwij, czy to zdjęcia własne (obiekt, ludzie, produkty firmy), czy stockowe, czy są spójne jakością i proporcjami, i czy układ zostawia puste połacie.
+8. Co jest dobre, zapisz równie konkretnie jak to, co złe.
 
 Budżet: najwyżej {max_steps} rund narzędzi, więc oglądaj to, co rozstrzyga, ale nie kończ, zanim nie zobaczysz stopki, telefonu i celu głównego przycisku. Przed każdym wywołaniem napisz jedno krótkie zdanie po polsku: co sprawdzasz i dlaczego (to jest twój dziennik). Gdy wiesz dość, napisz "GOTOWE" i podsumuj w kilku zdaniach: która strona jest właściwa, co jest potwierdzonym największym problemem, co wyglądało na problem, ale nim nie jest, i co jest dobre. Nie pisz jeszcze pełnej notatki."""
 
@@ -720,6 +730,9 @@ Zasady:
 - Jeśli coś jest dobre, napisz to wprost. Jeśli strona jest dobra, powiedz, że nie ma sensu pisać z propozycją poprawek, albo że jedyny sensowny temat to X.
 - Nie oceniaj po rozdzielni, jeśli właściwa treść jest na podstronie. Nie zgaduj klikalności ze zrzutu, klikalność jest w faktach.
 - Bez emoji, bez słów "brzydka", "amatorska", "katastrofa". Najwyżej 350 słów.
+- Bez myślników i półpauz (znaki — i –). Zamiast nich przecinek, dwukropek, nawias albo osobne zdanie. Dywiz w słowach jest w porządku.
+- Czas ładowania i wagę podawaj tak, jak stoi w pomiarze. Nie zaokrąglaj w górę do "minuty" ani nie dopisuj własnych szacunków.
+- Jeśli dziennik wymienia literówki albo zdjęcia stockowe, wspomnij o nich jednym zdaniem, bo właściciel od razu je rozpozna.
 - Ostatnia linia notatki, dokładnie w tym formacie i w jednej linii:
 OCENA: {"pierwsze_wrazenie": 1-10, "rok_wygladu": "RRRR", "werdykt": "napisz" albo "pomin", "historia": "jedno zdanie", "wlasciwa_strona": "url strony z trescia", "design": 1-10, "mobile": 1-10, "seo": 1-10, "cta": 1-10}"""
 
@@ -763,12 +776,15 @@ def _open_page(state, url):
     return [{"type": "text", "text": facts + "\n\n" + measurements}] + _screenshot_block(state, browser, 1, "Pierwszy ekran")
 
 
-def _scroll_to_screen(state, screen_number, width):
+def _scroll_to_screens(state, screen_numbers, width):
     browser = state.get("browser")
     if browser is None or not browser.has_page:
         return [{"type": "text", "text": "Najpierw otwórz stronę narzędziem otworz_strone."}]
     browser.set_width(width)
-    return _screenshot_block(state, browser, screen_number, "Zrzut")
+    content = []
+    for screen_number in screen_numbers[:MAX_SCREENS_PER_SCROLL]:
+        content.extend(_screenshot_block(state, browser, screen_number, "Zrzut"))
+    return content
 
 
 def _destination_kind(current_url, destination):
@@ -852,7 +868,8 @@ def _tool_result_content(name, args, state):
         state["last_url"] = url
         return _open_page(state, url)
     if name == "przewin":
-        return _scroll_to_screen(state, int(args.get("ekran", 1)), int(args.get("szerokosc", DESKTOP_WIDTH)))
+        screen_numbers = [int(number) for number in (args.get("ekrany") or [1])]
+        return _scroll_to_screens(state, screen_numbers, int(args.get("szerokosc", DESKTOP_WIDTH)))
     if name == "kliknij":
         return _click(state, str(args.get("tekst", "")).strip())
     if name == "zweryfikuj":
