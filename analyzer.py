@@ -388,8 +388,9 @@ Oferta. To sa DWIE ROZNE rzeczy i nigdy nie wolno ich mieszac ani wyceniac tak s
 
 ZASADA PIENIEZNA W PIERWSZYM MAILU: nie pisz NIC o pieniadzach. Zadnych kwot, zadnych widelek,
 zadnych warunkow platnosci, zadnego "polowa na start". Powyzsze ceny sa dla Ciebie jako kontekst,
-kim jest nadawca, a nie tresc do wklejenia. Pierwszy kontakt sprzedaje bezplatny projekt graficzny,
-nie usluge. O pieniadzach rozmawiamy dopiero, gdy klient sam odpisze.
+kim jest nadawca, a nie tresc do wklejenia. Pierwszy kontakt sprzedaje bezplatna probke pracy, nie usluge:
+firmie ze strona raport z przegladu, firmie bez strony podglad nowej strony.
+O pieniadzach rozmawiamy dopiero, gdy klient sam odpisze.
 """
 
     # ── Proven statistics to use ──
@@ -446,7 +447,7 @@ Struktura emaila:
 2. HOOK: komplementuj, mają dobre opinie/profil na {outsourced}, ale Google ich nie pokazuje gdy ktoś szuka bezpośrednio
 3. PROBLEM: klienci którzy nie szukają przez {outsourced} (np. z polecenia, z Google) nie mają gdzie trafić, tracą część ruchu
 4. ROZWIĄZANIE: własna strona z widgetem {outsourced} wbudowanym, rezerwacje zostają, dochodzi SEO i marka premium
-5. CTA: bezplatny projekt graficzny strony wraz z wycena, bez zobowiazan, zakonczony uprzejmym pytaniem w pelnym zdaniu
+5. CTA: bezplatny podglad nowej strony dla Panstwa (projekt graficzny) wraz z wycena, bez zobowiazan, zakonczony uprzejmym pytaniem w pelnym zdaniu
 
 Zasady:
 - Maksymalnie 180 słów
@@ -486,7 +487,7 @@ Struktura emaila:
 2. HOOK: zauważyłeś, że ich jedyną obecnością w sieci jest profil na {outsourced}, Google ich nie pokazuje gdy ktoś szuka ich branży w mieście
 3. KOSZT BRAKU STRONY: klienci z Google trafiają do konkurencji, nie do nich
 4. ALTERNATYWA: własna strona, własna domena, SEO, marka premium. Ani slowa o cenie i platnosciach.
-5. CTA: bezplatny projekt graficzny strony wraz z wycena, bez zobowiazan, zakonczony uprzejmym pytaniem w pelnym zdaniu
+5. CTA: bezplatny podglad nowej strony dla Panstwa (projekt graficzny) wraz z wycena, bez zobowiazan, zakonczony uprzejmym pytaniem w pelnym zdaniu
 
 Zasady:
 - Maksymalnie 180 słów
@@ -534,8 +535,9 @@ Struktura (nie pisz numerow ani naglowkow):
    Bez statystyk, bez procentow, bez pouczania.
 4. KIM JESTEM: pol zdania, {snd['name']}, programista z regionu, robi strony
    dla lokalnych firm. Mozna skleic z punktem 5 w jedno zdanie.
-5. CTA: proponuje BEZPLATNY projekt graficzny strony wraz z wycena, bez zobowiazan.
-   To jest jedyna rzecz, o ktora prosze w tym mailu.
+5. CTA: proponuje BEZPLATNY podglad nowej strony dla Panstwa (projekt graficzny, jak mogloby
+   to wygladac) wraz z wycena, bez zobowiazan. Slowo "podglad" wprowadz zdanie wczesniej,
+   zanim o niego zapytasz. To jest jedyna rzecz, o ktora prosze w tym mailu.
 6. Podpis, dokladnie te linie i zadne inne:
 {sig}
 
@@ -543,16 +545,16 @@ Zasady:
 - Maksymalnie 60 slow razem z tematem. To twardy limit, krotszy mail wygrywa.
 - Najwyzej trzy krotkie akapity, kazdy najwyzej dwa zdania.
 - ANI SLOWA O PLATNOSCIACH. Zero cen, zero widelek, zero rat, zero "polowa na start".
-  Pierwszy mail sprzedaje darmowy projekt, nie usluge. Pieniadze sa tematem na pozniej.
+  Pierwszy mail sprzedaje darmowy podglad, nie usluge. Pieniadze sa tematem na pozniej.
 - ZADNYCH STATYSTYK ani procentow. Brzmia jak wypelniacz i obnizaja wiarygodnosc.
-- CTA ma byc uprzejmym pytaniem w pelnym zdaniu, np. "Czy moge taki projekt przygotowac
-  i podeslac?" albo "Chcialaby Pani zobaczyc, jak taka strona moglaby wygladac?".
+- CTA ma byc uprzejmym pytaniem w pelnym zdaniu, np. "Czy moge przygotowac i podeslac
+  taki podglad?" albo "Chcialaby Pani zobaczyc podglad, jak taka strona moglaby wygladac?".
   ZAKAZ jednowyrazowych zaczepek typu "Zainteresowana?", "Zainteresowany?", "Chetnie?".
   Brzmia infantylnie i spoufalaja sie z osoba, ktorej nie znamy.
 - Zwroty grzecznosciowe dopasuj do plci wlasciciela, jesli da sie ja wywnioskowac
   z nazwy firmy ({business_name}). W razie najmniejszej watpliwosci pisz bezosobowo
   albo "Panstwa": pomylka plci konczy rozmowe zanim sie zaczela.
-- Podkresl, ze projekt jest bezplatny i do niczego nie zobowiazuje.
+- Podkresl, ze podglad jest bezplatny i do niczego nie zobowiazuje.
 - Zero social proof bez nazw. Nie pisz "kilka firm nam zaufalo", to nic nie znaczy.
 - Odpowiedz wylacznie gotowa trescia maila, bez komentarzy przed ani po.
   Pierwsza linia to: Temat: [temat]
@@ -653,10 +655,10 @@ URL: {lead.get('website_url', '')}
    - Jeśli audyt stwierdza, że strona jest wizualnie niespójna, przestarzała lub wygląda nieprofesjonalnie, historią jest ZAUFANIE: klient ocenia wiarygodność firmy po stronie zanim zadzwoni i część wybiera konkurenta, który wygląda poważniej. Napisz to dyplomatycznie, nigdy "brzydka" ani "amatorska", tylko np. "strona nie gra w tej samej lidze co Państwa usługi" albo "odstaje od konkurencji, przez co część klientów odpada zanim zadzwoni". Poprzyj to DWOMA najbardziej widocznymi konkretami z audytu, wplecionymi w zdania.
    - Jeśli strona wygląda porządnie, a audyt wskazuje jeden krytyczny błąd konwersji, rozwiń ten jeden błąd w 2-3 zdaniach językiem korzyści.
    Zawsze wybieraj to, co właściciel sam zobaczy w 10 sekund po otwarciu własnej strony na telefonie.
-5. Sygnał głębi BEZ listy: po głównym problemie dodaj JEDNO zdanie, że przy przeglądzie wyszło jeszcze kilka mniejszych rzeczy (możesz nazwać najwyżej dwie, wplecione w naturalne zdanie, żadnych wypunktowań) i że pełną spisaną listę dołączymy do bezpłatnego podglądu. Wybieraj usterki REALNIE obecne w audycie, nie zmyślaj.
+5. Sygnał głębi BEZ listy: po głównym problemie dodaj JEDNO zdanie, że przy przeglądzie wyszło jeszcze kilka mniejszych rzeczy (możesz nazwać najwyżej dwie, wplecione w naturalne zdanie, żadnych wypunktowań) i że pełną spisaną listę, z opisem co i jak poprawić, dostanie w raporcie z przeglądu. Wybieraj usterki REALNIE obecne w audycie, nie zmyślaj.
 6. Kim jestem: przedstaw nadawcę w jednym-dwóch zdaniach na bazie sekcji "Kim jest nadawca": imię i nazwisko, doświadczenie, jedna-dwie imienne realizacje. Zero ogólników typu "wiele firm mi zaufało". (dane kontaktowe są w podpisie, nie powtarzaj ich w treści).
-7. Wycena: to sa ULEPSZENIA istniejacej strony, a nie budowa nowej, wiec zakres i cena sa zawsze indywidualne. NIE podawaj ZADNEJ kwoty, ani widelek, ani stawek agencji, ani warunkow platnosci. Napisz tylko, ze wycene przygotowuje indywidualnie po obejrzeniu zakresu i ze dolacza ja do bezplatnego podgladu.
-8. Call to Action: Zaproponuj, że przygotujesz bezpłatny podgląd (prostą makietę) strony głównej po poprawkach, i dopiero potem zapytaj: "Czy mogę podesłać taki bezpłatny podgląd do rzucenia okiem?". Słowo "podgląd" musi być wprowadzone zdanie wcześniej, zanim o nim zapytasz. To jest JEDYNA prośba w mailu, nie dodawaj innych pytań ani ofert.
+7. Wycena: to sa ULEPSZENIA istniejacej strony, a nie budowa nowej, wiec zakres i cena sa zawsze indywidualne. NIE podawaj ZADNEJ kwoty, ani widelek, ani stawek agencji, ani warunkow platnosci. Napisz tylko, ze wycene przygotowuje indywidualnie po obejrzeniu zakresu i ze dolacza ja do raportu.
+8. Call to Action: Zaproponuj, że podeślesz bezpłatny raport z przeglądu: pełną listę tego, co znalazłeś, z opisem co i jak poprawić, oraz indywidualną wycenę. Dopiero potem zapytaj, np.: "Czy mogę podesłać taki raport do rzucenia okiem?". Słowo "raport" musi być wprowadzone zdanie wcześniej, zanim o nim zapytasz. Żadnego "podglądu", "makiety" ani "projektu" strony, to oferta dla firm bez strony. To jest JEDYNA prośba w mailu, nie dodawaj innych pytań ani ofert.
 
 === ZASADY STYLU ===
 - Maksymalnie 120 słów razem z tematem. Dłuższego cold maila właściciel firmy nie doczyta do CTA. Jeśli musisz ciąć, tnij opis zespołu, nie główny problem.
@@ -687,7 +689,7 @@ def generate_followup(lead: dict, followup_number: int = 1) -> str:
     if followup_number <= 1:
         goal = (
             "To PIERWSZY follow-up, wysylany kilka dni po pierwszym mailu bez odpowiedzi.\n"
-            "Cel: krotkie, zyczliwe przypomnienie i ponowienie propozycji bezplatnego projektu graficznego.\n"
+            "Cel: krotkie, zyczliwe przypomnienie i ponowienie propozycji z pierwszego maila: bezplatny raport z przegladu strony albo podglad nowej strony, dokladnie to i tym samym slowem, co w pierwszym mailu.\n"
             "Zakaz zdan w stylu 'czy dotarl moj poprzedni mail' i jakichkolwiek pretensji o brak odpowiedzi.\n"
             "Mozesz dodac JEDEN nowy drobny konkret lub argument, ktorego nie bylo w pierwszym mailu."
         )
@@ -695,7 +697,7 @@ def generate_followup(lead: dict, followup_number: int = 1) -> str:
         goal = (
             "To DRUGI i OSTATNI follow-up (break-up mail).\n"
             "Cel: uprzejmie zamknac temat. Napisz wprost, ze to moja ostatnia wiadomosc i nie bede juz przypominac.\n"
-            "Zostaw otwarta furtke: propozycja bezplatnego projektu pozostaje aktualna, wystarczy krotka odpowiedz, gdy temat wroci.\n"
+            "Zostaw otwarta furtke: propozycja z pierwszego maila (raport z przegladu albo podglad nowej strony) pozostaje aktualna, wystarczy krotka odpowiedz, gdy temat wroci.\n"
             "Zero wyrzutow, zero dramatu, lekki i zyczliwy ton."
         )
     prompt = f"""Jestes copywriterem. Nadawca wyslal do firmy {lead.get('business_name', '')} ({lead.get('business_type', '')}, {lead.get('city', '')}) ponizszy cold email i nie dostal odpowiedzi.
@@ -710,7 +712,7 @@ def generate_followup(lead: dict, followup_number: int = 1) -> str:
 - Follow-up idzie jako ODPOWIEDZ w tym samym watku, wiec NIE piszesz tematu. Odpowiedz wylacznie trescia maila, od "Dzien dobry," do podpisu, bez zadnych komentarzy przed ani po.
 - Maksymalnie 50 slow. Najwyzej dwa krotkie akapity.
 - Nie powtarzaj argumentow z pierwszego maila tym samym jezykiem i nie streszczaj go.
-- Zakoncz jednym uprzejmym pytaniem w pelnym zdaniu o zgode na podeslanie bezplatnego projektu.
+- Zakoncz jednym uprzejmym pytaniem w pelnym zdaniu o zgode na podeslanie tego, co zaproponowano w pierwszym mailu (raport albo podglad), tym samym slowem co tam.
 - Podpisz sie DOKLADNIE tak samo jak w pierwszym mailu, te same linie podpisu.
 """
     message = client.messages.create(
