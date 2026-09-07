@@ -346,7 +346,7 @@ Potem pusta linia i pełna analiza."""
     return _parse_analysis(_text(message))
 
 
-OPT_OUT_LINE = "Jeśli nie chce Pan/Pani takich wiadomości, wystarczy odpisać jedno słowo: nie. Więcej nie napiszę."
+OPT_OUT_LINE = "Jeśli nie chcą Państwo takich wiadomości, wystarczy odpisać jedno słowo: nie. Więcej nie napiszę."
 
 
 def _with_opt_out(text: str) -> str:

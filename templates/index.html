@@ -1194,7 +1194,7 @@ async function doSearch() {
 
   if (!business_type || !city) { showToast('Podaj typ biznesu i miasto', 'warning'); return; }
 
-  bootstrap.Modal.getInstance(document.getElementById('searchModal')).hide();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('searchModal')).hide();
   document.getElementById('loadingText').textContent = `Szukam: ${business_type} w ${city}...`;
   document.getElementById('loadingOverlay').classList.remove('d-none');
 
@@ -1225,7 +1225,7 @@ async function addManualLead() {
   };
   if (!body.business_name) { showToast('Podaj nazwę firmy', 'warning'); return; }
 
-  bootstrap.Modal.getInstance(document.getElementById('manualModal')).hide();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('manualModal')).hide();
   document.getElementById('loadingText').textContent = `Dodaję: ${body.business_name}...`;
   document.getElementById('loadingOverlay').classList.remove('d-none');
 
@@ -1279,7 +1279,7 @@ async function openEmailModal(leadId, myFeedback = '', forceRegen = false) {
   document.getElementById('emailFooter').style.setProperty('display','none','important');
   document.getElementById('emailHistory').style.display = 'none';
 
-  new bootstrap.Modal(document.getElementById('emailModal')).show();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('emailModal')).show();
 
   const leadRes = await fetch(`/api/lead/${leadId}`);
   const lead    = await leadRes.json();
@@ -1447,7 +1447,7 @@ async function markEmailed() {
   // W trybie follow-up nie nadpisujemy pierwszego maila, follow-up jest zapisany osobno
   const payload  = followupMode ? {status:'emailed'} : {status:'emailed', generated_email: full};
   await fetch(`/api/lead/${currentLeadId}/update`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-  bootstrap.Modal.getInstance(document.getElementById('emailModal')).hide();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('emailModal')).hide();
   showToast('Oznaczono jako wysłany!', 'success');
   await refreshStats();
   loadLeads();
@@ -1505,7 +1505,7 @@ function openAutopilotSettings() {
   document.getElementById('setFromHour').value    = s.send_from_hour || 9;
   document.getElementById('setToHour').value      = s.send_to_hour || 17;
   document.getElementById('setWeekdays').checked  = s.weekdays_only !== '0';
-  new bootstrap.Modal(document.getElementById('autopilotSettingsModal')).show();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('autopilotSettingsModal')).show();
 }
 
 async function saveAutopilotSettings() {
@@ -1520,7 +1520,7 @@ async function saveAutopilotSettings() {
   const res  = await fetch('/api/autopilot/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
   const data = await res.json();
   if (data.error) { showToast('Błąd: ' + data.error, 'danger'); return; }
-  bootstrap.Modal.getInstance(document.getElementById('autopilotSettingsModal')).hide();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('autopilotSettingsModal')).hide();
   showToast('Ustawienia zapisane', 'success');
   loadAutopilot();
 }
@@ -1545,7 +1545,7 @@ async function adoptExistingLeads() {
 // ── Kampanie ──
 async function openCampaigns() {
   await loadCampaigns();
-  new bootstrap.Modal(document.getElementById('campaignsModal')).show();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('campaignsModal')).show();
 }
 
 async function loadCampaigns() {
@@ -1609,7 +1609,7 @@ async function deleteCampaign(id) {
 // ── Kolejka wysyłki ──
 async function openQueue() {
   await loadQueue();
-  new bootstrap.Modal(document.getElementById('queueModal')).show();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('queueModal')).show();
 }
 
 async function loadQueue() {
@@ -1699,7 +1699,7 @@ async function queueCurrentEmail(sendNow) {
   };
   const data = await (await fetch(`/api/lead/${currentLeadId}/queue`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })).json();
   if (data.error) { showToast((sendNow ? 'Nie wysłano: ' : 'Błąd: ') + data.error, 'danger'); return; }
-  bootstrap.Modal.getInstance(document.getElementById('emailModal')).hide();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('emailModal')).hide();
   showToast(sendNow ? 'Wysłano ze skrzynki profilu' : 'Dodano do kolejki wysyłki', 'success');
   await refreshStats();
   loadLeads();
@@ -1748,7 +1748,7 @@ async function openAnalyzeModal(leadId) {
   document.getElementById('myFeedback').value = '';
   resetSteps();
 
-  new bootstrap.Modal(document.getElementById('analyzeModal')).show();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('analyzeModal')).show();
 
   // Check cache first
   try {
@@ -1908,7 +1908,7 @@ function exportAnalysisPdf() {
 
 function generateEmailFromAnalysis() {
   const feedback = document.getElementById('myFeedback').value.trim();
-  bootstrap.Modal.getInstance(document.getElementById('analyzeModal')).hide();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('analyzeModal')).hide();
   setTimeout(() => openEmailModal(currentLeadId, feedback), 300);
 }
 
@@ -1927,7 +1927,7 @@ function openNotesModal(leadId) {
   document.getElementById('emailInput').value  = lead.email || '';
   const np = document.getElementById('notesProfile');
   if (lead.profile_id) np.value = lead.profile_id; else if (profiles[0]) np.value = profiles[0].id;
-  new bootstrap.Modal(document.getElementById('notesModal')).show();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('notesModal')).show();
 }
 
 async function saveNotes() {
@@ -1935,7 +1935,7 @@ async function saveNotes() {
   const email = document.getElementById('emailInput').value;
   const profile_id = +document.getElementById('notesProfile').value || null;
   await fetch(`/api/lead/${currentLeadId}/update`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({notes, email, profile_id}) });
-  bootstrap.Modal.getInstance(document.getElementById('notesModal')).hide();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('notesModal')).hide();
   showToast('Zapisano', 'success');
   loadLeads();
 }
@@ -2075,6 +2075,15 @@ const HOTKEYS = {
   u: openAutopilotSettings,
   a: toggleAutoSend,
 };
+document.addEventListener('hidden.bs.modal', () => {
+  const anyModalStillOpen = document.querySelector('.modal.show');
+  if (anyModalStillOpen) return;
+  document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+  document.body.classList.remove('modal-open');
+  document.body.style.removeProperty('overflow');
+  document.body.style.removeProperty('padding-right');
+});
+
 document.addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey || hotkeysBlocked()) return;
   if (e.key === '/') { e.preventDefault(); document.getElementById('searchInput').focus(); return; }
