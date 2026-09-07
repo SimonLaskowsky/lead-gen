@@ -1391,6 +1391,7 @@ function renderProfilesList() {
         <div class="col-md-4" style="display:flex;align-items:flex-end"><button class="btn btn-ghost btn-sm" onclick="testMailbox(${p.id})" style="width:100%"><i class="bi bi-plug me-1"></i> Zapisz i testuj skrzynkę</button></div>
         <div class="col-md-4"><label class="form-label">Host SMTP</label><input class="form-control" id="pf-smtp_host-${p.id}" value="${escHtml(p.smtp_host || '')}" placeholder="puste = domyślny (Gmail, WP, Onet...)"></div>
         <div class="col-md-4"><label class="form-label">Port SMTP</label><input class="form-control" id="pf-smtp_port-${p.id}" value="${escHtml(p.smtp_port || '')}" placeholder="587 lub 465"></div>
+        <div class="col-md-4"><label class="form-label">Host IMAP (kopie w Wysłane)</label><input class="form-control" id="pf-imap_host-${p.id}" value="${escHtml(p.imap_host || '')}" placeholder="np. imap.hostinger.com, puste = domyślny"></div>
       </div>
       <div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end">
         <button class="btn btn-ghost btn-sm" onclick="deleteProfile(${p.id})"><i class="bi bi-trash me-1"></i> Usuń</button>
@@ -1401,7 +1402,7 @@ function renderProfilesList() {
 
 async function saveProfile(id) {
   const body = {};
-  for (const f of ['name', 'domain', 'phone', 'experience', 'realizations', 'mailbox_address', 'mailbox_password', 'smtp_host', 'smtp_port'])
+  for (const f of ['name', 'domain', 'phone', 'experience', 'realizations', 'mailbox_address', 'mailbox_password', 'smtp_host', 'smtp_port', 'imap_host'])
     body[f] = document.getElementById(`pf-${f}-${id}`).value;
   await fetch(`/api/profiles/${id}/update`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
   showToast('Zapisano profil', 'success');
@@ -1724,8 +1725,11 @@ async function testMailbox(id) {
   showToast('Testuję połączenie ze skrzynką...', 'success');
   const data = await (await fetch(`/api/profiles/${id}/mailbox-test`, { method:'POST' })).json();
   if (data.error) { showToast('Błąd: ' + data.error, 'danger'); return; }
-  const ok = data.smtp === 'ok';
-  showToast(ok ? 'Skrzynka działa, wysyłka gotowa' : 'SMTP: ' + data.smtp, ok ? 'success' : 'danger');
+  const smtpOk = data.smtp === 'ok';
+  const imapOk = (data.imap || '').startsWith('ok');
+  if (!smtpOk) { showToast('SMTP: ' + data.smtp, 'danger'); return; }
+  if (!imapOk) { showToast('Wysyłka gotowa, ale IMAP: ' + data.imap, 'warning'); return; }
+  showToast('Skrzynka działa, wysyłka gotowa, ' + data.imap, 'success');
   loadAutopilot();
 }
 

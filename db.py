@@ -129,7 +129,7 @@ def _migrate(conn):
 
 
 def _migrate_profiles(conn):
-    for col in ("mailbox_address", "mailbox_password", "smtp_host", "smtp_port"):
+    for col in ("mailbox_address", "mailbox_password", "smtp_host", "smtp_port", "imap_host"):
         try:
             conn.execute(f"ALTER TABLE profiles ADD COLUMN {col} TEXT DEFAULT ''")
         except Exception:
@@ -280,7 +280,7 @@ def get_business_types():
 # ── Profile nadawców ──
 PROFILE_FIELDS = (
     "name", "domain", "phone", "experience", "realizations",
-    "mailbox_address", "mailbox_password", "smtp_host", "smtp_port",
+    "mailbox_address", "mailbox_password", "smtp_host", "smtp_port", "imap_host",
 )
 
 

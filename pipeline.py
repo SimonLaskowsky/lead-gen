@@ -353,13 +353,15 @@ def _deliver(message) -> str:
     earlier = db.sent_outbound_for_lead(lead["id"])
     references = [m["message_id"] for m in earlier if m["message_id"]]
     in_reply_to = message.get("in_reply_to") or (references[-1] if references else "")
-    message_id = mailer.send(
+    result = mailer.send(
         mailbox, lead["email"], message["subject"], message["body"],
         in_reply_to=in_reply_to, references=references,
     )
+    message_id = result.message_id
 
     sent_at = db.now_iso()
-    db.update_message(message["id"], status="sent", sent_at=sent_at, message_id=message_id, error="")
+    sent_copy_note = f"Wysłano, ale {result.sent_copy_warning}" if result.sent_copy_warning else ""
+    db.update_message(message["id"], status="sent", sent_at=sent_at, message_id=message_id, error=sent_copy_note)
     lead_updates = {"status": "emailed", "last_error": ""}
     if message["kind"] == "initial":
         lead_updates["emailed_at"] = sent_at

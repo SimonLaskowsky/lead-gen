@@ -62,7 +62,7 @@ def fake_send(mailbox, to_address, subject, body, in_reply_to="", references=Non
     message_id = f"<msg{len(SENT) + 1}@test.local>"
     SENT.append({"to": to_address, "subject": subject, "body": body, "in_reply_to": in_reply_to,
                  "references": list(references or []), "from": mailbox.address, "message_id": message_id})
-    return message_id
+    return mailer.SendResult(message_id=message_id)
 
 
 scraper.search_leads = fake_search_leads
@@ -105,10 +105,43 @@ def test_mailbox_defaults_from_provider():
     custom = mailer.mailbox_for({"name": "S", "mailbox_address": "x@firma.pl", "mailbox_password": "p",
                                  "smtp_host": "mail.firma.pl", "smtp_port": "465"})
     assert custom.smtp_host == "mail.firma.pl" and custom.smtp_port == 465
+    assert custom.imap_host == ""
+    derived = mailer.mailbox_for({"name": "S", "mailbox_address": "x@firma.pl", "mailbox_password": "p",
+                                  "smtp_host": "smtp.hostinger.com"})
+    assert derived.imap_host == "imap.hostinger.com"
+    hostinger = mailer.mailbox_for({"name": "S", "mailbox_address": "x@firma.pl", "mailbox_password": "p",
+                                    "smtp_host": "smtp.hostinger.com", "imap_host": "imap.hostinger.com"})
+    assert hostinger.imap_host == "imap.hostinger.com"
+    assert not mailer.saves_sent_copy_itself(hostinger)
+    assert box.imap_host == "imap.wp.pl"
+    assert mailer.saves_sent_copy_itself(mailer.mailbox_for({"name": "S", "mailbox_address": "x@gmail.com", "mailbox_password": "p"}))
     broken_port = mailer.mailbox_for({"name": "S", "mailbox_address": "x@gmail.com", "mailbox_password": "p", "smtp_port": "abc"})
     assert broken_port.smtp_port == 587
     assert mailer.mailbox_for({"name": "Nikodem"}) is None
     assert "brak hosta SMTP" in mailer.describe(mailer.mailbox_for({"name": "S", "mailbox_address": "x@firma.pl", "mailbox_password": "p"}))
+
+
+def test_sent_folder_name_comes_from_special_use_flag():
+    class FakeImap:
+        def list(self):
+            return "OK", [b'(\\HasNoChildren) "." "INBOX"', b'(\\HasNoChildren \\Sent) "." "INBOX.Sent"']
+
+    class ImapWithoutFlags:
+        def list(self):
+            return "OK", [b'(\\HasNoChildren) "." "INBOX"']
+
+    class OutlookImap:
+        def list(self):
+            return "OK", [b'(\\HasNoChildren \\Sent) "/" "Sent Items"']
+
+    class BareNameImap:
+        def list(self):
+            return "OK", [b'(\\Sent) "." INBOX.Sent']
+
+    assert mailer._sent_folder_name(FakeImap()) == "INBOX.Sent"
+    assert mailer._sent_folder_name(OutlookImap()) == "Sent Items"
+    assert mailer._sent_folder_name(BareNameImap()) == "INBOX.Sent"
+    assert mailer._sent_folder_name(ImapWithoutFlags()) == "Sent"
 
 
 def test_build_message_threading_headers():
