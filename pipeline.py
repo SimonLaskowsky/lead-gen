@@ -17,6 +17,8 @@ MODEL_PRICES_PER_MILLION_TOKENS = {
     "claude-haiku-4-5": (1.0, 5.0),
 }
 FALLBACK_PRICE = (5.0, 25.0)
+CACHE_READ_MULTIPLIER = 0.1
+CACHE_WRITE_MULTIPLIER = 1.25
 
 COST_ESTIMATES_USD = {
     "analysis": float(os.getenv("COST_ANALYSIS_USD", "0.13")),
@@ -25,8 +27,8 @@ COST_ESTIMATES_USD = {
 }
 
 
-def record_usage(purpose, model, input_tokens, output_tokens):
-    db.add_usage(purpose, model, input_tokens, output_tokens)
+def record_usage(purpose, model, input_tokens, output_tokens, cache_read_tokens=0, cache_write_tokens=0):
+    db.add_usage(purpose, model, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens)
 
 
 analyzer.on_usage = record_usage
@@ -44,8 +46,12 @@ def estimate_cost_usd(usage_rows) -> float:
     total = 0.0
     for row in usage_rows:
         price_in, price_out = price_for(row["model"])
-        total += row["input_tokens"] * price_in / 1_000_000
-        total += row["output_tokens"] * price_out / 1_000_000
+        cache_read_price = price_in * CACHE_READ_MULTIPLIER
+        cache_write_price = price_in * CACHE_WRITE_MULTIPLIER
+        total += (row.get("input_tokens") or 0) * price_in / 1_000_000
+        total += (row.get("output_tokens") or 0) * price_out / 1_000_000
+        total += (row.get("cache_read_tokens") or 0) * cache_read_price / 1_000_000
+        total += (row.get("cache_write_tokens") or 0) * cache_write_price / 1_000_000
     return total
 
 

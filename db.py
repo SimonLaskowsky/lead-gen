@@ -95,9 +95,12 @@ def init_db():
                 purpose TEXT DEFAULT '',
                 model TEXT DEFAULT '',
                 input_tokens INTEGER DEFAULT 0,
-                output_tokens INTEGER DEFAULT 0
+                output_tokens INTEGER DEFAULT 0,
+                cache_read_tokens INTEGER DEFAULT 0,
+                cache_write_tokens INTEGER DEFAULT 0
             )
         """)
+        _migrate_usage(conn)
         if conn.execute("SELECT COUNT(*) FROM profiles").fetchone()[0] == 0:
             conn.execute(
                 "INSERT INTO profiles (name, domain, phone, experience, realizations) VALUES (?,?,?,?,?)",
@@ -126,6 +129,14 @@ def _migrate(conn):
             conn.execute(f"ALTER TABLE leads ADD COLUMN {col} {definition}")
         except Exception:
             pass  # column already exists
+
+
+def _migrate_usage(conn):
+    for col in ("cache_read_tokens", "cache_write_tokens"):
+        try:
+            conn.execute(f"ALTER TABLE api_usage ADD COLUMN {col} INTEGER DEFAULT 0")
+        except Exception:
+            pass
 
 
 def _migrate_profiles(conn):
@@ -522,11 +533,14 @@ def sent_outbound_for_lead(lead_id):
 
 
 # ── Zużycie API Anthropic ──
-def add_usage(purpose, model, input_tokens, output_tokens):
+def add_usage(purpose, model, input_tokens, output_tokens, cache_read_tokens=0, cache_write_tokens=0):
     with get_conn() as conn:
         conn.execute(
-            "INSERT INTO api_usage (at, purpose, model, input_tokens, output_tokens) VALUES (?, ?, ?, ?, ?)",
-            (now_iso(), purpose, model, int(input_tokens or 0), int(output_tokens or 0)),
+            """INSERT INTO api_usage (at, purpose, model, input_tokens, output_tokens,
+                                      cache_read_tokens, cache_write_tokens)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (now_iso(), purpose, model, int(input_tokens or 0), int(output_tokens or 0),
+             int(cache_read_tokens or 0), int(cache_write_tokens or 0)),
         )
 
 
@@ -534,7 +548,9 @@ def usage_by_model(period_prefix):
     with get_conn() as conn:
         rows = conn.execute(
             """SELECT model, COUNT(*) AS calls,
-                      SUM(input_tokens) AS input_tokens, SUM(output_tokens) AS output_tokens
+                      SUM(input_tokens) AS input_tokens, SUM(output_tokens) AS output_tokens,
+                      SUM(cache_read_tokens) AS cache_read_tokens,
+                      SUM(cache_write_tokens) AS cache_write_tokens
                FROM api_usage WHERE at LIKE ? GROUP BY model""",
             (f"{period_prefix}%",),
         ).fetchall()

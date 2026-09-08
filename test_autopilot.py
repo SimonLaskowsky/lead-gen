@@ -12,6 +12,7 @@ os.environ.pop("SMTP_PASSWORD", None)
 os.environ["ANTHROPIC_API_KEY"] = "test-key"
 os.environ["GOOGLE_MAPS_API_KEY"] = "test-key"
 
+import agent_audit
 import analyzer
 import db
 import mailer
@@ -191,6 +192,24 @@ def test_usage_recording_and_cost():
     assert abs(spend["today_usd"] - (1000 * 5 + 500 * 25) / 1_000_000) < 0.001, spend
     assert pipeline.price_for("claude-sonnet-5") == (2.0, 10.0)
     assert pipeline.price_for("nieznany-model") == pipeline.FALLBACK_PRICE
+
+
+def test_cached_tokens_reach_the_bill():
+    z_cache = SimpleNamespace(model="claude-sonnet-5", usage=SimpleNamespace(
+        input_tokens=1000, output_tokens=500,
+        cache_read_input_tokens=200_000, cache_creation_input_tokens=20_000))
+    agent_audit._record(z_cache, "audyt")
+
+    wiersz = [row for row in db.usage_by_model(datetime.now().strftime("%Y-%m-%d"))
+              if row["model"] == "claude-sonnet-5"][0]
+    assert wiersz["cache_read_tokens"] == 200_000
+    assert wiersz["cache_write_tokens"] == 20_000
+
+    bez_cache = (1000 * 2 + 500 * 10) / 1_000_000
+    czytanie = 200_000 * 2 * pipeline.CACHE_READ_MULTIPLIER / 1_000_000
+    zapis = 20_000 * 2 * pipeline.CACHE_WRITE_MULTIPLIER / 1_000_000
+    assert abs(pipeline.estimate_cost_usd([wiersz]) - (bez_cache + czytanie + zapis)) < 1e-9
+    assert czytanie > bez_cache * 5, "odczyty z cache mają dominować rachunek, inaczej test nic nie pilnuje"
 
 
 def test_full_autopilot_cycle():

@@ -36,8 +36,14 @@ def _client():
 
 
 def _record(message, purpose):
-    if on_usage:
-        on_usage(purpose, message.model, message.usage.input_tokens, message.usage.output_tokens)
+    if on_usage is None:
+        return
+    usage = getattr(message, "usage", None)
+    if usage is None:
+        return
+    on_usage(purpose, message.model, usage.input_tokens, usage.output_tokens,
+             getattr(usage, "cache_read_input_tokens", 0) or 0,
+             getattr(usage, "cache_creation_input_tokens", 0) or 0)
 
 
 def _bare_host(host):

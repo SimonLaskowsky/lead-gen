@@ -61,7 +61,9 @@ def _record(message, purpose: str) -> None:
     usage = getattr(message, "usage", None)
     if on_usage is None or usage is None:
         return
-    on_usage(purpose, getattr(message, "model", ""), usage.input_tokens, usage.output_tokens)
+    on_usage(purpose, getattr(message, "model", ""), usage.input_tokens, usage.output_tokens,
+             getattr(usage, "cache_read_input_tokens", 0) or 0,
+             getattr(usage, "cache_creation_input_tokens", 0) or 0)
 
 
 def _text(message) -> str:
