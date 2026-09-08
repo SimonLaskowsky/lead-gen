@@ -58,7 +58,7 @@ def fake_analyze(lead, screenshots, website_data, impression=None):
     return {"scores": {"design": 4}, "analysis": "Strona do poprawy."}
 
 
-def fake_generate_email(lead, website_data, ai_analysis=None, my_feedback=None, profile=None):
+def fake_generate_email(lead, website_data, ai_analysis=None, my_feedback=None, profile=None, has_mockup=False):
     return f"Temat: Uwagi do strony {lead['business_name']}\n\nDzień dobry,\ntreść maila.\n\n{profile['name']}"
 
 
@@ -66,10 +66,11 @@ def fake_generate_followup(lead, followup_number=1):
     return f"Dzień dobry, follow-up numer {followup_number}."
 
 
-def fake_send(mailbox, to_address, subject, body, in_reply_to="", references=None):
+def fake_send(mailbox, to_address, subject, body, in_reply_to="", references=None, attachments=None):
     message_id = f"<msg{len(SENT) + 1}@test.local>"
     SENT.append({"to": to_address, "subject": subject, "body": body, "in_reply_to": in_reply_to,
-                 "references": list(references or []), "from": mailbox.address, "message_id": message_id})
+                 "references": list(references or []), "from": mailbox.address, "message_id": message_id,
+                 "attachments": [nazwa for nazwa, _, _ in (attachments or [])]})
     return mailer.SendResult(message_id=message_id)
 
 
@@ -378,3 +379,23 @@ if __name__ == "__main__":
     test_send_failures_switch_auto_send_off()
     test_api_queue_and_campaign_routes()
     print("OK, wszystkie testy autopilota przeszły")
+
+
+def test_queued_message_carries_the_mockup_attachment():
+    db.init_db()
+    profile_id = setup_mailbox()
+    lead_id = db.add_lead(business_name="Willa Luiza", city="Wisła", business_type="pensjonat",
+                          email="klient@example.com", website_url="https://luizawisla.pl")
+    db.update_lead(lead_id, profile_id=profile_id)
+    row_id = pipeline.queue_message(db.get_lead(lead_id), "initial", "Temat", "Treść")
+
+    db.set_mockup(lead_id, "<html>makieta</html>", b"udajemy-jpeg")
+    SENT.clear()
+    pipeline.deliver(db.get_message(row_id))
+    assert SENT[-1]["attachments"] == ["projekt-strony-willa-luiza.jpg"], SENT[-1]["attachments"]
+
+    db.clear_mockup(lead_id)
+    row_id = pipeline.queue_message(db.get_lead(lead_id), "initial", "Temat", "Treść")
+    SENT.clear()
+    pipeline.deliver(db.get_message(row_id))
+    assert SENT[-1]["attachments"] == [], "bez makiety mail idzie bez załącznika"

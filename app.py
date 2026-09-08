@@ -240,6 +240,33 @@ def mockup_prompt(lead_id):
     return jsonify({"prompt": mockup.build_prompt(lead, website_data, lead.get("ai_analysis"))})
 
 
+@app.route("/api/lead/<int:lead_id>/mockup", methods=["POST", "DELETE"])
+def lead_mockup(lead_id):
+    if not db.get_lead(lead_id):
+        return jsonify({"error": "Nie znaleziono"}), 404
+    if request.method == "DELETE":
+        db.clear_mockup(lead_id)
+        return jsonify({"ok": True, "has_mockup": False})
+
+    html = (request.json or {}).get("html", "").strip()
+    if "<" not in html:
+        return jsonify({"error": "To nie wygląda na plik HTML z makietą"}), 400
+    image = scraper.screenshot_html(html, width=1280)
+    if not image:
+        return jsonify({"error": "Nie udało się wyrenderować makiety do obrazka"}), 500
+    db.set_mockup(lead_id, html, image)
+    db.update_lead(lead_id, generated_email="")
+    return jsonify({"ok": True, "has_mockup": True, "rozmiar_kb": len(image) // 1024})
+
+
+@app.route("/api/lead/<int:lead_id>/mockup.jpg")
+def lead_mockup_image(lead_id):
+    image = db.get_mockup_image(lead_id)
+    if not image:
+        return jsonify({"error": "Brak makiety"}), 404
+    return Response(image, mimetype="image/jpeg")
+
+
 @app.route("/api/lead/<int:lead_id>/generate-email", methods=["POST"])
 def generate_email(lead_id):
     lead = db.get_lead(lead_id)

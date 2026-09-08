@@ -533,6 +533,28 @@ def sent_outbound_for_lead(lead_id):
         return [dict(row) for row in rows]
 
 
+# ── Makieta nowej strony ──
+def set_mockup(lead_id, html, image):
+    with get_conn() as conn:
+        conn.execute("UPDATE leads SET mockup_html = ?, mockup_image = ? WHERE id = ?",
+                     (html, image, lead_id))
+
+
+def clear_mockup(lead_id):
+    with get_conn() as conn:
+        conn.execute("UPDATE leads SET mockup_html = '', mockup_image = NULL WHERE id = ?", (lead_id,))
+
+
+def get_mockup_image(lead_id):
+    with get_conn() as conn:
+        row = conn.execute("SELECT mockup_image FROM leads WHERE id = ?", (lead_id,)).fetchone()
+    return row["mockup_image"] if row else None
+
+
+def has_mockup(lead_id) -> bool:
+    return bool(get_mockup_image(lead_id))
+
+
 # ── Zużycie API Anthropic ──
 def add_usage(purpose, model, input_tokens, output_tokens, cache_read_tokens=0, cache_write_tokens=0):
     with get_conn() as conn:

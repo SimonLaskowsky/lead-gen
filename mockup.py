@@ -151,7 +151,11 @@ def build_prompt(lead, website_data=None, analysis=None) -> str:
 
     logo = (website_data.get("logo_url") or "").strip()
     if logo:
-        czesci.append(f"Logo: {logo}\nUżyj ich logo, nie rysuj nowego.")
+        czesci.append(f"Logo: {logo}\nPobierz je i użyj w nagłówku oraz w stopce. Nie rysuj nowego znaku, "
+                      "makieta ma wyglądać jak ich strona zrobiona lepiej, a nie jak cudza marka.")
+    else:
+        czesci.append("Nie znaleźliśmy ich logo. Nie rysuj żadnego znaku graficznego ani sygnetu. "
+                      "Zamiast tego złóż samą nazwę firmy krojem strony jako sygnaturę słowną.")
 
     ustalenia = _ustalenia_audytu(analysis)
     if ustalenia:

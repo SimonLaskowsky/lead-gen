@@ -879,8 +879,41 @@
 <button class="btn btn-ghost btn-sm" onclick="pokazPromptMakiety()" title="Prompt do wygenerowania makiety nowej strony, do wklejenia modelowi">
           <i class="bi bi-layout-text-window me-1"></i> Prompt makiety
         </button>
+        <button id="btnMakieta" class="btn btn-ghost btn-sm" onclick="otworzMakiete()" title="Wgraj gotowy plik HTML makiety, pójdzie do klienta jako załącznik">
+          <i class="bi bi-paperclip me-1"></i> Projekt strony
+        </button>
         <button class="btn btn-primary" onclick="generateEmailFromAnalysis()">
           <i class="bi bi-envelope me-1"></i> Generuj email
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PROJEKT STRONY W ZAŁĄCZNIKU
+     ══════════════════════════════════════ -->
+<div class="modal fade" id="makietaModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-paperclip me-2" style="color:var(--primary)"></i>Projekt nowej strony</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:11.5px;color:var(--fg-3);margin-bottom:12px">
+          Wgraj plik HTML makiety. Zrenderuję go do obrazka, który pójdzie do klienta jako załącznik,
+          a mail zostanie napisany tak, żeby się do niego odwoływał.
+        </div>
+        <input type="file" id="makietaPlik" accept=".html,text/html" class="form-control" onchange="wyslijMakiete(this)">
+        <div id="makietaStan" style="font-size:12px;margin-top:12px;color:var(--fg-3)"></div>
+        <div id="makietaPodglad" style="margin-top:14px;display:none">
+          <img id="makietaObraz" style="width:100%;border:1px solid var(--line-2)" alt="Podgląd projektu">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="makietaUsun" class="btn btn-ghost btn-sm" style="display:none" onclick="usunMakiete()">
+          <i class="bi bi-trash me-1"></i> Usuń projekt
         </button>
       </div>
     </div>
@@ -1967,6 +2000,56 @@ function exportAnalysisPdf() {
   w.document.close();
   w.focus();
   setTimeout(() => w.print(), 350);
+}
+
+// Makieta trafia do bazy jako HTML i jako obrazek. Obrazek jedzie zalacznikiem do klienta.
+function otworzMakiete() {
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('makietaModal')).show();
+  odswiezMakiete();
+}
+
+async function odswiezMakiete() {
+  const res = await fetch(`/api/lead/${currentLeadId}/mockup.jpg`, { cache: 'no-store' });
+  const jest = res.ok;
+  document.getElementById('makietaPodglad').style.display = jest ? '' : 'none';
+  document.getElementById('makietaUsun').style.display = jest ? '' : 'none';
+  document.getElementById('makietaStan').textContent = jest
+    ? 'Projekt jest wgrany. Mail wygenerowany dla tego leada powie, że jest w załączniku.'
+    : 'Brak projektu. Bez niego mail proponuje raport zamiast pokazywać gotowy design.';
+  if (jest) {
+    document.getElementById('makietaObraz').src = `/api/lead/${currentLeadId}/mockup.jpg?t=${Date.now()}`;
+  }
+  const przycisk = document.getElementById('btnMakieta');
+  if (przycisk) przycisk.innerHTML = jest
+    ? '<i class="bi bi-paperclip me-1"></i> Projekt wgrany'
+    : '<i class="bi bi-paperclip me-1"></i> Projekt strony';
+}
+
+async function wyslijMakiete(input) {
+  const plik = input.files[0];
+  if (!plik) return;
+  const stan = document.getElementById('makietaStan');
+  stan.textContent = 'Renderuję makietę do obrazka...';
+  try {
+    const html = await plik.text();
+    const res = await fetch(`/api/lead/${currentLeadId}/mockup`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ html }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    showToast(`Projekt wgrany, załącznik ${data.rozmiar_kb} kB. Wygeneruj maila od nowa.`, 'success');
+    input.value = '';
+    odswiezMakiete();
+  } catch (e) {
+    stan.textContent = 'Nie udało się: ' + e.message;
+  }
+}
+
+async function usunMakiete() {
+  await fetch(`/api/lead/${currentLeadId}/mockup`, { method: 'DELETE' });
+  showToast('Projekt usunięty', 'success');
+  odswiezMakiete();
 }
 
 // Aplikacja nie rysuje makiety. Zbiera material i sklada z niego prompt do wklejenia.

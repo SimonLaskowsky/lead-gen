@@ -385,7 +385,25 @@ def _audit_for_email(ai_analysis: str) -> tuple[str, str]:
     return analysis_text, story
 
 
-def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: str | None = None, my_feedback: str | None = None, profile: dict | None = None) -> str:
+MAKIETA_W_ZALACZNIKU = """
+=== PROJEKT JEST JUŻ ZROBIONY I WISI W ZAŁĄCZNIKU ===
+Do tego maila dołączony jest obrazek: gotowy projekt nowej strony głównej tej firmy,
+złożony z ICH własnych zdjęć, ich nazwy i ich treści.
+
+To zmienia całą prośbę w mailu i ma pierwszeństwo nad punktami o raporcie i o podglądzie:
+- Nie proponuj, że coś przygotujesz. To jest już przygotowane, wystarczy otworzyć załącznik.
+- Napisz jednym zdaniem, że w załączniku jest projekt nowej strony zrobiony na ich materiałach,
+  i że nic za to nie płacą ani do niczego się nie zobowiązują.
+- Zwróć uwagę, że użyłeś ICH zdjęć. To jest najmocniejszy punkt tego maila, bo dowodzi,
+  że ktoś naprawdę wszedł na ich stronę, a nie wysłał masówki.
+- Prośba na końcu dotyczy odpowiedzi, nie wysyłki: zapytaj, czy mają rzucić okiem
+  i czy odesłać wycenę, jeśli projekt im się spodoba.
+- Ani słowa o kwotach. Wycena jest tematem po ich odpowiedzi.
+- Nie opisuj projektu sekcja po sekcji. Oni go zaraz zobaczą, opis jest zbędny.
+"""
+
+
+def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: str | None = None, my_feedback: str | None = None, profile: dict | None = None, has_mockup: bool = False) -> str:
     client = _client()
     p = profile or {}
     snd = {
@@ -626,6 +644,7 @@ Sytuacja: firma NIE MA strony internetowej w ogóle
 {f"Dodatkowe spostrzeżenia (wpleć naturalnie): {my_feedback}" if my_feedback else ""}
 
 {style_rules}
+{MAKIETA_W_ZALACZNIKU if has_mockup else ""}
 
 === ZADANIE ===
 Napisz krotki cold email sprzedazowy. Ma doprowadzic do odpowiedzi, nie do wyceny.
@@ -742,6 +761,7 @@ URL: {lead.get('website_url', '')}
 {audit_text}
 {sender_context}
 {style_rules}
+{MAKIETA_W_ZALACZNIKU if has_mockup else ""}
 === WYTYCZNE DLA COLD MAILA ===
 1. Zwrot do adresata: "Dzień dobry" lub "Panie/Pani [imię]", ale imienia uzyj TYLKO jesli wystepuje w nazwie firmy, nigdy go nie zgaduj. Pisz per Pan/Pani, szanując tradycyjne podejście lokalnych przedsiębiorców. Żadnego "Cześć" na start.
 2. Temat maila: najwyzej 60 znakow, oparty na CIEKAWOSCI, nie na strachu. Nazwij konkretną obserwację ze strony i zostaw lukę informacyjną (np. "Rzut oka na [domena] oczami klienta z telefonu", "Kilka rzeczy na [domena], które łatwo poprawić"). Zakaz straszenia utratą klientów w temacie.

@@ -615,8 +615,15 @@ def screenshot_html(html: str, width: int = 1280) -> bytes | None:
             with sync_playwright() as p:
                 browser = p.chromium.launch(headless=True)
                 page = browser.new_page(viewport={"width": width, "height": 900})
-                page.goto(f"file://{tmp_path}", wait_until="domcontentloaded")
-                page.wait_for_timeout(500)
+                try:
+                    page.goto(f"file://{tmp_path}", wait_until="networkidle", timeout=20000)
+                except Exception:
+                    page.goto(f"file://{tmp_path}", wait_until="load", timeout=20000)
+                try:
+                    page.evaluate("document.fonts && document.fonts.ready")
+                except Exception:
+                    pass
+                page.wait_for_timeout(900)
                 # Screenshot full page height
                 png = page.screenshot(type="png", full_page=True)
                 browser.close()
@@ -627,9 +634,11 @@ def screenshot_html(html: str, width: int = 1280) -> bytes | None:
         try:
             from PIL import Image
             import io
-            img = Image.open(io.BytesIO(png))
+            img = Image.open(io.BytesIO(png)).convert("RGB")
+            if img.width > 1200:
+                img = img.resize((1200, round(img.height * 1200 / img.width)), Image.LANCZOS)
             buf = io.BytesIO()
-            img.convert("RGB").save(buf, format="JPEG", quality=85, optimize=True)
+            img.save(buf, format="JPEG", quality=84, optimize=True, progressive=True)
             return buf.getvalue()
         except ImportError:
             return png

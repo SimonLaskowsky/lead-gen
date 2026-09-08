@@ -8,7 +8,9 @@ import db
 import scraper
 import analyzer
 import agent_audit
+import mailer
 import mockup
+import pipeline
 
 
 def test_db_dedup():
@@ -388,3 +390,80 @@ def test_console_report_groups_repeats():
     raport = agent_audit._console_report(b)
     assert "(x2)" in raport
     assert "TypeError" in raport
+
+
+def _prompt_maila(**kwargs):
+    from types import SimpleNamespace
+    zlapane = {}
+
+    class _Fake:
+        def create(self, **wywolanie):
+            zlapane["prompt"] = wywolanie["messages"][0]["content"]
+            return SimpleNamespace(model="claude-opus-5", usage=SimpleNamespace(input_tokens=1, output_tokens=1),
+                                   content=[SimpleNamespace(type="text", text="Temat: x\n\ntresc")])
+
+    oryginal = analyzer._client
+    analyzer._client = lambda: SimpleNamespace(messages=_Fake())
+    try:
+        analyzer.generate_email(
+            {"business_name": "Willa Luiza", "business_type": "pensjonat", "city": "Wisła",
+             "website_url": "https://luizawisla.pl"},
+            website_data={"has_ssl": True}, ai_analysis="Werdykt: przeciętna.",
+            profile={"name": "Szymon"}, **kwargs)
+    finally:
+        analyzer._client = oryginal
+    return zlapane["prompt"]
+
+
+def test_email_prompt_mentions_the_attached_design():
+    prompt = _prompt_maila(has_mockup=True)
+    assert "PROJEKT JEST JUŻ ZROBIONY I WISI W ZAŁĄCZNIKU" in prompt
+    assert "Nie proponuj, że coś przygotujesz" in prompt
+
+
+def test_email_prompt_without_design_stays_on_the_report_offer():
+    prompt = _prompt_maila(has_mockup=False)
+    assert "ZAŁĄCZNIKU" not in prompt
+
+
+def test_attachment_is_built_only_when_a_mockup_exists():
+    zapisane = {}
+    oryginal = pipeline.db.get_mockup_image
+    pipeline.db.get_mockup_image = lambda lead_id: zapisane.get(lead_id)
+    try:
+        lead = {"id": 7, "business_name": "Willa Luiza / Wisła"}
+        assert pipeline.mockup_attachment(lead) == []
+        zapisane[7] = b"udajemy-jpeg"
+        nazwa, dane, typ = pipeline.mockup_attachment(lead)[0]
+        assert nazwa == "projekt-strony-willa-luiza-wisla.jpg", nazwa
+        assert dane == b"udajemy-jpeg" and typ == "image/jpeg"
+    finally:
+        pipeline.db.get_mockup_image = oryginal
+
+
+def test_message_carries_the_attachment():
+    skrzynka = mailer.Mailbox(address="ja@example.com", password="x", smtp_host="smtp.example.com",
+                              smtp_port=587, imap_host="imap.example.com", display_name="Szymon")
+    wiadomosc = mailer.build_message(skrzynka, "klient@example.com", "Temat", "Treść",
+                                     attachments=[("projekt.jpg", b"bajty", "image/jpeg")])
+    zalaczniki = [(c.get_filename(), c.get_content_type()) for c in wiadomosc.iter_attachments()]
+    assert zalaczniki == [("projekt.jpg", "image/jpeg")]
+    assert wiadomosc.get_body(preferencelist=("plain",)).get_content().strip() == "Treść"
+
+
+def test_message_without_attachments_stays_simple():
+    skrzynka = mailer.Mailbox(address="ja@example.com", password="x", smtp_host="smtp.example.com",
+                              smtp_port=587, imap_host="imap.example.com", display_name="Szymon")
+    wiadomosc = mailer.build_message(skrzynka, "klient@example.com", "Temat", "Treść")
+    assert list(wiadomosc.iter_attachments()) == []
+
+
+def test_mockup_prompt_forbids_drawing_a_logo_when_none_found():
+    lead = {"business_name": "Firma", "business_type": "hydraulik", "city": "Bielsko", "website_url": "https://firma.pl"}
+    bez_loga = mockup.build_prompt(lead, {"text_preview": "cos"}, None)
+    assert "Nie rysuj żadnego znaku graficznego" in bez_loga
+
+    z_logiem = mockup.build_prompt(lead, {"text_preview": "cos", "logo_url": "https://firma.pl/logo.png"}, None)
+    assert "https://firma.pl/logo.png" in z_logiem
+    assert "Nie rysuj nowego znaku" in z_logiem
+    assert "Nie rysuj żadnego znaku graficznego" not in z_logiem

@@ -1,4 +1,6 @@
 import json
+import re
+import unicodedata
 from datetime import datetime
 
 import os
@@ -255,6 +257,7 @@ def prepare_email(lead, profile_id=None, my_feedback=None, website_data=None) ->
             ai_analysis=lead.get("ai_analysis") or None,
             my_feedback=my_feedback or None,
             profile=profile,
+            has_mockup=db.has_mockup(lead["id"]),
         )
         mark("ai", True, f"email: {lead['business_name']}")
     except Exception as error:
@@ -359,6 +362,22 @@ def create_followup(lead) -> dict:
     return {"text": text, "number": number, "subject": followup_subject(lead)}
 
 
+def _slug(tekst: str) -> str:
+    """Nazwa pliku bez polskich znakow, zeby klient pocztowy nie mieszal przy kodowaniu."""
+    bez_ogonkow = unicodedata.normalize("NFKD", tekst.replace("ł", "l").replace("Ł", "L"))
+    tylko_ascii = bez_ogonkow.encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", "-", tylko_ascii.lower()).strip("-")
+
+
+def mockup_attachment(lead) -> list[tuple[str, bytes, str]]:
+    """Makieta idzie jako obrazek, bo plik HTML w cold mailu laduje w spamie."""
+    obrazek = db.get_mockup_image(lead["id"])
+    if not obrazek:
+        return []
+    nazwa = _slug(lead.get("business_name") or "")
+    return [(f"projekt-strony-{nazwa or 'firmy'}.jpg", obrazek, "image/jpeg")]
+
+
 def deliver(message) -> str:
     try:
         return _deliver(message)
@@ -383,6 +402,7 @@ def _deliver(message) -> str:
     result = mailer.send(
         mailbox, lead["email"], message["subject"], message["body"],
         in_reply_to=in_reply_to, references=references,
+        attachments=mockup_attachment(lead),
     )
     message_id = result.message_id
 

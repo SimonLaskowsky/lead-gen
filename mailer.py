@@ -94,7 +94,8 @@ def describe(mailbox: Mailbox | None) -> str:
 
 
 def build_message(mailbox: Mailbox, to_address: str, subject: str, body: str,
-                  in_reply_to: str = "", references: list[str] | None = None) -> EmailMessage:
+                  in_reply_to: str = "", references: list[str] | None = None,
+                  attachments: list[tuple[str, bytes, str]] | None = None) -> EmailMessage:
     message = EmailMessage()
     message["From"] = formataddr((mailbox.display_name, mailbox.address))
     message["To"] = to_address
@@ -104,6 +105,10 @@ def build_message(mailbox: Mailbox, to_address: str, subject: str, body: str,
         message["In-Reply-To"] = in_reply_to
         message["References"] = " ".join(references or [in_reply_to])
     message.set_content(body)
+    for filename, content, mime_type in attachments or []:
+        main_type, _, sub_type = mime_type.partition("/")
+        message.add_attachment(content, maintype=main_type, subtype=sub_type or "octet-stream",
+                               filename=filename)
     return message
 
 
@@ -114,10 +119,11 @@ class SendResult:
 
 
 def send(mailbox: Mailbox, to_address: str, subject: str, body: str,
-         in_reply_to: str = "", references: list[str] | None = None) -> SendResult:
+         in_reply_to: str = "", references: list[str] | None = None,
+         attachments: list[tuple[str, bytes, str]] | None = None) -> SendResult:
     if not mailbox.smtp_host:
         raise ValueError(f"Brak hosta SMTP dla skrzynki {mailbox.address}, uzupełnij go w profilu")
-    message = build_message(mailbox, to_address, subject, body, in_reply_to, references)
+    message = build_message(mailbox, to_address, subject, body, in_reply_to, references, attachments)
     with _smtp_connection(mailbox) as smtp:
         smtp.login(mailbox.address, mailbox.password)
         smtp.send_message(message)
