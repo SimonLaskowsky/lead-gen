@@ -7,6 +7,7 @@ os.environ["DB_PATH"] = os.path.join(tempfile.mkdtemp(), "test.db")
 import db
 import scraper
 import analyzer
+import agent_audit
 
 
 def test_db_dedup():
@@ -145,3 +146,45 @@ if __name__ == "__main__":
     test_inactive_site_email_only_from_own_domain()
     test_inactive_site_gets_new_site_pitch_not_audit_email()
     print("OK — wszystkie smoke testy przeszły")
+
+
+class _FakeResponse:
+    def __init__(self, resource_type, status, content_type, url):
+        self.request = type("Request", (), {"resource_type": resource_type})()
+        self.status = status
+        self.headers = {"content-type": content_type}
+        self.url = url
+
+
+class _FakeBrowser:
+    def __init__(self, responses):
+        self.responses = responses
+
+    failed_assets = agent_audit._Browser.failed_assets
+
+
+def test_broken_stylesheet_is_reported_as_page_failure():
+    css_404 = _FakeResponse("stylesheet", 404, "text/html", "https://firma.pl/wp-content/uploads/uag-css-760.css")
+    line = agent_audit._broken_assets_line(_FakeBrowser([css_404]))
+    assert "STRONA JEST USZKODZONA" in line
+    assert "uag-css-760.css" in line
+
+
+def test_stylesheet_served_as_html_counts_as_broken():
+    podszywajacy_sie = _FakeResponse("stylesheet", 200, "text/html; charset=UTF-8", "https://firma.pl/style.css")
+    line = agent_audit._broken_assets_line(_FakeBrowser([podszywajacy_sie]))
+    assert "STRONA JEST USZKODZONA" in line
+
+
+def test_broken_script_alone_is_not_a_page_failure():
+    script_404 = _FakeResponse("script", 404, "text/html", "https://firma.pl/kalendarz.js")
+    line = agent_audit._broken_assets_line(_FakeBrowser([script_404]))
+    assert "STRONA JEST USZKODZONA" not in line
+    assert "kalendarz.js" in line
+
+
+def test_healthy_page_reports_no_broken_assets():
+    css_ok = _FakeResponse("stylesheet", 200, "text/css", "https://firma.pl/style.css")
+    obrazek_404 = _FakeResponse("image", 404, "text/html", "https://firma.pl/brak.jpg")
+    line = agent_audit._broken_assets_line(_FakeBrowser([css_ok, obrazek_404]))
+    assert line == "Arkusze stylów i skrypty: wszystkie wczytały się poprawnie."

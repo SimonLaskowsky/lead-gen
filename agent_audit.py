@@ -468,6 +468,17 @@ class _Browser:
         heaviest.sort(reverse=True)
         return sizes_by_type, heaviest[:5]
 
+    def failed_assets(self):
+        failures = []
+        for response in list(self.responses)[:300]:
+            try:
+                reason = _asset_failure_reason(response)
+            except Exception:
+                continue
+            if reason:
+                failures.append((response.request.resource_type, reason, response.url))
+        return failures
+
     @staticmethod
     def _response_size(response):
         header = response.headers.get("content-length", "")
@@ -493,6 +504,40 @@ class _Browser:
         except Exception:
             pass
         return None
+
+
+def _shortened_url(url):
+    if len(url) <= 95:
+        return url
+    return url[:45] + "…" + url[-45:]
+
+
+def _asset_failure_reason(response):
+    kind = response.request.resource_type
+    if kind not in ("stylesheet", "script"):
+        return ""
+    if response.status >= 400:
+        return f"odpowiedź {response.status}"
+    if kind != "stylesheet":
+        return ""
+    declared_type = response.headers.get("content-type", "").split(";")[0].strip().lower()
+    if declared_type == "text/css":
+        return ""
+    return f"serwer oddaje go jako {declared_type or 'typ nieznany'}, więc przeglądarka odrzuca go jako arkusz stylów"
+
+
+def _broken_assets_line(browser):
+    failures = browser.failed_assets()
+    if not failures:
+        return "Arkusze stylów i skrypty: wszystkie wczytały się poprawnie."
+    listing = "\n".join(f"  {kind}, {reason}: {_shortened_url(url)}" for kind, reason, url in failures[:8])
+    broken_stylesheets = [item for item in failures if item[0] == "stylesheet"]
+    if broken_stylesheets:
+        headline = ("STRONA JEST USZKODZONA: nie wczytał się arkusz stylów, więc gość widzi rozsypany układ, "
+                    f"a nie projekt strony. Niewczytane pliki ({len(failures)}):")
+    else:
+        headline = f"Nie wczytały się skrypty strony, część funkcji może nie działać. Niewczytane pliki ({len(failures)}):"
+    return headline + "\n" + listing
 
 
 def _weights_line(browser):
@@ -526,7 +571,8 @@ def _animation_libraries(page_html):
 def _browser_measurements(browser, page_html):
     metrics = browser.metrics()
     screens = -(-metrics["wysokosc"] // browser.viewport_height)
-    lines = [f"Pomiar w przeglądarce ({browser.width}px): wysokość {metrics['wysokosc']} px, czyli {screens} ekranów."]
+    lines = [_broken_assets_line(browser),
+             f"Pomiar w przeglądarce ({browser.width}px): wysokość {metrics['wysokosc']} px, czyli {screens} ekranów."]
     if metrics["szerokosc_tresci"] > metrics["szerokosc_widoku"] + 2:
         lines.append(f"Treść wystaje poza ekran w poziomie: {metrics['szerokosc_tresci']} px przy oknie {metrics['szerokosc_widoku']} px.")
     lines.append(_weights_line(browser))
@@ -684,8 +730,8 @@ TOOLS = [
     },
     {
         "name": "zweryfikuj",
-        "description": "Twarde sprawdzenie bieżącej strony, którym potwierdzasz albo odrzucasz to, co zobaczyłeś na zrzucie. kontrast: kontrast każdego tekstu policzony z kolorów, z pozycją. przyciski: wszystkie widoczne linki i przyciski z adresami, także te poza domeną. kod: SEO i technikalia (tytuł, H1, alt, analityka, tel:, mailto:, formularze, przekierowanie https, robots, sitemap). telefon: pomiary w 390px (wysokość w ekranach, wystawanie poza ekran, małe cele, drobny tekst, waga). tekst: pełna widoczna treść strony do literówek i tonu.",
-        "input_schema": {"type": "object", "properties": {"co": {"type": "string", "enum": ["kontrast", "przyciski", "kod", "telefon", "tekst"]}}, "required": ["co"], "additionalProperties": False},
+        "description": "Twarde sprawdzenie bieżącej strony, którym potwierdzasz albo odrzucasz to, co zobaczyłeś na zrzucie. kontrast: kontrast każdego tekstu policzony z kolorów, z pozycją. przyciski: wszystkie widoczne linki i przyciski z adresami, także te poza domeną. kod: SEO i technikalia (tytuł, H1, alt, analityka, tel:, mailto:, formularze, przekierowanie https, robots, sitemap). telefon: pomiary w 390px (wysokość w ekranach, wystawanie poza ekran, małe cele, drobny tekst, waga). tekst: pełna widoczna treść strony do literówek i tonu. zasoby: czy arkusze stylów i skrypty strony w ogóle się wczytały, bo plik CSS z odpowiedzią 404 rozsypuje cały układ.",
+        "input_schema": {"type": "object", "properties": {"co": {"type": "string", "enum": ["kontrast", "przyciski", "kod", "telefon", "tekst", "zasoby"]}}, "required": ["co"], "additionalProperties": False},
         "strict": True,
     },
 ]
@@ -693,13 +739,15 @@ TOOLS = [
 SYSTEM_STEPS = """Jesteś doświadczonym projektantem UI/UX i konsultantem, który ocenia stronę lokalnej firmy tak, jak zrobiłby to człowiek siedzący przed ekranem: otwiera, przewija ekran po ekranie, klika w to, w co kliknąłby gość, a gdy coś wygląda podejrzanie, sprawdza, zanim to zapisze.
 
 Narzędzia:
-- otworz_strone: ładuje stronę, daje fakty z kodu, pomiar wagi i wysokości oraz zrzut pierwszego ekranu w 1280.
+- otworz_strone: ładuje stronę, daje fakty z kodu, kontrolę wczytania arkuszy stylów i skryptów, pomiar wagi i wysokości oraz zrzut pierwszego ekranu w 1280.
 - przewin: pokazuje wybrany ekran (1 = pierwszy) w 1280, 1024 albo 390. Tak oglądasz stronę dalej i tak wracasz, żeby spojrzeć drugi raz.
 - kliknij: klika link albo przycisk o podanym tekście i mówi, dokąd prowadzi.
-- zweryfikuj: twarde sprawdzenia bieżącej strony: kontrast, przyciski z adresami, kod i SEO, pomiary na telefonie, pełny tekst.
+- zweryfikuj: twarde sprawdzenia bieżącej strony: kontrast, przyciski z adresami, kod i SEO, pomiary na telefonie, pełny tekst, zasoby (czy pliki CSS i JS strony się wczytały).
 
 Pętla, którą powtarzasz: zauważ, zwątp, sprawdź.
 Zrzut ekranu to podejrzenie, nie wniosek. Zanim uznasz, że tekst jest blady, przycisk prowadzi donikąd, cennika nie ma, układ się łamie albo strona jest ciężka, sprawdź to drugim narzędziem: kontrast przez zweryfikuj kontrast, przycisk przez kliknij albo zweryfikuj przyciski, brak treści przez zweryfikuj tekst albo przewin do innego ekranu, wagę przez pomiar. Zrzuty są robione z wyłączonymi animacjami, ale lazy-load, karuzele, menu i przyklejone nagłówki potrafią oszukać. W dzienniku zapisuj trzy rzeczy: co zauważyłeś, czym sprawdziłeś, co wyszło. Podejrzenie, które się nie potwierdziło, też zapisz, żeby nie trafiło do notatki.
+
+Zanim ocenisz wygląd, przeczytaj w pomiarze linię o arkuszach stylów i skryptach. Gdy stoi tam "STRONA JEST USZKODZONA", plik CSS strony nie wczytał się i to, co widzisz na zrzucie, nie jest projektem, tylko jego ruinami. Puste sekcje, ucięte nagłówki, napisy wychodzące poza krawędź, nachodzące elementy, znikające tła i rozjechany układ są wtedy skutkiem tej jednej awarii, a nie decyzjami projektanta, więc nie opisuj ich jako uwag o designie ani nie zgaduj, że autor czegoś nie dokończył. Nazwij awarię, podaj nazwę niewczytanego pliku, sprawdź narzędziem zweryfikuj zasoby, czy dotyczy też podstron, i na tym oprzyj podsumowanie. Odwrotnie też: pustej sekcji nie zgłaszaj jako awarii, dopóki ta linia mówi, że wszystko wczytało się poprawnie.
 
 Co oglądasz:
 1. Strona główna, pierwszy ekran w 1280, trzy sekundy: czym firma się zajmuje, gdzie, co ma zrobić gość, z którego roku to wygląda. Potem przewijaj kolejne ekrany aż do stopki. Nie zgaduj, co jest niżej.
@@ -726,6 +774,7 @@ Najcenniejsza zmiana: silnik rezerwacji z kalendarzem. Analityki też nie ma, al
 --- KONIEC WZORU ---
 
 Zasady:
+- Gdy w faktach stoi "STRONA JEST USZKODZONA", to jest cała notatka. Napisz, że strona w tej chwili nie wyświetla się poprawnie, bo nie wczytuje się jej plik ze stylami (podaj nazwę pliku i której podstrony dotyczy), i że gość widzi rozsypany układ zamiast projektu. Nie oceniaj wtedy kolorów, typografii, zdjęć ani układu, bo oceniasz ruiny, a nie projekt. W OCENA daj "werdykt": "napisz", historię o awarii, a w polach design i mobile oceń to, co gość faktycznie widzi teraz.
 - Zacznij od werdyktu w jednym akapicie: ocena 1-10 na tle dobrych stron tej branży w 2026 roku, rok, z którego strona wygląda, i jedna dominująca historia, czyli to, co naprawdę kosztuje firmę klientów albo powód, dla którego nie ma czego poprawiać.
 - Potem 2 do 4 krótkich akapitów bez nagłówków i bez wypunktowań: pierwsze wrażenie, praca gościa (co da się załatwić, za ile klików i dokąd prowadzi główny przycisk), jakość wizualna, fakty techniczne, tylko te, które mają znaczenie. Każde spostrzeżenie z dowodem, gdzie to widać na ekranie, tak żeby właściciel odnalazł to w dziesięć sekund.
 - Do notatki trafia tylko to, co dziennik potwierdził narzędziem albo co stoi w faktach. Podejrzenie ze zrzutu, które sprawdzenie odrzuciło, pomijasz. Liczby (waga, ekrany, kontrast, słowa) przytaczasz z faktów i wyników sprawdzeń, nie z oka.
@@ -852,6 +901,8 @@ def _verify(state, what):
             report = _code_facts(browser.url)
         elif what == "telefon":
             report = _mobile_report(browser)
+        elif what == "zasoby":
+            report = _broken_assets_line(browser)
         elif what == "tekst":
             report = "Widoczny tekst strony:\n" + browser.visible_text()
         else:
