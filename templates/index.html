@@ -943,6 +943,7 @@
           Wgraj plik HTML makiety. Zrenderuję go do obrazka, który pójdzie do klienta jako załącznik,
           a mail zostanie napisany tak, żeby się do niego odwoływał.
         </div>
+        <label class="form-label" id="makietaEtykieta">Plik HTML makiety</label>
         <input type="file" id="makietaPlik" accept=".html,text/html" class="form-control" onchange="wyslijMakiete(this)">
         <div id="makietaStan" style="font-size:12px;margin-top:12px;color:var(--fg-3)"></div>
         <div id="makietaPodglad" style="margin-top:14px;display:none">
@@ -950,7 +951,9 @@
             <a id="makietaLinkHtml" href="#" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1"></i>Otwórz stronę</a>
             <a id="makietaLinkJpg" href="#" target="_blank" rel="noopener"><i class="bi bi-image me-1"></i>Otwórz załącznik</a>
           </div>
-          <img id="makietaObraz" style="width:100%;border:1px solid var(--line-2)" alt="Podgląd projektu">
+          <a id="makietaLinkObraz" href="#" target="_blank" rel="noopener" title="Otwórz projekt w nowej karcie">
+            <img id="makietaObraz" style="width:100%;border:1px solid var(--line-2);display:block" alt="Podgląd projektu">
+          </a>
         </div>
       </div>
       <div class="modal-footer">
@@ -2047,11 +2050,8 @@ function exportAnalysisPdf() {
 }
 
 // Otwarcie projektu z listy: gotowy leci w nowej karcie, brakujacy prosi o wgranie.
-async function otworzProjekt(leadId) {
+function otworzProjekt(leadId) {
   currentLeadId = leadId;
-  const res = await fetch(`/api/lead/${leadId}/mockup.jpg`, { cache: 'no-store' });
-  if (res.ok) { window.open(`/api/lead/${leadId}/mockup.html`, '_blank', 'noopener'); return; }
-  showToast('Ten lead nie ma jeszcze projektu, wgraj plik HTML', 'warning');
   otworzMakiete();
 }
 
@@ -2109,8 +2109,12 @@ async function odswiezMakiete() {
   document.getElementById('makietaStan').textContent = jest
     ? 'Projekt jest wgrany. Mail wygenerowany dla tego leada powie, że jest w załączniku.'
     : 'Brak projektu. Bez niego mail proponuje raport zamiast pokazywać gotowy design.';
+  document.getElementById('makietaEtykieta').textContent = jest
+    ? 'Podmień plik HTML makiety' : 'Plik HTML makiety';
   if (jest) {
-    document.getElementById('makietaObraz').src = `/api/lead/${currentLeadId}/mockup.jpg?t=${Date.now()}`;
+    const znacznik = Date.now();
+    document.getElementById('makietaObraz').src = `/api/lead/${currentLeadId}/mockup.jpg?t=${znacznik}`;
+    document.getElementById('makietaLinkObraz').href = `/api/lead/${currentLeadId}/mockup.html`;
     document.getElementById('makietaLinkHtml').href = `/api/lead/${currentLeadId}/mockup.html`;
     document.getElementById('makietaLinkJpg').href = `/api/lead/${currentLeadId}/mockup.jpg`;
   }
