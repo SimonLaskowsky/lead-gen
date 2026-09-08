@@ -826,7 +826,9 @@ Zasady:
 - Zacznij od werdyktu w jednym akapicie: ocena 1-10 na tle dobrych stron tej branży w 2026 roku, rok, z którego strona wygląda, i jedna dominująca historia, czyli to, co naprawdę kosztuje firmę klientów albo powód, dla którego nie ma czego poprawiać.
 - Potem 2 do 4 krótkich akapitów bez nagłówków i bez wypunktowań: pierwsze wrażenie, praca gościa (co da się załatwić, za ile klików i dokąd prowadzi główny przycisk), jakość wizualna, fakty techniczne, tylko te, które mają znaczenie. Każde spostrzeżenie z dowodem, gdzie to widać na ekranie, tak żeby właściciel odnalazł to w dziesięć sekund.
 - Do notatki trafia tylko to, co dziennik potwierdził narzędziem albo co stoi w faktach. Podejrzenie ze zrzutu, które sprawdzenie odrzuciło, pomijasz. Liczby (waga, ekrany, kontrast, słowa) przytaczasz z faktów i wyników sprawdzeń, nie z oka.
+- Werdykt "pomin" jest pełnoprawnym wynikiem audytu i masz go stawiać bez wahania. Strona zrobiona porządnie, bez usterki, którą właściciel odczuwa jako utratę klientów, to "pomin", nawet jeśli dałoby się w niej coś dopieścić. Nie szukaj wady po to, żeby uzasadnić wysyłkę: naciągnięty zarzut kosztuje nas więcej niż pominięty lead, bo właściciel ogląda swoją stronę codziennie i wypełniacz pozna w jednym zdaniu.
 - Jeśli coś jest dobre, napisz to wprost. Jeśli strona jest dobra, powiedz, że nie ma sensu pisać z propozycją poprawek, albo że jedyny sensowny temat to X.
+- Nie licz na minus tego, że firma zaprasza do kontaktu. Widoczny telefon, mail czy przycisk do formularza to jest to, po co ta strona istnieje. Usterką jest dopiero kontakt utrudniony: przycisk prowadzący donikąd, numer bez tel:, formularz bez potwierdzenia. Tak samo brak funkcji nie jest wadą sam z siebie, tylko wtedy, gdy widziałeś, że gość jej tam szuka i nie znajduje.
 - Nie oceniaj po rozdzielni, jeśli właściwa treść jest na podstronie. Nie zgaduj klikalności ze zrzutu, klikalność jest w faktach.
 - Bez emoji, bez słów "brzydka", "amatorska", "katastrofa". Najwyżej 350 słów.
 - Bez myślników i półpauz (znaki — i –). Zamiast nich przecinek, dwukropek, nawias albo osobne zdanie. Dywiz w słowach jest w porządku.
@@ -1121,13 +1123,22 @@ def write_memo(lead, state):
     return memo, scores, thought
 
 
+def _verdict_from(scores):
+    declared = str(scores.get("werdykt", "")).strip().lower()
+    if declared.startswith("napisz"):
+        return "napisz", ""
+    if declared.startswith("pomi"):
+        return "pomin", ""
+    return "pomin", "Model nie podał werdyktu, więc mail wstrzymany do ręcznego przejrzenia."
+
+
 def audit(lead):
     state = explore(lead)
     memo, scores, memo_thought = write_memo(lead, state)
     log = list(state["log"])
     if memo_thought:
         log.append("myśl przed notatką: " + memo_thought[:500])
-    verdict = "pomin" if str(scores.get("werdykt", "")).lower().startswith("pomi") else "napisz"
+    verdict, brak_werdyktu = _verdict_from(scores)
     analysis_text = memo + "\n\nJak model do tego doszedł:\n" + "\n".join("- " + line for line in log)
     numeric = {k: scores.get(k) for k in ("design", "mobile", "seo", "cta") if scores.get(k) is not None}
     numeric["first_impression"] = scores.get("pierwsze_wrazenie")
@@ -1136,7 +1147,7 @@ def audit(lead):
         "analysis": analysis_text,
         "scores": numeric,
         "verdict": verdict,
-        "story": scores.get("historia", ""),
+        "story": brak_werdyktu or scores.get("historia", ""),
         "primary_url": (scores.get("wlasciwa_strona") if _url_allowed(str(scores.get("wlasciwa_strona") or ""), lead.get("website_url", "")) else None) or lead.get("website_url", ""),
         "website_data": state.get("primary_data") or {},
         "log": log,

@@ -224,3 +224,41 @@ def test_site_level_facts_are_fetched_once_per_host():
         agent_audit._measure_site_level = oryginal
         agent_audit._site_level_cache.clear()
     assert len(wywolania) == 2, f"na hosta raz, nie na podstronę: {wywolania}"
+
+
+def test_missing_verdict_holds_the_email_back():
+    assert agent_audit._verdict_from({"werdykt": "napisz"}) == ("napisz", "")
+    assert agent_audit._verdict_from({"werdykt": "pomin"})[0] == "pomin"
+    assert agent_audit._verdict_from({"werdykt": "pomiń"})[0] == "pomin"
+
+    werdykt, powod = agent_audit._verdict_from({})
+    assert werdykt == "pomin", "nieodczytany werdykt nie może domyślnie wysyłać maila"
+    assert powod, "pominięcie z powodu braku werdyktu ma trafić do notatki leada"
+
+
+def test_email_prompt_drops_the_scanner_checklist_when_audit_exists():
+    from types import SimpleNamespace
+
+    zlapane = {}
+
+    class _Fake:
+        def create(self, **kwargs):
+            zlapane["prompt"] = kwargs["messages"][0]["content"]
+            return SimpleNamespace(model="claude-opus-5", content=[SimpleNamespace(type="text", text="Temat: x\n\ntresc")],
+                                   usage=SimpleNamespace(input_tokens=1, output_tokens=1))
+
+    oryginal = analyzer._client
+    analyzer._client = lambda: SimpleNamespace(messages=_Fake())
+    try:
+        analyzer.generate_email(
+            {"business_name": "Willa Luiza", "business_type": "pensjonat", "city": "Wisła",
+             "website_url": "https://luizawisla.pl"},
+            website_data={"has_ssl": True, "has_contact_form": False, "has_cta": True, "word_count": 900},
+            ai_analysis="Werdykt: strona jest w porządku.",
+            profile={"name": "Szymon"})
+    finally:
+        analyzer._client = oryginal
+
+    prompt = zlapane["prompt"]
+    assert "brak formularza kontaktowego" not in prompt, "checklista skanera nie ma dopisywać wad obok audytu"
+    assert "Werdykt: strona jest w porządku." in prompt
