@@ -891,6 +891,44 @@
 </div>
 
 <!-- ══════════════════════════════════════
+     EDYCJA DANYCH LEADA
+     ══════════════════════════════════════ -->
+<div class="modal fade" id="edycjaModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil me-2" style="color:var(--primary)"></i>Edytuj dane leada</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2"><label class="form-label">Nazwa firmy</label>
+          <input type="text" id="edNazwa" class="form-control"></div>
+        <div class="mb-2"><label class="form-label">Strona</label>
+          <input type="text" id="edStrona" class="form-control" placeholder="https://..."></div>
+        <div id="edOstrzezenie" style="display:none;font-size:11.5px;color:var(--amber);margin-bottom:8px">
+          Zmiana adresu strony skasuje zapisany audyt i maila, bo dotyczyły innej strony.
+        </div>
+        <div class="mb-2"><label class="form-label">E-mail</label>
+          <input type="text" id="edEmail" class="form-control"></div>
+        <div class="mb-2"><label class="form-label">Telefon</label>
+          <input type="text" id="edTelefon" class="form-control"></div>
+        <div class="mb-2"><label class="form-label">Branża</label>
+          <input type="text" id="edBranza" class="form-control" placeholder="np. pensjonat"></div>
+        <div class="mb-2"><label class="form-label">Miasto</label>
+          <input type="text" id="edMiasto" class="form-control"></div>
+        <div><label class="form-label">Adres</label>
+          <input type="text" id="edAdres" class="form-control"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="zapiszEdycje()">
+          <i class="bi bi-check2 me-1"></i> Zapisz
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
      PROJEKT STRONY W ZAŁĄCZNIKU
      ══════════════════════════════════════ -->
 <div class="modal fade" id="makietaModal" tabindex="-1">
@@ -908,6 +946,10 @@
         <input type="file" id="makietaPlik" accept=".html,text/html" class="form-control" onchange="wyslijMakiete(this)">
         <div id="makietaStan" style="font-size:12px;margin-top:12px;color:var(--fg-3)"></div>
         <div id="makietaPodglad" style="margin-top:14px;display:none">
+          <div style="display:flex;gap:14px;margin-bottom:10px;font-size:12px">
+            <a id="makietaLinkHtml" href="#" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1"></i>Otwórz stronę</a>
+            <a id="makietaLinkJpg" href="#" target="_blank" rel="noopener"><i class="bi bi-image me-1"></i>Otwórz załącznik</a>
+          </div>
           <img id="makietaObraz" style="width:100%;border:1px solid var(--line-2)" alt="Podgląd projektu">
         </div>
       </div>
@@ -1247,6 +1289,8 @@ function renderTable(leads) {
               <li><a class="dropdown-item" href="javascript:void(0)" onclick="setStatus(${lead.id},'skipped')">Pomiń</a></li>
               <li><a class="dropdown-item" href="javascript:void(0)" onclick="setLeadAutopilot(${lead.id}, ${lead.autopilot ? 'false' : 'true'})">${lead.autopilot ? 'Zabierz autopilotowi' : 'Oddaj autopilotowi'}</a></li>
               <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="javascript:void(0)" onclick="otworzEdycje(${lead.id})">Edytuj dane</a></li>
+              <li><a class="dropdown-item" href="javascript:void(0)" onclick="otworzProjekt(${lead.id})">Projekt strony</a></li>
               <li><a class="dropdown-item" href="javascript:void(0)" onclick="openNotesModal(${lead.id})">Notatki / email</a></li>
               <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="deleteLead(${lead.id})">Usuń</a></li>
             </ul>
@@ -2002,6 +2046,55 @@ function exportAnalysisPdf() {
   setTimeout(() => w.print(), 350);
 }
 
+// Otwarcie projektu z listy: gotowy leci w nowej karcie, brakujacy prosi o wgranie.
+async function otworzProjekt(leadId) {
+  currentLeadId = leadId;
+  const res = await fetch(`/api/lead/${leadId}/mockup.jpg`, { cache: 'no-store' });
+  if (res.ok) { window.open(`/api/lead/${leadId}/mockup.html`, '_blank', 'noopener'); return; }
+  showToast('Ten lead nie ma jeszcze projektu, wgraj plik HTML', 'warning');
+  otworzMakiete();
+}
+
+// ── Edycja danych leada ──
+let edytowanyLead = null;
+
+function otworzEdycje(leadId) {
+  const lead = leadsById[leadId] || {};
+  edytowanyLead = leadId;
+  document.getElementById('edNazwa').value   = lead.business_name || '';
+  document.getElementById('edStrona').value  = lead.website_url || '';
+  document.getElementById('edEmail').value   = lead.email || '';
+  document.getElementById('edTelefon').value = lead.phone || '';
+  document.getElementById('edBranza').value  = lead.business_type || '';
+  document.getElementById('edMiasto').value  = lead.city || '';
+  document.getElementById('edAdres').value   = lead.address || '';
+  document.getElementById('edOstrzezenie').style.display = lead.ai_analysis ? '' : 'none';
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('edycjaModal')).show();
+}
+
+async function zapiszEdycje() {
+  const dane = {
+    business_name: document.getElementById('edNazwa').value.trim(),
+    website_url:   document.getElementById('edStrona').value.trim(),
+    email:         document.getElementById('edEmail').value.trim(),
+    phone:         document.getElementById('edTelefon').value.trim(),
+    business_type: document.getElementById('edBranza').value.trim(),
+    city:          document.getElementById('edMiasto').value.trim(),
+    address:       document.getElementById('edAdres').value.trim(),
+  };
+  if (!dane.business_name) { showToast('Nazwa firmy nie może być pusta', 'warning'); return; }
+  try {
+    const res = await fetch(`/api/lead/${edytowanyLead}/update`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dane),
+    });
+    const odpowiedz = await res.json();
+    if (odpowiedz.error) throw new Error(odpowiedz.error);
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('edycjaModal')).hide();
+    showToast('Dane zapisane', 'success');
+    loadLeads();
+  } catch (e) { showToast('Błąd: ' + e.message, 'danger'); }
+}
+
 // Makieta trafia do bazy jako HTML i jako obrazek. Obrazek jedzie zalacznikiem do klienta.
 function otworzMakiete() {
   bootstrap.Modal.getOrCreateInstance(document.getElementById('makietaModal')).show();
@@ -2018,6 +2111,8 @@ async function odswiezMakiete() {
     : 'Brak projektu. Bez niego mail proponuje raport zamiast pokazywać gotowy design.';
   if (jest) {
     document.getElementById('makietaObraz').src = `/api/lead/${currentLeadId}/mockup.jpg?t=${Date.now()}`;
+    document.getElementById('makietaLinkHtml').href = `/api/lead/${currentLeadId}/mockup.html`;
+    document.getElementById('makietaLinkJpg').href = `/api/lead/${currentLeadId}/mockup.jpg`;
   }
   const przycisk = document.getElementById('btnMakieta');
   if (przycisk) przycisk.innerHTML = jest

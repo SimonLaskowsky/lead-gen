@@ -259,6 +259,19 @@ def lead_mockup(lead_id):
     return jsonify({"ok": True, "has_mockup": True, "rozmiar_kb": len(image) // 1024})
 
 
+MOCKUP_CSP = ("default-src 'none'; img-src data: https:; style-src 'unsafe-inline' https://fonts.googleapis.com; "
+              "font-src https://fonts.gstatic.com data:; script-src 'none'; frame-ancestors 'self'")
+
+
+@app.route("/api/lead/<int:lead_id>/mockup.html")
+def lead_mockup_html(lead_id):
+    lead = db.get_lead(lead_id)
+    html = (lead or {}).get("mockup_html") or ""
+    if not html:
+        return jsonify({"error": "Brak makiety"}), 404
+    return Response(html, mimetype="text/html; charset=utf-8", headers={"Content-Security-Policy": MOCKUP_CSP})
+
+
 @app.route("/api/lead/<int:lead_id>/mockup.jpg")
 def lead_mockup_image(lead_id):
     image = db.get_mockup_image(lead_id)
@@ -332,8 +345,14 @@ def set_lead_autopilot(lead_id):
 @app.route("/api/lead/<int:lead_id>/update", methods=["POST"])
 def update_lead(lead_id):
     data = request.json or {}
-    allowed = {"status", "notes", "email", "generated_email", "phone", "profile_id"}
+    allowed = {"status", "notes", "email", "generated_email", "phone", "profile_id",
+               "business_name", "website_url", "city", "business_type", "address"}
     updates = {k: v for k, v in data.items() if k in allowed}
+
+    # zmiana adresu strony uniewaznia audyt, bo dotyczyl innej strony
+    obecny = db.get_lead(lead_id) or {}
+    if "website_url" in updates and updates["website_url"] != obecny.get("website_url"):
+        updates.update({"ai_analysis": "", "website_checks": "", "audit_verdict": "", "generated_email": ""})
 
     if updates.get("status") == "emailed":
         updates["emailed_at"] = datetime.now().isoformat(timespec="seconds")

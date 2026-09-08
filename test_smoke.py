@@ -1,4 +1,5 @@
 # Minimalny smoke test logiki bez sieci: python test_smoke.py
+import itertools
 import os
 import tempfile
 
@@ -467,3 +468,52 @@ def test_mockup_prompt_forbids_drawing_a_logo_when_none_found():
     assert "https://firma.pl/logo.png" in z_logiem
     assert "Nie rysuj nowego znaku" in z_logiem
     assert "Nie rysuj żadnego znaku graficznego" not in z_logiem
+
+
+_licznik_leadow = itertools.count(1)
+
+
+def _aplikacja_z_leadem():
+    """Kazdy test dostaje wlasnego leada, bo add_lead deduplikuje po nazwie i miescie."""
+    import app as flask_app
+    db.init_db()
+    lead_id = db.add_lead(business_name=f"Edytowany {next(_licznik_leadow)}", city="Wisła",
+                          business_type="pensjonat", website_url="https://stara.pl/")
+    assert lead_id, "lead testowy nie powstał"
+    db.update_lead(lead_id, ai_analysis='{"analysis":"stara"}', audit_verdict="napisz",
+                   generated_email="stary mail")
+    return flask_app.app.test_client(), lead_id
+
+
+def test_editing_lead_keeps_the_audit_when_the_site_stays():
+    klient, lead_id = _aplikacja_z_leadem()
+    klient.post(f"/api/lead/{lead_id}/update", json={"business_name": "Nowa nazwa", "city": "Ustroń"})
+    lead = db.get_lead(lead_id)
+    assert lead["business_name"] == "Nowa nazwa" and lead["city"] == "Ustroń"
+    assert lead["ai_analysis"], "audyt tej samej strony ma zostać"
+
+
+def test_changing_the_site_invalidates_the_audit():
+    klient, lead_id = _aplikacja_z_leadem()
+    klient.post(f"/api/lead/{lead_id}/update", json={"website_url": "https://nowa.pl/"})
+    lead = db.get_lead(lead_id)
+    assert lead["website_url"] == "https://nowa.pl/"
+    assert lead["ai_analysis"] == "" and lead["audit_verdict"] == "" and lead["generated_email"] == "", \
+        "audyt i mail dotyczyły innej strony, muszą zniknąć"
+
+
+def test_update_ignores_fields_outside_the_allowlist():
+    klient, lead_id = _aplikacja_z_leadem()
+    klient.post(f"/api/lead/{lead_id}/update", json={"id": 999, "mockup_html": "<script>x</script>"})
+    lead = db.get_lead(lead_id)
+    assert lead["id"] == lead_id and not lead["mockup_html"]
+
+
+def test_stored_mockup_can_be_opened_later():
+    klient, lead_id = _aplikacja_z_leadem()
+    assert klient.get(f"/api/lead/{lead_id}/mockup.html").status_code == 404
+    db.set_mockup(lead_id, "<html><body>makieta</body></html>", b"jpeg")
+    odpowiedz = klient.get(f"/api/lead/{lead_id}/mockup.html")
+    assert odpowiedz.status_code == 200
+    assert b"makieta" in odpowiedz.data
+    assert "script-src 'none'" in odpowiedz.headers["Content-Security-Policy"]
