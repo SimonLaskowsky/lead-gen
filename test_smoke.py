@@ -321,3 +321,70 @@ def test_mockup_prompt_with_site_has_no_from_scratch_clause():
             "city": "Wisła", "website_url": "https://luizawisla.pl/"}
     prompt = mockup.build_prompt(lead, {"text_preview": "Oaza spokoju."}, None)
     assert "cały tekst piszesz od zera" not in prompt, "mając ich teksty nie piszemy od zera"
+
+
+class _PrzegladarkaZDanymi:
+    def __init__(self, **dane):
+        self.width = 1280
+        self.console_messages = dane.pop("console_messages", [])
+        self._dane = dane
+
+    def structured_data(self): return self._dane["structured_data"]
+    def performance(self): return self._dane["performance"]
+    def empty_sections(self): return self._dane["empty_sections"]
+
+
+def test_schema_expected_for_industry():
+    assert agent_audit._oczekiwany_schema("pensjonat") == "LodgingBusiness albo Hotel"
+    assert agent_audit._oczekiwany_schema("warsztat samochodowy") == "AutoRepair"
+    assert agent_audit._oczekiwany_schema("hydraulik") == "HomeAndConstructionBusiness"
+    assert agent_audit._oczekiwany_schema("nietypowa branża") == "LocalBusiness"
+
+
+def test_structured_data_names_the_missing_business_type():
+    b = _PrzegladarkaZDanymi(structured_data={
+        "bloki": 1, "typy": ["WebPage", "WebSite", "Organization", "BreadcrumbList"], "bledy": [],
+        "ma_adres": False, "ma_wspolrzedne": False, "ma_ceny": False, "ma_oceny": False})
+    raport = agent_audit._structured_data_report(b, "pensjonat")
+    assert "BRAKUJE typu firmy: LodgingBusiness albo Hotel" in raport
+    assert "adres, współrzędne" in raport
+
+
+def test_structured_data_accepts_a_correct_type():
+    b = _PrzegladarkaZDanymi(structured_data={
+        "bloki": 1, "typy": ["Hotel"], "bledy": [],
+        "ma_adres": True, "ma_wspolrzedne": True, "ma_ceny": True, "ma_oceny": True})
+    raport = agent_audit._structured_data_report(b, "pensjonat")
+    assert "zadeklarowany poprawnie" in raport
+    assert "BRAKUJE" not in raport
+
+
+def test_performance_report_warns_that_times_are_our_machine():
+    b = _PrzegladarkaZDanymi(performance={
+        "ttfb": 158, "fcp": 472, "dom_gotowy": 548, "zapytania": 83, "wezly_dom": 1130,
+        "obrazkow": 108, "leniwych": 51,
+        "przewymiarowane": [{"plik": "foto-1024x678.jpg", "naturalna": 1024, "wyswietlana": 348, "krotnosc": 2.9}]})
+    raport = agent_audit._performance_report(b)
+    assert "DOLNĄ GRANICĄ" in raport, "model nie może cytować naszych czasów jako doświadczenia gościa"
+    assert "foto-1024x678.jpg" in raport
+    assert "Większość zdjęć ładuje się od razu" in raport
+
+
+def test_empty_sections_flags_uninjected_widget():
+    b = _PrzegladarkaZDanymi(empty_sections={
+        "puste": [{"naglowek": "Co nasi goście mówią", "znakow": 42}],
+        "szablony": ["trustindex-google-widget-html"]})
+    raport = agent_audit._empty_sections_report(b)
+    assert "Co nasi goście mówią" in raport
+    assert "trustindex-google-widget-html" in raport
+    assert "nigdy go nie wstrzyknął" in raport
+
+
+def test_console_report_groups_repeats():
+    b = _PrzegladarkaZDanymi(empty_sections={}, console_messages=[
+        ("error", "Failed to load resource: 404"),
+        ("error", "Failed to load resource: 404"),
+        ("pageerror", "TypeError: x is not a function")])
+    raport = agent_audit._console_report(b)
+    assert "(x2)" in raport
+    assert "TypeError" in raport

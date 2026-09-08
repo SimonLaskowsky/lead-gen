@@ -174,7 +174,7 @@ def _page_facts(url):
         f"Formularz: {'jest' if data.get('has_contact_form') else 'brak'}; przycisk CTA: {'jest' if data.get('has_cta') else 'brak'}",
         f"Ceny na stronie: {', '.join(prices) if prices else 'brak'}",
         f"Slowa o rezerwacji lub zamawianiu online: {', '.join(booking_words) if booking_words else 'brak'}",
-        f"SSL: {'tak' if data.get('has_ssl') else 'NIE'}; viewport mobilny: {'tak' if data.get('has_mobile_viewport') else 'NIE'}; PageSpeed mobile: {data.get('pagespeed_score') if data.get('pagespeed_score') is not None else 'brak danych'}",
+        f"SSL: {'tak' if data.get('has_ssl') else 'NIE'}; viewport mobilny: {'tak' if data.get('has_mobile_viewport') else 'NIE'}; PageSpeed mobile: {data.get('pagespeed_score') if data.get('pagespeed_score') is not None else 'brak danych'}" + (f", FCP wg PageSpeed: {data['pagespeed_fcp']}" if data.get('pagespeed_fcp') else ""),
         f"Zdjecia: {data.get('image_count', 0)}, bez alt: {data.get('images_missing_alt', 0)}; Analytics: {'martwy UA' if data.get('has_dead_analytics') else ('jest' if data.get('has_legacy_ua') else 'nie wykryto')}",
         f"Technologia: {', '.join(data.get('tech_stack') or []) or 'nie wykryto'}",
         "Poczatek tresci: " + text[:700],
@@ -315,6 +315,97 @@ CLICKABLES_JS = """() => {""" + PINNED_JS_HELPER + """
   return out;
 }"""
 
+STRUCTURED_DATA_JS = """() => {
+  const bloki = [...document.querySelectorAll('script[type="application/ld+json"]')];
+  const typy = [];
+  const bledy = [];
+  for (const blok of bloki) {
+    let dane;
+    try { dane = JSON.parse(blok.textContent); }
+    catch (e) { bledy.push(String(e.message).slice(0, 70)); continue; }
+    const kolejka = Array.isArray(dane) ? dane.slice() : [dane];
+    while (kolejka.length) {
+      const wezel = kolejka.shift();
+      if (!wezel || typeof wezel !== 'object') continue;
+      if (wezel['@graph']) kolejka.push(...[].concat(wezel['@graph']));
+      if (wezel['@type']) [].concat(wezel['@type']).forEach(t => typy.push(String(t)));
+    }
+  }
+  const surowe = bloki.map(b => b.textContent || '').join(' ');
+  return {
+    bloki: bloki.length,
+    typy: [...new Set(typy)],
+    bledy,
+    ma_adres: /"address"/.test(surowe),
+    ma_wspolrzedne: /"geo"|"latitude"/.test(surowe),
+    ma_ceny: /"priceRange"|"offers"/.test(surowe),
+    ma_oceny: /"aggregateRating"/.test(surowe),
+  };
+}"""
+
+PERFORMANCE_JS = r"""() => {
+  const nawigacja = performance.getEntriesByType('navigation')[0] || {};
+  const malowanie = performance.getEntriesByType('paint')
+      .find(wpis => wpis.name === 'first-contentful-paint');
+  const obrazki = [...document.images];
+  const przewymiarowane = [];
+  for (const obrazek of obrazki) {
+    const zrodlo = obrazek.currentSrc || obrazek.src || '';
+    if (/\.svg(\?|$)/i.test(zrodlo)) continue;
+    const szerokosc = obrazek.getBoundingClientRect().width;
+    if (!szerokosc || !obrazek.naturalWidth) continue;
+    const krotnosc = obrazek.naturalWidth / (szerokosc * (window.devicePixelRatio || 1));
+    if (krotnosc >= 2) przewymiarowane.push({
+      plik: zrodlo.split('/').pop().split('?')[0].slice(0, 46),
+      naturalna: obrazek.naturalWidth,
+      wyswietlana: Math.round(szerokosc),
+      krotnosc: Math.round(krotnosc * 10) / 10,
+    });
+  }
+  return {
+    ttfb: Math.round(nawigacja.responseStart || 0),
+    fcp: malowanie ? Math.round(malowanie.startTime) : null,
+    dom_gotowy: Math.round(nawigacja.domContentLoadedEventEnd || 0),
+    zapytania: performance.getEntriesByType('resource').length,
+    wezly_dom: document.getElementsByTagName('*').length,
+    obrazkow: obrazki.length,
+    leniwych: obrazki.filter(o => (o.getAttribute('loading') || '') === 'lazy').length,
+    przewymiarowane: [...new Map(przewymiarowane.map(p => [p.plik, p])).values()]
+        .sort((a, b) => b.krotnosc - a.krotnosc).slice(0, 6),
+  };
+}"""
+
+EMPTY_SECTIONS_JS = r"""() => {
+  const widoczny = element => {
+    const prostokat = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    return prostokat.width > 0 && prostokat.height > 0 && style.visibility !== 'hidden';
+  };
+  const naglowki = [...document.querySelectorAll('h1,h2,h3')].filter(widoczny);
+  const puste = [];
+  for (let i = 0; i < naglowki.length; i++) {
+    const naglowek = naglowki[i];
+    const nastepny = naglowki[i + 1];
+    let tekst = '', mediow = 0, odnosnikow = 0;
+    try {
+      const zakres = document.createRange();
+      zakres.setStartAfter(naglowek);
+      if (nastepny) zakres.setEndBefore(nastepny);
+      else zakres.setEndAfter(document.body.lastElementChild || document.body);
+      const wycinek = zakres.cloneContents();
+      tekst = (wycinek.textContent || '').replace(/\s+/g, ' ').trim();
+      mediow = wycinek.querySelectorAll('img,video,iframe,picture,canvas,svg').length;
+      odnosnikow = wycinek.querySelectorAll('a,button,input,select,textarea').length;
+    } catch (e) { continue; }
+    if (mediow === 0 && odnosnikow === 0 && tekst.length < 80) {
+      puste.push({naglowek: naglowek.innerText.trim().slice(0, 60), znakow: tekst.length});
+    }
+  }
+  const szablony = [...document.querySelectorAll('template')]
+      .map(t => (t.id || t.className || 'bez identyfikatora').toString().slice(0, 50));
+  return {puste, szablony};
+}"""
+
 MOBILE_METRICS_JS = """() => {
   let smallTargets = 0, tinyText = 0;
   for (const el of document.querySelectorAll('a, button')) {
@@ -352,6 +443,7 @@ class _Browser:
         self.host = None
         self.width = DESKTOP_WIDTH
         self.responses = []
+        self.console_messages = []
         self.html_cache = {}
 
     def close(self):
@@ -371,10 +463,19 @@ class _Browser:
         self.page = self.browser.new_page(viewport={"width": self.width, "height": VIEWPORT_HEIGHTS[self.width]})
         self.page.emulate_media(reduced_motion="reduce")
         self.page.on("response", self._remember_response)
+        self.page.on("console", self._remember_console)
+        self.page.on("pageerror", self._remember_page_error)
         self.host = host
 
     def _remember_response(self, response):
         self.responses.append(response)
+
+    def _remember_console(self, message):
+        if message.type in ("error", "warning"):
+            self.console_messages.append((message.type, message.text[:200]))
+
+    def _remember_page_error(self, error):
+        self.console_messages.append(("pageerror", str(error)[:200]))
 
     @property
     def url(self):
@@ -393,6 +494,7 @@ class _Browser:
         if host != self.host:
             self._launch_for(host)
         self.responses.clear()
+        self.console_messages.clear()
         try:
             self.page.goto(url, timeout=NAVIGATION_TIMEOUT_MS, wait_until="networkidle")
         except Exception:
@@ -455,6 +557,15 @@ class _Browser:
 
     def clickables(self):
         return self.page.evaluate(CLICKABLES_JS)
+
+    def structured_data(self):
+        return self.page.evaluate(STRUCTURED_DATA_JS)
+
+    def performance(self):
+        return self.page.evaluate(PERFORMANCE_JS)
+
+    def empty_sections(self):
+        return self.page.evaluate(EMPTY_SECTIONS_JS)
 
     def visible_text(self, limit=3500):
         text = self.page.evaluate("document.body.innerText") or ""
@@ -705,6 +816,95 @@ def _screen_label(browser, item):
     return f"ekran {item['y'] // browser.viewport_height + 1}"
 
 
+SCHEMA_DLA_BRANZY = (
+    (("nocleg", "pensjonat", "hotel", "apartament", "willa", "pokoje", "agroturystyka", "domki"),
+     "LodgingBusiness albo Hotel"),
+    (("restauracja", "pizzeria", "kawiarnia", "bar", "gastronomia", "catering"), "Restaurant albo FoodEstablishment"),
+    (("fryzjer", "salon", "kosmetyczka", "barber", "paznokcie", "spa"), "HairSalon albo BeautySalon"),
+    (("warsztat", "mechanik", "serwis samochodowy", "wulkanizacja", "lakiernik"), "AutoRepair"),
+    (("dentysta", "stomatolog", "lekarz", "przychodnia", "fizjoterapeuta"), "MedicalBusiness albo Dentist"),
+    (("hydraulik", "elektryk", "budowlan", "remont", "dekarz", "stolarz"), "HomeAndConstructionBusiness"),
+    (("sklep", "kwiaciarnia", "piekarnia"), "Store albo LocalBusiness"),
+)
+
+
+def _oczekiwany_schema(business_type):
+    opis = (business_type or "").lower()
+    for slowa, typ in SCHEMA_DLA_BRANZY:
+        if any(slowo in opis for slowo in slowa):
+            return typ
+    return "LocalBusiness"
+
+
+def _structured_data_report(browser, business_type=""):
+    dane = browser.structured_data()
+    if not dane["bloki"]:
+        return ("Dane strukturalne (JSON-LD): BRAK jakiegokolwiek bloku. "
+                f"Dla tej branży Google oczekuje typu {_oczekiwany_schema(business_type)}, "
+                "razem z adresem i współrzędnymi.")
+    linie = [f"Dane strukturalne (JSON-LD): {dane['bloki']} bloków, typy: {', '.join(dane['typy']) or 'brak @type'}."]
+    oczekiwany = _oczekiwany_schema(business_type)
+    rodziny = {typ.split(" albo ")[0] for typ in [oczekiwany]} | set(oczekiwany.split(" albo "))
+    if rodziny & set(dane["typy"]):
+        linie.append(f"Typ firmy jest zadeklarowany poprawnie ({oczekiwany}).")
+    else:
+        linie.append(f"BRAKUJE typu firmy: {oczekiwany}. Bez tego Google widzi zwykłą stronę, nie obiekt tej branży.")
+    braki = [nazwa for nazwa, jest in
+             (("adres", dane["ma_adres"]), ("współrzędne", dane["ma_wspolrzedne"]),
+              ("widełki cen", dane["ma_ceny"]), ("oceny", dane["ma_oceny"])) if not jest]
+    if braki:
+        linie.append("W danych strukturalnych nie ma: " + ", ".join(braki) + ".")
+    if dane["bledy"]:
+        linie.append("Bloki z błędem składni JSON: " + "; ".join(dane["bledy"]))
+    return "\n".join(linie)
+
+
+def _performance_report(browser):
+    dane = browser.performance()
+    linie = [
+        f"Pomiar wydajnosci w przegladarce ({browser.width}px): TTFB {dane['ttfb']} ms, "
+        f"FCP {dane['fcp'] if dane['fcp'] is not None else 'nie zmierzono'} ms, "
+        f"DOM gotowy {dane['dom_gotowy']} ms, zapytań {dane['zapytania']}, węzłów DOM {dane['wezly_dom']}.",
+        "Te czasy pochodzą z naszej maszyny, bez dławienia łącza, więc są DOLNĄ GRANICĄ. "
+        "Gość na telefonie w terenie zobaczy gorsze. Do maila cytuj wynik PageSpeed z faktów, nie te liczby.",
+        f"Zdjęcia: {dane['obrazkow']}, z lazy loading: {dane['leniwych']}.",
+    ]
+    if dane["obrazkow"] and dane["leniwych"] < dane["obrazkow"] // 2:
+        linie.append("Większość zdjęć ładuje się od razu zamiast dopiero przy przewijaniu.")
+    if dane["przewymiarowane"]:
+        wiersze = [f"  {p['plik']}: {p['naturalna']} px pobierane, {p['wyswietlana']} px wyświetlane ({p['krotnosc']}x za duże)"
+                   for p in dane["przewymiarowane"]]
+        linie.append("Zdjęcia pobierane w rozmiarze większym niż wyświetlany:\n" + "\n".join(wiersze))
+    return "\n".join(linie)
+
+
+def _empty_sections_report(browser):
+    dane = browser.empty_sections()
+    linie = []
+    if dane["puste"]:
+        wiersze = [f"  \"{p['naglowek']}\" (pod spodem {p['znakow']} znaków, zero zdjęć)" for p in dane["puste"]]
+        linie.append("Nagłówki, pod którymi gość nic nie widzi:\n" + "\n".join(wiersze))
+    else:
+        linie.append("Każdy nagłówek na tej stronie ma pod sobą treść.")
+    if dane["szablony"]:
+        linie.append(f"Nieuruchomione szablony w kodzie ({len(dane['szablony'])}): " + ", ".join(dane["szablony"][:6])
+                     + ". Znacznik template zostaje w kodzie tylko wtedy, gdy skrypt nigdy go nie wstrzyknął, "
+                       "czyli widget w tym miejscu się nie uruchomił.")
+    return "\n".join(linie)
+
+
+def _console_report(browser):
+    wiadomosci = browser.console_messages
+    if not wiadomosci:
+        return ("Konsola przeglądarki: bez błędów i ostrzeżeń od momentu wejścia na stronę.")
+    policzone = {}
+    for rodzaj, tekst in wiadomosci:
+        policzone[(rodzaj, tekst)] = policzone.get((rodzaj, tekst), 0) + 1
+    wiersze = [f"  [{rodzaj}] {tekst}" + (f" (x{ile})" if ile > 1 else "")
+               for (rodzaj, tekst), ile in list(policzone.items())[:12]]
+    return f"Konsola przeglądarki, {len(wiadomosci)} wpisów:\n" + "\n".join(wiersze)
+
+
 def _contrast_report(browser):
     result = browser.low_contrast()
     weak = result["slabe"]
@@ -775,8 +975,8 @@ TOOLS = [
     },
     {
         "name": "zweryfikuj",
-        "description": "Twarde sprawdzenie bieżącej strony, którym potwierdzasz albo odrzucasz to, co zobaczyłeś na zrzucie. kontrast: kontrast każdego tekstu policzony z kolorów, z pozycją. przyciski: wszystkie widoczne linki i przyciski z adresami, także te poza domeną. kod: SEO i technikalia (tytuł, H1, alt, analityka, tel:, mailto:, formularze, przekierowanie https, robots, sitemap). telefon: pomiary w 390px (wysokość w ekranach, wystawanie poza ekran, małe cele, drobny tekst, waga). tekst: pełna widoczna treść strony do literówek i tonu. zasoby: czy arkusze stylów i skrypty strony w ogóle się wczytały, bo plik CSS z odpowiedzią 404 rozsypuje cały układ.",
-        "input_schema": {"type": "object", "properties": {"co": {"type": "string", "enum": ["kontrast", "przyciski", "kod", "telefon", "tekst", "zasoby"]}}, "required": ["co"], "additionalProperties": False},
+        "description": "Twarde sprawdzenie bieżącej strony, którym potwierdzasz albo odrzucasz to, co zobaczyłeś na zrzucie. kontrast: kontrast każdego tekstu policzony z kolorów, z pozycją. przyciski: wszystkie widoczne linki i przyciski z adresami, także te poza domeną. kod: SEO i technikalia (tytuł, H1, alt, analityka, tel:, mailto:, formularze, przekierowanie https, robots, sitemap). telefon: pomiary w 390px (wysokość w ekranach, wystawanie poza ekran, małe cele, drobny tekst, waga). tekst: pełna widoczna treść strony do literówek i tonu. zasoby: czy arkusze stylów i skrypty strony w ogóle się wczytały, bo plik CSS z odpowiedzią 404 rozsypuje cały układ. dane_strukturalne: jakie typy JSON-LD deklaruje strona i czy jest wśród nich typ firmy właściwy dla tej branży, razem z adresem i współrzędnymi. wydajnosc: TTFB, FCP, liczba zapytań i węzłów DOM, ile zdjęć ma lazy loading, które zdjęcia pobierają się większe niż są wyświetlane. puste_sekcje: nagłówki, pod którymi nic nie widać, oraz widgety, które nigdy się nie uruchomiły. konsola: błędy i ostrzeżenia JavaScriptu zebrane od wejścia na stronę.",
+        "input_schema": {"type": "object", "properties": {"co": {"type": "string", "enum": ["kontrast", "przyciski", "kod", "telefon", "tekst", "zasoby", "dane_strukturalne", "wydajnosc", "puste_sekcje", "konsola"]}}, "required": ["co"], "additionalProperties": False},
         "strict": True,
     },
 ]
@@ -787,12 +987,12 @@ Narzędzia:
 - otworz_strone: ładuje stronę, daje fakty z kodu, kontrolę wczytania arkuszy stylów i skryptów, pomiar wagi i wysokości oraz zrzut pierwszego ekranu w 1280.
 - przewin: pokazuje wybrany ekran (1 = pierwszy) w 1280, 1024 albo 390. Tak oglądasz stronę dalej i tak wracasz, żeby spojrzeć drugi raz.
 - kliknij: klika link albo przycisk o podanym tekście i mówi, dokąd prowadzi.
-- zweryfikuj: twarde sprawdzenia bieżącej strony: kontrast, przyciski z adresami, kod i SEO, pomiary na telefonie, pełny tekst, zasoby (czy pliki CSS i JS strony się wczytały).
+- zweryfikuj: twarde sprawdzenia bieżącej strony: kontrast, przyciski z adresami, kod i SEO, pomiary na telefonie, pełny tekst, zasoby (czy pliki CSS i JS się wczytały), dane_strukturalne, wydajnosc, puste_sekcje, konsola.
 
 Pętla, którą powtarzasz: zauważ, zwątp, sprawdź.
 Zrzut ekranu to podejrzenie, nie wniosek. Zanim uznasz, że tekst jest blady, przycisk prowadzi donikąd, cennika nie ma, układ się łamie albo strona jest ciężka, sprawdź to drugim narzędziem: kontrast przez zweryfikuj kontrast, przycisk przez kliknij albo zweryfikuj przyciski, brak treści przez zweryfikuj tekst albo przewin do innego ekranu, wagę przez pomiar. Zrzuty są robione z wyłączonymi animacjami, ale lazy-load, karuzele, menu i przyklejone nagłówki potrafią oszukać. W dzienniku zapisuj trzy rzeczy: co zauważyłeś, czym sprawdziłeś, co wyszło. Podejrzenie, które się nie potwierdziło, też zapisz, żeby nie trafiło do notatki.
 
-Zanim ocenisz wygląd, przeczytaj w pomiarze linię o arkuszach stylów i skryptach. Gdy stoi tam "STRONA JEST USZKODZONA", plik CSS strony nie wczytał się i to, co widzisz na zrzucie, nie jest projektem, tylko jego ruinami. Puste sekcje, ucięte nagłówki, napisy wychodzące poza krawędź, nachodzące elementy, znikające tła i rozjechany układ są wtedy skutkiem tej jednej awarii, a nie decyzjami projektanta, więc nie opisuj ich jako uwag o designie ani nie zgaduj, że autor czegoś nie dokończył. Nazwij awarię, podaj nazwę niewczytanego pliku, sprawdź narzędziem zweryfikuj zasoby, czy dotyczy też podstron, i na tym oprzyj podsumowanie. Odwrotnie też: pustej sekcji nie zgłaszaj jako awarii, dopóki ta linia mówi, że wszystko wczytało się poprawnie.
+Zanim ocenisz wygląd, przeczytaj w pomiarze linię o arkuszach stylów i skryptach. Gdy stoi tam "STRONA JEST USZKODZONA", plik CSS strony nie wczytał się i to, co widzisz na zrzucie, nie jest projektem, tylko jego ruinami. Puste sekcje, ucięte nagłówki, napisy wychodzące poza krawędź, nachodzące elementy, znikające tła i rozjechany układ są wtedy skutkiem tej jednej awarii, a nie decyzjami projektanta, więc nie opisuj ich jako uwag o designie ani nie zgaduj, że autor czegoś nie dokończył. Nazwij awarię, podaj nazwę niewczytanego pliku, sprawdź narzędziem zweryfikuj zasoby, czy dotyczy też podstron, i na tym oprzyj podsumowanie. Odwrotnie też: gdy ta linia mówi, że wszystko wczytało się poprawnie, pusta sekcja NIE jest awarią zasobów. Nadal jednak może być usterką, bo widget potrafi się nie uruchomić przy poprawnie pobranych plikach. Sprawdź to wtedy narzędziem zweryfikuj puste_sekcje i zweryfikuj konsola, i dopiero na tej podstawie zdecyduj, czy sekcja jest pusta z premedytacji, czy coś się w niej nie odpaliło.
 
 Gdy w pomiarze stoi "SERWER NAS ODRZUCIŁ", to jest nasz problem, nie właściciela: hosting ograniczył ruch, bo audyt za dużo pobierał. Zrzut pokazuje wtedy stronę błędu, nie stronę firmy, więc nie oceniaj z niego niczego i pod żadnym pozorem nie zapisuj, że strona nie działa, że nie działa na telefonie albo że właściciel ma zepsuty hosting. Zapisz w dzienniku, że pomiar jest nieważny, i tak to podsumuj.
 
@@ -951,6 +1151,14 @@ def _verify(state, what):
             report = _code_facts(browser.url, browser.page.content())
         elif what == "telefon":
             report = _mobile_report(browser)
+        elif what == "dane_strukturalne":
+            report = _structured_data_report(browser, state.get("business_type", ""))
+        elif what == "wydajnosc":
+            report = _performance_report(browser)
+        elif what == "puste_sekcje":
+            report = _empty_sections_report(browser)
+        elif what == "konsola":
+            report = _console_report(browser)
         elif what == "zasoby":
             report = "\n".join(filter(None, [_document_failure_line(browser), _broken_assets_line(browser)]))
         elif what == "tekst":
@@ -1019,7 +1227,8 @@ def explore(lead):
     """Etap 1: model oglada strone narzedziami w jednej sesji przegladarki i prowadzi dziennik."""
     client = _client()
     state = {"pages": 0, "shots": 0, "facts": {}, "checks": [], "images": [], "log": [], "summary": "",
-             "base_url": lead.get("website_url", ""), "last_url": ""}
+             "base_url": lead.get("website_url", ""), "last_url": "",
+             "business_type": lead.get("business_type", "")}
     _site_level_cache.clear()
     state["browser"] = _start_browser(state["base_url"], state["log"])
     try:
