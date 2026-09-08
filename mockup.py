@@ -70,6 +70,14 @@ def _ustalenia_audytu(analysis):
             notatka]
 
 
+BEZ_MATERIALU = """Firma nie ma strony, więc nie ma jej tekstów i cały tekst piszesz od zera.
+To nie znosi zakazu wymyślania faktów, tylko go zawęża: wolno ci opisywać to, co wynika
+z samego zawodu (hydraulik usuwa awarie, montuje armaturę, robi instalacje wod-kan),
+a nie wolno ci twierdzić NICZEGO o tej konkretnej firmie. Zakazane są więc lata na rynku,
+liczba realizacji, całodobowość, czas dojazdu, gwarancje, ceny, certyfikaty i opinie.
+Trzymaj się zakresu usług i obszaru działania, bo to jedyne, co naprawdę wiesz."""
+
+
 ZASADY = """Jak to zrobić:
 
 1. Najpierw pobierz zdjęcia i ZOBACZ je. Złóż z nich jedną kontaktówkę w siatce z podpisami
@@ -148,6 +156,9 @@ def build_prompt(lead, website_data=None, analysis=None) -> str:
     ustalenia = _ustalenia_audytu(analysis)
     if ustalenia:
         czesci.append("\n".join(ustalenia))
+
+    if not ma_strone:
+        czesci.append(BEZ_MATERIALU)
 
     czesci.append(
         f"Dobierz sekcje pod branżę ({branza}), nie pod uniwersalny szablon. "

@@ -312,3 +312,12 @@ def test_mockup_prompt_without_site_forbids_stock_photos():
     assert "NIE MA własnej strony" in prompt
     assert "Places" in prompt
     assert "Nie podstawiaj zdjęć stockowych" in prompt
+    assert "cały tekst piszesz od zera" in prompt, "bez strony nie ma skąd wziąć tekstu"
+    assert "całodobowość" in prompt, "ma być wyliczone, czego nie wolno twierdzić o firmie"
+
+
+def test_mockup_prompt_with_site_has_no_from_scratch_clause():
+    lead = {"business_name": "Willa Luiza", "business_type": "pensjonat",
+            "city": "Wisła", "website_url": "https://luizawisla.pl/"}
+    prompt = mockup.build_prompt(lead, {"text_preview": "Oaza spokoju."}, None)
+    assert "cały tekst piszesz od zera" not in prompt, "mając ich teksty nie piszemy od zera"
