@@ -145,12 +145,32 @@ To idealny lead do zaproponowania własnej strony. Argumenty:
 Zaproponuj prostą stronę z formularzem kontaktowym lub systemem rezerwacji, dzięki której przestają płacić prowizje."""
 
 
+def inactive_site_analysis(url, reason, evidence) -> str:
+    evidence_line = f'\nGość widzi komunikat: "{evidence}"' if evidence else ""
+    return f"""## Strona nieaktywna
+
+Adres **{url}** z wizytówki Google nie prowadzi do działającej strony: {reason}.{evidence_line}
+
+### Szansa sprzedażowa
+Wizytówka w Google sprowadza ruch, ale każdy, kto kliknie w adres strony, trafia na ścianę. Klient porównujący kilka firm uznaje, że firma nie działa albo nie dba o siebie, i wybiera inną.
+
+### Rekomendacja
+Nie ma czego poprawiać, więc audyt strony nie ma sensu. Zaproponuj nową stronę: bezpłatny podgląd projektu wraz z wyceną, bez zobowiązań."""
+
+
 def run_analysis(lead) -> dict:
     website_data = scraper.scrape_website(lead["website_url"])
     outsourced = (website_data or {}).get("outsourced_platform")
     if outsourced:
         pitch = (website_data or {}).get("outsourced_pitch", "korzystają z zewnętrznej platformy")
         analysis = outsourced_platform_analysis(outsourced, pitch)
+        db.update_lead(lead["id"], ai_analysis=analysis, website_checks=json.dumps(website_data), generated_email="")
+        return {"analysis": analysis, "scores": {}, "website_data": website_data}
+
+    if (website_data or {}).get("inactive"):
+        analysis = inactive_site_analysis(
+            lead["website_url"], website_data["inactive_reason"], website_data.get("inactive_evidence"))
+        mark("ai", True, f"strona nieaktywna, bez audytu: {lead['business_name']}")
         db.update_lead(lead["id"], ai_analysis=analysis, website_checks=json.dumps(website_data), generated_email="")
         return {"analysis": analysis, "scores": {}, "website_data": website_data}
 

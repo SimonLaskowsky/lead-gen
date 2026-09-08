@@ -125,6 +125,8 @@ def _page_facts(url):
     data = scraper.scrape_website(url) or {}
     if data.get("outsourced_platform"):
         return f"To nie jest wlasna strona, tylko profil na platformie {data['outsourced_platform']}.", data, []
+    if data.get("inactive"):
+        return f"Pod tym adresem nie ma dzialajacej strony firmy: {data['inactive_reason']}.", data, []
     if data.get("error"):
         return f"Nie udalo sie otworzyc strony: {data['error']}", data, []
     try:

@@ -39,6 +39,9 @@ def fake_scrape_website(url):
         return None
     if "booksy" in url:
         return {"outsourced_platform": "Booksy", "outsourced_pitch": "płacą prowizję", "tech_stack": []}
+    if "zawieszona" in url:
+        return {"inactive": True, "inactive_reason": "strona jest zawieszona przez hosting",
+                "inactive_evidence": "strona została zawieszona", "has_ssl": False, "tech_stack": []}
     return {"has_ssl": True, "has_mobile_viewport": False, "tech_stack": ["WordPress"], "title": "Salon"}
 
 
@@ -46,7 +49,11 @@ def fake_find_contact_email(url, data):
     return "kontakt@" + scraper._domain_of(url) if url else ""
 
 
+ANALYZED = []
+
+
 def fake_analyze(lead, screenshots, website_data, impression=None):
+    ANALYZED.append(lead["business_name"])
     return {"scores": {"design": 4}, "analysis": "Strona do poprawy."}
 
 
@@ -237,6 +244,19 @@ def test_full_autopilot_cycle():
     db.set_settings(daily_limit="10")
 
 
+def test_inactive_site_skips_audit_and_gets_pitch():
+    db.init_db()
+    lead_id = db.add_lead(business_name="Willa Zawieszona", city="Szczyrk", business_type="pensjonat",
+                          website_url="http://willa-zawieszona.pl", email="", status="new")
+    result = pipeline.run_analysis(db.get_lead(lead_id))
+    assert "Willa Zawieszona" not in ANALYZED, "nieaktywna strona nie idzie do audytu"
+    assert "Strona nieaktywna" in result["analysis"]
+    assert "strona jest zawieszona przez hosting" in result["analysis"]
+    stored = db.get_lead(lead_id)
+    assert "Strona nieaktywna" in stored["ai_analysis"]
+    assert '"inactive": true' in stored["website_checks"]
+
+
 def test_manual_followup_goes_in_thread():
     client = flask_app.app.test_client()
     lead = db.get_leads(search="Salon Ania")[0]
@@ -333,6 +353,7 @@ if __name__ == "__main__":
     test_split_and_join_subject()
     test_usage_recording_and_cost()
     test_full_autopilot_cycle()
+    test_inactive_site_skips_audit_and_gets_pitch()
     test_manual_followup_goes_in_thread()
     test_missing_keys_pause_steps_without_failing_leads()
     test_send_failures_switch_auto_send_off()

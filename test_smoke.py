@@ -64,10 +64,84 @@ def test_slice_page():
     assert len(analyzer._slice_page(buf2.getvalue())) == 8
 
 
+WILLA_TEXT = "Willa Orle Gniazdo Strona została zawieszona. Jesteś właścicielem? Prosimy o kontakt: 601 830 000 szczyrk.com"
+
+
+def test_inactive_site_detection():
+    suspended = scraper.detect_inactive_site("http://www.willa.szczyrk.com/", "Willa Orle Gniazdo", WILLA_TEXT, 15)
+    assert suspended["inactive"] is True
+    assert suspended["inactive_reason"] == "strona jest zawieszona przez hosting"
+    assert "Strona została zawieszona" in suspended["inactive_evidence"]
+
+    # "coming soon" na cienkiej stronie to zapowiedz, na pelnej stronie to zwykle zdanie z tresci
+    thin = scraper.detect_inactive_site("https://firma.pl", "Firma", "Coming soon", 2)
+    assert thin["inactive"] is True
+    rich = scraper.detect_inactive_site("https://firma.pl", "Firma", "Nowe menu coming soon " + "słowo " * 400, 403)
+    assert rich["inactive"] is False
+
+    nginx = scraper.detect_inactive_site("https://firma.pl", "Welcome to nginx!", "If you see this page", 20)
+    assert nginx["inactive_reason"].startswith("pod adresem jest domyślna strona serwera")
+
+    parked = scraper.detect_inactive_site("https://sedo.com/search/details/?domain=firma.pl", "Sedo", "", 300)
+    assert parked["inactive"] is True and "sedo.com" in parked["inactive_reason"]
+
+    healthy = scraper.detect_inactive_site("https://firma.pl/", "Warsztat Kowalski", "Naprawa aut, zadzwoń", 800)
+    assert healthy == {"inactive": False, "inactive_reason": "", "inactive_evidence": ""}
+
+    dns = scraper._connection_failure_reason(Exception("HTTPConnectionPool: NameResolutionError"))
+    assert "DNS" in dns
+    refused = scraper._connection_failure_reason(Exception("Connection refused"))
+    assert "odrzucone" in refused
+
+
+def test_inactive_site_email_only_from_own_domain():
+    hosting_page = {"inactive": True, "inactive_reason": "strona jest zawieszona przez hosting",
+                    "mailto_emails": ["pomoc@hosting.pl"], "full_text": "kontakt pomoc@hosting.pl", "text_preview": ""}
+    assert scraper.find_contact_email("https://firma.pl", hosting_page) == ""
+    owner_page = {"inactive": True, "inactive_reason": "strona jest w budowie",
+                  "mailto_emails": [], "full_text": "Strona w budowie, pisz: biuro@firma.pl", "text_preview": ""}
+    assert scraper.find_contact_email("https://firma.pl", owner_page) == "biuro@firma.pl"
+
+
+class _FakeMessages:
+    def __init__(self):
+        self.prompts = []
+
+    def create(self, **kwargs):
+        from types import SimpleNamespace
+        self.prompts.append(kwargs["messages"][0]["content"])
+        return SimpleNamespace(content=[SimpleNamespace(type="text", text="Temat: Test\n\nDzień dobry,\ntreść.")], usage=None)
+
+
+def test_inactive_site_gets_new_site_pitch_not_audit_email():
+    from types import SimpleNamespace
+    fake = _FakeMessages()
+    original_client = analyzer._client
+    analyzer._client = lambda: SimpleNamespace(messages=fake)
+    try:
+        lead = {"business_name": "Willa Orle Gniazdo", "business_type": "pensjonat", "city": "Szczyrk",
+                "website_url": "http://www.willa.szczyrk.com/"}
+        website_data = {"inactive": True, "inactive_reason": "strona jest zawieszona przez hosting",
+                        "inactive_evidence": "strona została zawieszona", "has_ssl": False, "word_count": 15}
+        email = analyzer.generate_email(lead, website_data, ai_analysis="## Strona nieaktywna", profile={"name": "Szymon"})
+    finally:
+        analyzer._client = original_client
+    prompt = fake.prompts[0]
+    assert "NIE MA dzialajacej strony" in prompt
+    assert "strona jest zawieszona przez hosting" in prompt
+    assert "strona została zawieszona" in prompt
+    assert "podglad" in prompt
+    assert "WYNIKI AUDYTU STRONY" not in prompt, "mail o nieaktywnej stronie nie moze isc szablonem audytu"
+    assert email.endswith(analyzer.OPT_OUT_LINE)
+
+
 if __name__ == "__main__":
     test_db_dedup()
     test_domain_handling()
     test_email_picking()
     test_scores_parsing()
     test_slice_page()
+    test_inactive_site_detection()
+    test_inactive_site_email_only_from_own_domain()
+    test_inactive_site_gets_new_site_pitch_not_audit_email()
     print("OK — wszystkie smoke testy przeszły")

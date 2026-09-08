@@ -23,6 +23,124 @@ OUTSOURCED_PLATFORMS = {
 }
 
 
+SURE_INACTIVE_SIGNS = [
+    ("strona została zawieszona", "strona jest zawieszona przez hosting"),
+    ("strona zostala zawieszona", "strona jest zawieszona przez hosting"),
+    ("konto zostało zawieszone", "konto hostingowe jest zawieszone"),
+    ("konto hostingowe zostało zawieszone", "konto hostingowe jest zawieszone"),
+    ("account has been suspended", "konto hostingowe jest zawieszone"),
+    ("account suspended", "konto hostingowe jest zawieszone"),
+    ("website suspended", "strona jest zawieszona przez hosting"),
+    ("domena wygasła", "domena wygasła"),
+    ("domena wygasla", "domena wygasła"),
+    ("domain has expired", "domena wygasła"),
+    ("hosting wygasł", "usługa hostingu wygasła"),
+    ("usługa hostingu wygasła", "usługa hostingu wygasła"),
+    ("domena na sprzedaż", "domena jest wystawiona na sprzedaż"),
+    ("domena do kupienia", "domena jest wystawiona na sprzedaż"),
+    ("domain for sale", "domena jest wystawiona na sprzedaż"),
+    ("domain is for sale", "domena jest wystawiona na sprzedaż"),
+    ("buy this domain", "domena jest wystawiona na sprzedaż"),
+    ("domain is parked", "domena jest zaparkowana u rejestratora"),
+    ("parked domain", "domena jest zaparkowana u rejestratora"),
+    ("domena zaparkowana", "domena jest zaparkowana u rejestratora"),
+    ("domena jest zarezerwowana", "pod adresem jest tylko strona rejestratora domeny"),
+    ("domena została zarejestrowana w", "pod adresem jest tylko strona rejestratora domeny"),
+    ("welcome to nginx", "pod adresem jest domyślna strona serwera, bez treści firmy"),
+    ("apache2 debian default page", "pod adresem jest domyślna strona serwera, bez treści firmy"),
+    ("apache2 ubuntu default page", "pod adresem jest domyślna strona serwera, bez treści firmy"),
+    ("iis windows server", "pod adresem jest domyślna strona serwera, bez treści firmy"),
+    ("web server's default page", "pod adresem jest domyślna strona serwera, bez treści firmy"),
+    ("strona tymczasowo niedostępna", "strona jest tymczasowo wyłączona"),
+    ("site is temporarily unavailable", "strona jest tymczasowo wyłączona"),
+]
+
+THIN_PAGE_INACTIVE_SIGNS = [
+    ("strona w budowie", "strona jest w budowie"),
+    ("serwis w budowie", "strona jest w budowie"),
+    ("witryna w budowie", "strona jest w budowie"),
+    ("strona w przygotowaniu", "strona jest w budowie"),
+    ("w trakcie budowy", "strona jest w budowie"),
+    ("strona w trakcie tworzenia", "strona jest w budowie"),
+    ("under construction", "strona jest w budowie"),
+    ("coming soon", "strona nie została jeszcze opublikowana"),
+    ("już wkrótce", "strona nie została jeszcze opublikowana"),
+    ("trwają prace konserwacyjne", "strona jest w trybie konserwacji"),
+    ("prace techniczne", "strona jest w trybie konserwacji"),
+    ("przerwa techniczna", "strona jest w trybie konserwacji"),
+    ("maintenance mode", "strona jest w trybie konserwacji"),
+    ("it works!", "pod adresem jest domyślna strona serwera, bez treści firmy"),
+    ("index of /", "pod adresem jest listing plików serwera zamiast strony"),
+]
+
+THIN_PAGE_MAX_WORDS = 150
+
+DOMAIN_MARKET_HOSTS = [
+    "sedo.com", "sedoparking.com", "dan.com", "afternic.com", "hugedomains.com",
+    "aftermarket.pl", "premium.pl", "parkingcrew.net", "bodis.com", "above.com",
+    "undeveloped.com", "godaddy.com", "namecheap.com",
+]
+
+
+def _is_market_host(host: str) -> bool:
+    for market_host in DOMAIN_MARKET_HOSTS:
+        if host == market_host or host.endswith("." + market_host):
+            return True
+    return False
+
+
+def _first_matching_sign(text: str, signs: list[tuple[str, str]]) -> tuple[str, str] | None:
+    for phrase, reason in signs:
+        if phrase in text:
+            return phrase, reason
+    return None
+
+
+def detect_inactive_site(final_url: str, title: str, page_text: str, word_count: int) -> dict:
+    """Sprawdza, czy pod adresem jest dzialajaca strona firmy, czy tylko komunikat
+    (zawieszenie, wygasla domena, parking, strona w budowie, domyslna strona serwera).
+    Zwraca {"inactive": bool, "inactive_reason": str, "inactive_evidence": str}."""
+    active = {"inactive": False, "inactive_reason": "", "inactive_evidence": ""}
+
+    final_host = _domain_of(final_url)
+    if final_host and _is_market_host(final_host):
+        return {"inactive": True,
+                "inactive_reason": f"adres przekierowuje na giełdę domen {final_host}",
+                "inactive_evidence": final_url}
+
+    text = " ".join((title + " " + page_text).split())
+    lowered = text.lower()
+
+    match = _first_matching_sign(lowered, SURE_INACTIVE_SIGNS)
+    if match is None and word_count < THIN_PAGE_MAX_WORDS:
+        match = _first_matching_sign(lowered, THIN_PAGE_INACTIVE_SIGNS)
+    if match is None:
+        return active
+
+    phrase, reason = match
+    return {"inactive": True, "inactive_reason": reason, "inactive_evidence": _evidence_around(text, phrase)}
+
+
+def _evidence_around(text: str, phrase: str, chars_before: int = 30, chars_after: int = 80) -> str:
+    """Wycinek tekstu strony wokol znalezionej frazy, w oryginalnej pisowni,
+    zeby mail mogl zacytowac komunikat."""
+    lowered = text.lower()
+    start = lowered.find(phrase)
+    if start == -1 or len(lowered) != len(text):
+        return phrase
+    begin = max(0, start - chars_before)
+    end = min(len(text), start + len(phrase) + chars_after)
+    return text[begin:end].strip()
+
+
+def _connection_failure_reason(error: Exception) -> str:
+    message = str(error).lower()
+    dns_markers = ("nameresolution", "name or service not known", "nodename nor servname", "getaddrinfo")
+    if any(marker in message for marker in dns_markers):
+        return "domena nie odpowiada (adres nie istnieje w DNS)"
+    return "serwer nie odpowiada (połączenie odrzucone)"
+
+
 def detect_outsourced_platform(url: str) -> dict | None:
     """Check if URL belongs to a known booking/social platform instead of own website."""
     if not url:
@@ -239,10 +357,14 @@ def scrape_website(url: str) -> dict | None:
         has_h1 = h1_tag is not None
         h1_text = h1_tag.get_text(strip=True)[:100] if h1_tag else ""
 
-        # Try PageSpeed (non-blocking — returns None if fails/slow)
-        pagespeed = get_pagespeed_score(url)
+        inactive = detect_inactive_site(resp.url, title, clean_full, word_count)
+
+        pagespeed = None
+        if not inactive["inactive"]:
+            pagespeed = get_pagespeed_score(url)
 
         return {
+            **inactive,
             "title": title,
             "meta_description": meta_description,
             "has_mobile_viewport": bool(viewport_tag),
@@ -271,12 +393,16 @@ def scrape_website(url: str) -> dict | None:
         }
     except requests.exceptions.SSLError:
         return {"error": "SSL error", "has_ssl": False}
-    except requests.exceptions.ConnectionError:
-        return {"error": "Connection failed"}
+    except requests.exceptions.ConnectionError as e:
+        return {"error": "Connection failed", "inactive": True,
+                "inactive_reason": _connection_failure_reason(e), "inactive_evidence": ""}
     except requests.exceptions.Timeout:
         return {"error": "Timeout"}
     except requests.exceptions.HTTPError as e:
-        return {"error": f"HTTP {e.response.status_code}"}
+        status = e.response.status_code
+        return {"error": f"HTTP {status}", "inactive": True,
+                "inactive_reason": f"serwer odpowiada błędem HTTP {status} zamiast strony",
+                "inactive_evidence": ""}
     except Exception as e:
         return {"error": str(e)}
 
@@ -570,10 +696,23 @@ def _emails_via_browser(url: str, domain: str) -> str:
         return ""
 
 
+def _only_if_same_domain(email: str, domain: str) -> str:
+    """Na nieaktywnej stronie jedyny wiarygodny adres to ten w domenie firmy;
+    reszta to zwykle kontakt do hostingu albo rejestratora."""
+    if not email or not domain:
+        return ""
+    email_domain = email.partition("@")[2]
+    if email_domain == domain or email_domain.endswith("." + domain):
+        return email
+    return ""
+
+
 def find_contact_email(website_url: str, homepage_data: dict | None) -> str:
     """Email from the homepage; if none, probe /kontakt subpages, then JS render."""
     domain = _domain_of(website_url)
     email = extract_email_from_website(homepage_data, domain)
+    if (homepage_data or {}).get("inactive"):
+        return _only_if_same_domain(email, domain)
     if email or not website_url:
         return email
 

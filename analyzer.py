@@ -540,7 +540,78 @@ Zasady:
         _record(message, "mail")
         return _with_opt_out(_text(message))
 
-    if not has_website:
+    inactive_reason = (website_data or {}).get("inactive_reason")
+    if has_website and inactive_reason:
+        evidence = (website_data or {}).get("inactive_evidence") or ""
+        evidence_line = f'Komunikat, ktory widzi gosc (dosłownie): "{evidence}"' if evidence else "Zadnego komunikatu do zacytowania, gosc widzi po prostu blad."
+        domain = lead.get("website_url", "").split("://")[-1].removeprefix("www.").strip("/")
+        prompt = f"""Jestes copywriterem piszacym cold email sprzedazowy po polsku dla {snd['name']}, programisty ktory oferuje zbudowanie strony lokalnej firmie.
+
+{sender_context}
+
+=== DANE FIRMY ===
+Firma: {business_name}
+Typ biznesu: {business_type}
+Miasto: {city}
+Adres strony podany w wizytowce Google: {lead.get('website_url', '')}
+Sytuacja: pod tym adresem NIE MA dzialajacej strony. Co dokladnie jest: {inactive_reason}.
+{evidence_line}
+{f"Dodatkowe spostrzezenia (wplec naturalnie): {my_feedback}" if my_feedback else ""}
+
+{style_rules}
+
+=== KONTEKST ===
+To inna sytuacja niz firma bez strony i inna niz strona do poprawy. Firma MA adres strony w wizytowce
+Google, wiec wizytowka sprowadza ruch, ale kto kliknie w ten adres, trafia na komunikat albo blad
+zamiast oferty. Klient porownujacy kilka firm po takim widoku zaklada, ze firma nie dziala albo o siebie
+nie dba, i idzie do konkurencji. Wlasciciel czesto o tym nie wie (ktos nie przedluzyl hostingu, wykonawca
+zniknal), wiec ton jest zyczliwy: informuje, nie wytykam.
+Nie ma czego poprawiac, wiec NIE proponuj naprawy, przywrocenia ani poprawek starej strony.
+Oferta to NOWA strona: bezplatny podglad (projekt graficzny, jak moglaby wygladac) razem z wycena, bez zobowiazan.
+
+=== ZADANIE ===
+Napisz krotki cold email. Ma doprowadzic do odpowiedzi, nie do wyceny.
+
+Struktura (nie pisz numerow ani naglowkow):
+1. TEMAT: nazwij obserwacje, bez straszenia, najwyzej 60 znakow, np. "Co widzi klient po kliknięciu w {domain}".
+2. OTWARCIE: "Dzien dobry," i od razu obserwacja: kliknalem w adres strony z Panstwa wizytowki w Google
+   i zamiast strony zobaczylem to, co stoi w "Sytuacja". Opisz DOKLADNIE to i nic wiecej. Jesli jest
+   komunikat do zacytowania, zacytuj go w cudzyslowie, krotko.
+3. CO TO KOSZTUJE: jedno, najwyzej dwa zdania o kliencie, ktory porownuje kilka firm z branzy w Google
+   i po takim widoku wybiera inna. Bez statystyk, bez procentow, bez pouczania.
+4. KIM JESTEM: pol zdania, {snd['name']}, programista z regionu, robi strony dla lokalnych firm.
+   Mozna skleic z punktem 5 w jedno zdanie.
+5. CTA: proponuje BEZPLATNY podglad nowej strony dla Panstwa (projekt graficzny) wraz z wycena,
+   bez zobowiazan. Slowo "podglad" wprowadz zdanie wczesniej, zanim o niego zapytasz.
+   To jest jedyna rzecz, o ktora prosze w tym mailu.
+6. Podpis, dokladnie te linie i zadne inne:
+{sig}
+
+Zasady:
+- Maksymalnie 90 slow razem z tematem. To twardy limit, krotszy mail wygrywa.
+- Najwyzej trzy krotkie akapity, kazdy najwyzej dwa zdania.
+- ANI SLOWA O PLATNOSCIACH. Zero cen, zero widelek, zero rat.
+- ZADNYCH STATYSTYK ani procentow.
+- Nie pisz, ze firma "nie ma strony": ma adres, ale strona pod nim nie dziala. Nie zgaduj przyczyny
+  (nie pisz "hosting wygasl", "nie zaplacili"), chyba ze komunikat mowi to wprost. Przepisz sytuacje
+  z danych, nie dopisuj wlasnych szczegolow.
+- Nie pisz o SSL, SEO, H1, meta description ani o innych technikaliach: przy stronie, ktorej nie ma,
+  to nie ma znaczenia i brzmi jak automat.
+- CTA ma byc uprzejmym pytaniem w pelnym zdaniu, np. "Czy moge przygotowac i podeslac taki podglad?".
+  ZAKAZ jednowyrazowych zaczepek typu "Zainteresowana?", "Zainteresowany?", "Chetnie?".
+- Zwroty grzecznosciowe dopasuj do plci wlasciciela, jesli da sie ja wywnioskowac z nazwy firmy
+  ({business_name}). W razie najmniejszej watpliwosci pisz bezosobowo albo "Panstwa".
+- Podkresl, ze podglad jest bezplatny i do niczego nie zobowiazuje.
+- Odpowiedz wylacznie gotowa trescia maila, bez komentarzy przed ani po.
+  Pierwsza linia to: Temat: [temat]
+- Nie uzywaj slow: "pragne", "uprzejmie", "niniejszym", "pozwalam sobie", "oferta"
+
+WAZNE O ORYGINALNOSCI: powyzsza struktura to szkielet, nie gotowy tekst do przepisania.
+Kazdy mail ma byc napisany od nowa pod konkretna firme ({business_name}, {business_type}, {city}).
+Dwa maile do dwoch roznych firm nie moga brzmiec jak ten sam tekst z podmieniona nazwa.
+"""
+
+    elif not has_website:
         prompt = f"""Jesteś copywriterem piszącym cold email sprzedażowy po polsku dla {snd['name']}, programisty który oferuje zbudowanie strony lokalnej firmie.
 
 {sender_context}

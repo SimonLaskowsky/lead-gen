@@ -250,6 +250,7 @@
     }
     .tech-pill { color: var(--fg-3) !important; }
     .platform-pill { color: var(--amber) !important; border-color: var(--amber); }
+    .inactive-pill { color: var(--red) !important; border-color: var(--red); }
 
     .status-badge {
       display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
@@ -1098,11 +1099,15 @@ function renderTable(leads) {
   tbody.innerHTML = leads.map(lead => {
     let techPills = '';
     let outsourcedPlatform = null;
+    let siteInactive = false;
     try {
       const checks = lead.website_checks ? JSON.parse(lead.website_checks) : {};
       outsourcedPlatform = checks.outsourced_platform || null;
+      siteInactive = !!checks.inactive;
       if (outsourcedPlatform) {
         techPills = `<div class="tech-pills"><span class="platform-pill">${escHtml(outsourcedPlatform)}</span></div>`;
+      } else if (siteInactive) {
+        techPills = `<div class="tech-pills"><span class="platform-pill inactive-pill" title="${escHtml(checks.inactive_reason || '')}">strona nieaktywna</span></div>`;
       } else {
         const stack = checks.tech_stack || [];
         if (stack.length) {
@@ -1123,11 +1128,12 @@ function renderTable(leads) {
       ? `<div class="emailed-date">wysł. ${lead.emailed_at.slice(0,10)}</div>` : '';
 
     const hasAnalysis = !!(lead.ai_analysis && lead.ai_analysis.length > 10);
-    const aiClass = hasAnalysis ? 'btn-ai done' : (outsourcedPlatform ? 'btn-ai platform' : 'btn-ai');
-    const aiIcon  = hasAnalysis ? 'check2' : (outsourcedPlatform ? 'lightning-charge' : 'cpu');
+    const pitchKind = outsourcedPlatform || (siteInactive ? 'strona nieaktywna' : null);
+    const aiClass = hasAnalysis ? 'btn-ai done' : (pitchKind ? 'btn-ai platform' : 'btn-ai');
+    const aiIcon  = hasAnalysis ? 'check2' : (pitchKind ? 'lightning-charge' : 'cpu');
     const aiTitle = hasAnalysis
-      ? (outsourcedPlatform ? `Pitch gotowy (${outsourcedPlatform}), kliknij by otworzyć` : 'Raport gotowy, kliknij by otworzyć')
-      : (outsourcedPlatform ? `Generuj pitch sprzedażowy (${outsourcedPlatform}), ${costLabel(COSTS.analysis)}` : `Brak raportu. Kliknięcie uruchomi analizę, ${costLabel(COSTS.analysis)}`);
+      ? (pitchKind ? `Pitch gotowy (${pitchKind}), kliknij by otworzyć` : 'Raport gotowy, kliknij by otworzyć')
+      : (pitchKind ? `Generuj pitch sprzedażowy (${pitchKind}), bez kosztu audytu` : `Brak raportu. Kliknięcie uruchomi analizę, ${costLabel(COSTS.analysis)}`);
     const hasEmail   = !!(lead.generated_email && lead.generated_email.length > 10);
     const emailClass = hasEmail ? 'btn-email done' : 'btn-email';
     const emailIcon  = hasEmail ? 'envelope-check' : 'envelope';
@@ -1807,7 +1813,9 @@ async function showAnalysisResult(analysis, websiteData, scores, fromCache) {
   }
 
   const wd     = websiteData || {};
-  const checks = [
+  const checks = wd.inactive ? [
+    { label: `Strona nieaktywna: ${wd.inactive_reason || ''}`, ok: false },
+  ] : [
     { label:'SSL',             ok: wd.has_ssl },
     { label:'Responsywna',      ok: wd.has_mobile_viewport },
     { label:'Meta desc.',       ok: !!wd.meta_description },
