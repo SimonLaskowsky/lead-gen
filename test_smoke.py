@@ -1,4 +1,5 @@
 # Minimalny smoke test logiki bez sieci: python test_smoke.py
+import io
 import itertools
 import os
 import tempfile
@@ -517,3 +518,71 @@ def test_stored_mockup_can_be_opened_later():
     assert odpowiedz.status_code == 200
     assert b"makieta" in odpowiedz.data
     assert "script-src 'none'" in odpowiedz.headers["Content-Security-Policy"]
+
+
+def _png(kolor, plama=None):
+    from PIL import Image, ImageDraw
+    obraz = Image.new("RGB", (400, 300), kolor)
+    if plama:
+        ImageDraw.Draw(obraz).rectangle([40, 40, 360, 260], fill=plama)
+    bufor = io.BytesIO()
+    obraz.save(bufor, format="PNG")
+    return bufor.getvalue()
+
+
+class _StronaKtoraSieDorysowuje:
+    """Oddaje kolejne klatki: przez chwile pusto, potem tresc, potem juz stabilnie."""
+
+    def __init__(self, klatki):
+        self.klatki = list(klatki)
+        self.wywolan = 0
+
+    def screenshot(self, **_):
+        klatka = self.klatki[min(self.wywolan, len(self.klatki) - 1)]
+        self.wywolan += 1
+        return klatka
+
+    def wait_for_timeout(self, _ms):
+        pass
+
+
+def _przegladarka_z_strona(strona):
+    przegladarka = agent_audit._Browser.__new__(agent_audit._Browser)
+    przegladarka.page = strona
+    przegladarka.unstable_screens = 0
+    return przegladarka
+
+
+def test_identical_frames_count_as_stable():
+    ta_sama = _png("white", "black")
+    assert not agent_audit._obrazy_sie_roznia(ta_sama, ta_sama)
+
+
+def test_blank_versus_filled_frame_counts_as_movement():
+    assert agent_audit._obrazy_sie_roznia(_png("white"), _png("white", "black"))
+
+
+def test_stable_screenshot_returns_first_pair_when_nothing_moves():
+    strona = _StronaKtoraSieDorysowuje([_png("white", "black")])
+    przegladarka = _przegladarka_z_strona(strona)
+    _, ustabilizowany = przegladarka._stable_screenshot()
+    assert ustabilizowany
+    assert strona.wywolan == 2, "stabilna strona ma kosztować dwa ujęcia, nie trzy"
+    assert przegladarka.unstable_screens == 0
+
+
+def test_stable_screenshot_retakes_while_the_page_is_still_drawing():
+    pusta, pelna = _png("white"), _png("white", "black")
+    strona = _StronaKtoraSieDorysowuje([pusta, pelna, pelna])
+    przegladarka = _przegladarka_z_strona(strona)
+    zrzut, ustabilizowany = przegladarka._stable_screenshot()
+    assert strona.wywolan == 3, "ruch ma wymusić trzecie ujęcie"
+    assert zrzut == pelna, "wracamy z ostatnią klatką, nie z pustą pierwszą"
+    assert ustabilizowany and przegladarka.unstable_screens == 1
+
+
+def test_screen_that_never_settles_is_flagged():
+    strona = _StronaKtoraSieDorysowuje([_png("white"), _png("white", "black"), _png("black")])
+    przegladarka = _przegladarka_z_strona(strona)
+    _, ustabilizowany = przegladarka._stable_screenshot()
+    assert not ustabilizowany, "wciąż ruchomy ekran ma zostać oznaczony jako niepewny"

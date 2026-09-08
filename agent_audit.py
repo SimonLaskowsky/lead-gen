@@ -183,6 +183,22 @@ def _page_facts(url):
     return "\n".join(lines), data, links
 
 
+SETTLE_CHECK_MS = 450
+SETTLE_EXTRA_MS = 1400
+ROZNICA_PIKSELI = 2.5
+
+
+def _obrazy_sie_roznia(pierwszy, drugi):
+    """Porownanie na miniaturach w skali szarosci: szum kompresji nie liczy sie jako ruch."""
+    from PIL import Image, ImageChops, ImageStat
+    try:
+        a = Image.open(io.BytesIO(pierwszy)).convert("L").resize((72, 45))
+        b = Image.open(io.BytesIO(drugi)).convert("L").resize((72, 45))
+    except Exception:
+        return False
+    return ImageStat.Stat(ImageChops.difference(a, b)).mean[0] > ROZNICA_PIKSELI
+
+
 def _jpeg(png_bytes, max_width, max_height=None, quality=75):
     from PIL import Image
     img = Image.open(io.BytesIO(png_bytes))
@@ -211,7 +227,9 @@ NO_MOTION_CSS = """
   transition-duration: 0s !important; transition-delay: 0s !important;
 }
 html { scroll-behavior: auto !important; }
-[data-aos], .aos-init, .wow, [data-sal], [data-scroll], .animate__animated {
+[data-aos], .aos-init, .wow, [data-sal], [data-scroll], [data-animate], [data-animation],
+.animate__animated, .animated, .elementor-invisible, .wpb_animate_when_almost_visible,
+.vc_animated, .reveal, .js-reveal, .fade-in, .fade-up, .scroll-animate {
   opacity: 1 !important; transform: none !important; visibility: visible !important;
 }
 """
@@ -444,6 +462,7 @@ class _Browser:
         self.width = DESKTOP_WIDTH
         self.responses = []
         self.console_messages = []
+        self.unstable_screens = 0
         self.html_cache = {}
 
     def close(self):
@@ -543,8 +562,22 @@ class _Browser:
         position = (number - 1) * self.viewport_height
         self.page.evaluate("y => window.scrollTo(0, y)", position)
         self.page.wait_for_timeout(500)
-        png = self.page.screenshot(type="png")
-        return png, number, total, position
+        png, ustabilizowany = self._stable_screenshot()
+        return png, number, total, position, ustabilizowany
+
+    def _stable_screenshot(self):
+        """Dwa ujecia z przerwa. Rozny wynik znaczy, ze cos sie jeszcze dorysowuje,
+        wiec czekamy dluzej i bierzemy trzecie. Bez tego zrzut lapie animacje w polowie
+        albo zdjecie, ktore nie zdazylo sie doladowac."""
+        pierwsze = self.page.screenshot(type="png")
+        self.page.wait_for_timeout(SETTLE_CHECK_MS)
+        drugie = self.page.screenshot(type="png")
+        if not _obrazy_sie_roznia(pierwsze, drugie):
+            return drugie, True
+        self.unstable_screens += 1
+        self.page.wait_for_timeout(SETTLE_EXTRA_MS)
+        trzecie = self.page.screenshot(type="png")
+        return trzecie, not _obrazy_sie_roznia(drugie, trzecie)
 
     def metrics(self):
         return self.page.evaluate(PAGE_METRICS_JS)
@@ -1042,12 +1075,16 @@ def _screenshot_block(state, browser, screen_number, label):
     if state["shots"] >= MAX_SCREENSHOTS:
         return [{"type": "text", "text": "Limit zrzutów wyczerpany. Dalej pracuj na faktach i sprawdzeniach."}]
     state["shots"] += 1
-    png, number, total, position = browser.screenshot_screen(screen_number)
+    png, number, total, position, ustabilizowany = browser.screenshot_screen(screen_number)
     if browser.width == 390:
         jpg = _jpeg(png, 390)
     else:
         jpg = _jpeg(png, 1000)
     caption = f"{label}: {browser.url}, {browser.width}px, ekran {number} z {total} (pozycja {position} px)"
+    if not ustabilizowany:
+        caption += (". UWAGA: obraz wciąż się zmieniał po dwóch dodatkowych sekundach, "
+                    "więc ten zrzut może pokazywać stan w trakcie dorysowywania. "
+                    "Nie oceniaj z niego pustych miejsc, sprawdź je narzędziem zweryfikuj puste_sekcje.")
     block = _image_block(jpg)
     state["images"].append((f"{browser.url} ekran {number}", browser.width, block))
     return [{"type": "text", "text": caption}, block]
