@@ -161,6 +161,7 @@ class _FakeBrowser:
         self.responses = responses
 
     failed_assets = agent_audit._Browser.failed_assets
+    main_document_response = agent_audit._Browser.main_document_response
 
 
 def test_broken_stylesheet_is_reported_as_page_failure():
@@ -188,3 +189,38 @@ def test_healthy_page_reports_no_broken_assets():
     obrazek_404 = _FakeResponse("image", 404, "text/html", "https://firma.pl/brak.jpg")
     line = agent_audit._broken_assets_line(_FakeBrowser([css_ok, obrazek_404]))
     assert line == "Arkusze stylów i skrypty: wszystkie wczytały się poprawnie."
+
+
+def test_throttled_response_is_blamed_on_us_not_the_owner():
+    odrzucenie = _FakeResponse("document", 429, "text/html", "https://firma.pl/")
+    line = agent_audit._document_failure_line(_FakeBrowser([odrzucenie]))
+    assert "SERWER NAS ODRZUCIŁ" in line
+    assert "nie usterka, którą widzi gość" in line
+
+
+def test_server_error_on_document_is_reported_as_error_page():
+    awaria = _FakeResponse("document", 500, "text/html", "https://firma.pl/oferta/")
+    line = agent_audit._document_failure_line(_FakeBrowser([awaria]))
+    assert "STRONA ZWRÓCIŁA BŁĄD 500" in line
+    assert "SERWER NAS ODRZUCIŁ" not in line
+
+
+def test_healthy_document_says_nothing():
+    dobra = _FakeResponse("document", 200, "text/html", "https://firma.pl/")
+    css_404 = _FakeResponse("stylesheet", 404, "text/html", "https://firma.pl/style.css")
+    assert agent_audit._document_failure_line(_FakeBrowser([dobra, css_404])) == ""
+
+
+def test_site_level_facts_are_fetched_once_per_host():
+    agent_audit._site_level_cache.clear()
+    wywolania = []
+    oryginal = agent_audit._measure_site_level
+    agent_audit._measure_site_level = lambda url: wywolania.append(url) or ["robots.txt: jest"]
+    try:
+        agent_audit._site_level_facts("https://firma.pl/")
+        agent_audit._site_level_facts("https://firma.pl/kontakt/")
+        agent_audit._site_level_facts("https://inna.pl/")
+    finally:
+        agent_audit._measure_site_level = oryginal
+        agent_audit._site_level_cache.clear()
+    assert len(wywolania) == 2, f"na hosta raz, nie na podstronę: {wywolania}"

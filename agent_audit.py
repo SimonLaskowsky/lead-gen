@@ -474,6 +474,15 @@ class _Browser:
         heaviest.sort(reverse=True)
         return sizes_by_type, heaviest[:5]
 
+    def main_document_response(self):
+        for response in reversed(list(self.responses)):
+            try:
+                if response.request.resource_type == "document":
+                    return response
+            except Exception:
+                continue
+        return None
+
     def failed_assets(self):
         failures = []
         for response in list(self.responses)[:300]:
@@ -532,6 +541,22 @@ def _asset_failure_reason(response):
     return f"serwer oddaje go jako {declared_type or 'typ nieznany'}, więc przeglądarka odrzuca go jako arkusz stylów"
 
 
+THROTTLING_STATUSES = (429, 503)
+
+
+def _document_failure_line(browser):
+    document = browser.main_document_response()
+    if document is None or document.status < 400:
+        return ""
+    if document.status in THROTTLING_STATUSES:
+        return (f"SERWER NAS ODRZUCIŁ: strona odpowiedziała {document.status} na nasze żądanie. "
+                "To ogranicznik ruchu, który najpewniej wywołał sam audyt swoimi zapytaniami, "
+                "a nie usterka, którą widzi gość. Zrzut pokazuje stronę błędu, nie stronę firmy. "
+                "Nie oceniaj z niego wyglądu i nie zapisuj tego jako winy właściciela.")
+    return (f"STRONA ZWRÓCIŁA BŁĄD {document.status}: to, co widać na zrzucie, to strona błędu "
+            f"pod adresem {_shortened_url(document.url)}, nie strona firmy.")
+
+
 def _broken_assets_line(browser):
     failures = browser.failed_assets()
     if not failures:
@@ -577,8 +602,12 @@ def _animation_libraries(page_html):
 def _browser_measurements(browser, page_html):
     metrics = browser.metrics()
     screens = -(-metrics["wysokosc"] // browser.viewport_height)
-    lines = [_broken_assets_line(browser),
-             f"Pomiar w przeglądarce ({browser.width}px): wysokość {metrics['wysokosc']} px, czyli {screens} ekranów."]
+    lines = []
+    document_failure = _document_failure_line(browser)
+    if document_failure:
+        lines.append(document_failure)
+    lines.append(_broken_assets_line(browser))
+    lines.append(f"Pomiar w przeglądarce ({browser.width}px): wysokość {metrics['wysokosc']} px, czyli {screens} ekranów.")
     if metrics["szerokosc_tresci"] > metrics["szerokosc_widoku"] + 2:
         lines.append(f"Treść wystaje poza ekran w poziomie: {metrics['szerokosc_tresci']} px przy oknie {metrics['szerokosc_widoku']} px.")
     lines.append(_weights_line(browser))
@@ -588,12 +617,12 @@ def _browser_measurements(browser, page_html):
     return "\n".join(lines)
 
 
-def _code_facts(url):
-    try:
-        response = _fetch_within_site(url)
-    except Exception as error:
-        return f"Nie udało się pobrać kodu: {error}"
-    page_html = response.text
+def _code_facts(url, page_html=None):
+    if page_html is None:
+        try:
+            page_html = _fetch_within_site(url).text
+        except Exception as error:
+            return f"Nie udało się pobrać kodu: {error}"
     soup = BeautifulSoup(page_html, "html.parser")
     lines = []
 
@@ -635,7 +664,17 @@ def _code_facts(url):
     return "\n".join(lines)
 
 
+_site_level_cache = {}
+
+
 def _site_level_facts(url):
+    host = urlparse(url).hostname or ""
+    if host not in _site_level_cache:
+        _site_level_cache[host] = _measure_site_level(url)
+    return _site_level_cache[host]
+
+
+def _measure_site_level(url):
     parsed = urlparse(url)
     host = parsed.hostname or ""
     root = f"{parsed.scheme}://{host}"
@@ -755,6 +794,8 @@ Zrzut ekranu to podejrzenie, nie wniosek. Zanim uznasz, że tekst jest blady, pr
 
 Zanim ocenisz wygląd, przeczytaj w pomiarze linię o arkuszach stylów i skryptach. Gdy stoi tam "STRONA JEST USZKODZONA", plik CSS strony nie wczytał się i to, co widzisz na zrzucie, nie jest projektem, tylko jego ruinami. Puste sekcje, ucięte nagłówki, napisy wychodzące poza krawędź, nachodzące elementy, znikające tła i rozjechany układ są wtedy skutkiem tej jednej awarii, a nie decyzjami projektanta, więc nie opisuj ich jako uwag o designie ani nie zgaduj, że autor czegoś nie dokończył. Nazwij awarię, podaj nazwę niewczytanego pliku, sprawdź narzędziem zweryfikuj zasoby, czy dotyczy też podstron, i na tym oprzyj podsumowanie. Odwrotnie też: pustej sekcji nie zgłaszaj jako awarii, dopóki ta linia mówi, że wszystko wczytało się poprawnie.
 
+Gdy w pomiarze stoi "SERWER NAS ODRZUCIŁ", to jest nasz problem, nie właściciela: hosting ograniczył ruch, bo audyt za dużo pobierał. Zrzut pokazuje wtedy stronę błędu, nie stronę firmy, więc nie oceniaj z niego niczego i pod żadnym pozorem nie zapisuj, że strona nie działa, że nie działa na telefonie albo że właściciel ma zepsuty hosting. Zapisz w dzienniku, że pomiar jest nieważny, i tak to podsumuj.
+
 Co oglądasz:
 1. Strona główna, pierwszy ekran w 1280, trzy sekundy: czym firma się zajmuje, gdzie, co ma zrobić gość, z którego roku to wygląda. Potem przewijaj kolejne ekrany aż do stopki. Nie zgaduj, co jest niżej.
 2. Główny przycisk i najważniejszy link: kliknij. Strona główna bywa rozdzielnią, właściwa treść jest o klik dalej. Oceniaj stronę, którą zobaczy gość.
@@ -780,6 +821,7 @@ Najcenniejsza zmiana: silnik rezerwacji z kalendarzem. Analityki też nie ma, al
 --- KONIEC WZORU ---
 
 Zasady:
+- Gdy w faktach stoi "SERWER NAS ODRZUCIŁ", pomiar jest nieważny: to audyt dostał od hostingu ogranicznik ruchu, a nie strona zepsuła się gościowi. Napisz wprost, że nie udało się jej rzetelnie obejrzeć, i w OCENA daj "werdykt": "pomin". Nigdy nie zamieniaj tego w zarzut o zepsuty hosting ani o niedziałającą wersję mobilną, bo to byłby zarzut nieprawdziwy.
 - Gdy w faktach stoi "STRONA JEST USZKODZONA", to jest cała notatka. Napisz, że strona w tej chwili nie wyświetla się poprawnie, bo nie wczytuje się jej plik ze stylami (podaj nazwę pliku i której podstrony dotyczy), i że gość widzi rozsypany układ zamiast projektu. Nie oceniaj wtedy kolorów, typografii, zdjęć ani układu, bo oceniasz ruiny, a nie projekt. W OCENA daj "werdykt": "napisz", historię o awarii, a w polach design i mobile oceń to, co gość faktycznie widzi teraz.
 - Zacznij od werdyktu w jednym akapicie: ocena 1-10 na tle dobrych stron tej branży w 2026 roku, rok, z którego strona wygląda, i jedna dominująca historia, czyli to, co naprawdę kosztuje firmę klientów albo powód, dla którego nie ma czego poprawiać.
 - Potem 2 do 4 krótkich akapitów bez nagłówków i bez wypunktowań: pierwsze wrażenie, praca gościa (co da się załatwić, za ile klików i dokąd prowadzi główny przycisk), jakość wizualna, fakty techniczne, tylko te, które mają znaczenie. Każde spostrzeżenie z dowodem, gdzie to widać na ekranie, tak żeby właściciel odnalazł to w dziesięć sekund.
@@ -904,11 +946,11 @@ def _verify(state, what):
         elif what == "przyciski":
             report = _clickables_report(browser)
         elif what == "kod":
-            report = _code_facts(browser.url)
+            report = _code_facts(browser.url, browser.page.content())
         elif what == "telefon":
             report = _mobile_report(browser)
         elif what == "zasoby":
-            report = _broken_assets_line(browser)
+            report = "\n".join(filter(None, [_document_failure_line(browser), _broken_assets_line(browser)]))
         elif what == "tekst":
             report = "Widoczny tekst strony:\n" + browser.visible_text()
         else:
@@ -976,6 +1018,7 @@ def explore(lead):
     client = _client()
     state = {"pages": 0, "shots": 0, "facts": {}, "checks": [], "images": [], "log": [], "summary": "",
              "base_url": lead.get("website_url", ""), "last_url": ""}
+    _site_level_cache.clear()
     state["browser"] = _start_browser(state["base_url"], state["log"])
     try:
         _explore_with_tools(client, lead, state)
