@@ -5,6 +5,7 @@ import json
 import os
 import db
 import mailer
+import mockup
 import pipeline
 import scraper
 import worker
@@ -222,6 +223,21 @@ def analyze_lead(lead_id):
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/lead/<int:lead_id>/mockup-prompt")
+def mockup_prompt(lead_id):
+    lead = db.get_lead(lead_id)
+    if not lead:
+        return jsonify({"error": "Nie znaleziono"}), 404
+    try:
+        website_data = json.loads(lead.get("website_checks") or "{}")
+    except Exception:
+        website_data = {}
+    if lead.get("website_url") and not website_data.get("image_urls"):
+        website_data = scraper.scrape_website(lead["website_url"]) or website_data
+        db.update_lead(lead_id, website_checks=json.dumps(website_data, ensure_ascii=False))
+    return jsonify({"prompt": mockup.build_prompt(lead, website_data, lead.get("ai_analysis"))})
 
 
 @app.route("/api/lead/<int:lead_id>/generate-email", methods=["POST"])

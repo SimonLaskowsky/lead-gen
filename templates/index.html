@@ -265,6 +265,9 @@
     .s-converted .dot { display: none; }
     .s-skipped   { color: var(--fg-3); }
     .s-failed    { color: var(--red); }
+    .site-ok { display:inline-flex; align-items:center; gap:5px; margin-top:4px;
+      font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--green); border: 1px solid var(--green); padding: 1px 6px; }
     .auto-mark { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg-3); margin-top: 3px; }
     .auto-mark::before { content: '// '; }
     .lead-error { font-size: 10px; color: var(--red); margin-top: 3px; max-width: 220px; white-space: normal; }
@@ -873,8 +876,38 @@
 <button class="btn btn-ghost btn-sm" onclick="exportAnalysisPdf()" title="Wersja do druku / zapisu jako PDF, do wysłania klientowi">
           <i class="bi bi-file-earmark-pdf me-1"></i> Eksport PDF
         </button>
-<button class="btn btn-primary" onclick="generateEmailFromAnalysis()">
+<button class="btn btn-ghost btn-sm" onclick="pokazPromptMakiety()" title="Prompt do wygenerowania makiety nowej strony, do wklejenia modelowi">
+          <i class="bi bi-layout-text-window me-1"></i> Prompt makiety
+        </button>
+        <button class="btn btn-primary" onclick="generateEmailFromAnalysis()">
           <i class="bi bi-envelope me-1"></i> Generuj email
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PROMPT MAKIETY
+     ══════════════════════════════════════ -->
+<div class="modal fade" id="promptMakietyModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-layout-text-window me-2" style="color:var(--primary)"></i>Prompt do makiety</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:11.5px;color:var(--fg-3);margin-bottom:10px">
+          Materiał zebrany ze strony firmy: zdjęcia, logo, teksty, kontakt i ustalenia audytu.
+          Wklej to modelowi, dostaniesz jeden samodzielny plik HTML z makietą.
+        </div>
+        <textarea id="promptMakietyTekst" class="form-control" rows="18" spellcheck="false"
+                  style="font-family:var(--mono,monospace);font-size:11.5px;line-height:1.55"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="skopiujPromptMakiety()">
+          <i class="bi bi-clipboard me-1"></i> Kopiuj prompt
         </button>
       </div>
     </div>
@@ -1030,6 +1063,12 @@ const EMAIL_LOADING_HTML = `
   <div class="loading-title"><span class="spin"></span> Piszę mail</div>
   <div class="loading-sub">audyt strony i spersonalizowana treść, kilkadziesiąt sekund</div>`;
 
+// Audyt uznal strone za dobra, wiec nie ma sie do czego dojebac i mail nie ma sensu
+function siteOkMark(lead) {
+  if (lead.audit_verdict !== 'pomin') return '';
+  return '<div class="site-ok" title="Audyt: strona jest dobra, nie ma sensu pisać z propozycją poprawek">Strona OK</div>';
+}
+
 // ── Status badge HTML ──
 const STATUS_BADGES = {
   new:       '<span class="status-badge s-new"><i class="dot"></i>Nowy</span>',
@@ -1157,7 +1196,7 @@ function renderTable(leads) {
       <td class="biz-meta">${escHtml(lead.business_type)}<br>${escHtml(lead.city)}</td>
       <td>${websiteCell}</td>
       <td>${emailCell}</td>
-      <td>${STATUS_BADGES[lead.status] || lead.status}${emailedDate}${autoMark}${errorNote}</td>
+      <td>${STATUS_BADGES[lead.status] || lead.status}${siteOkMark(lead)}${emailedDate}${autoMark}${errorNote}</td>
       <td><div class="notes-cell" title="${escHtml(lead.notes || 'Kliknij aby dodać notatkę')}"
                onclick="openNotesModal(${lead.id})">${escHtml(lead.notes || '—')}</div></td>
       <td>
@@ -1264,12 +1303,12 @@ async function generateFollowup() {
 }
 
 function regenerateEmail() {
-  openEmailModal(currentLeadId, '', true);
+  openEmailModal(currentLeadId, '', true, true);
 }
 
 let followupMode = false;
 
-async function openEmailModal(leadId, myFeedback = '', forceRegen = false) {
+async function openEmailModal(leadId, myFeedback = '', forceRegen = false, generateNow = false) {
   const known = leadsById[leadId] || {};
   const hasMail = !!(known.generated_email && known.generated_email.length > 10);
   const hasReport = !!(known.ai_analysis && known.ai_analysis.length > 10);
@@ -1296,7 +1335,23 @@ async function openEmailModal(leadId, myFeedback = '', forceRegen = false) {
   // Feedback or explicit "napisz od nowa" skips the cached email and regenerates
   let emailText = (myFeedback || forceRegen) ? null : lead.generated_email;
 
+  // Bez gotowego tekstu czekamy na klikniecie. Otwarcie okna nie ma kosztowac wywolania modelu.
+  if (!emailText && !generateNow) {
+    document.getElementById('emailLoadingState').innerHTML = `
+      <div style="padding:1.5rem 0">
+        <div style="font-size:12px;color:var(--fg-3);margin-bottom:14px">
+          Dla tego leada nie ma jeszcze maila.
+        </div>
+        <button class="btn btn-primary" onclick="openEmailModal(${leadId}, '', false, true)">
+          <i class="bi bi-stars me-1"></i> Wygeneruj maila
+        </button>
+        <div style="font-size:10.5px;color:var(--fg-3);margin-top:10px">${escHtml(costLabel(COSTS.email))}</div>
+      </div>`;
+    return;
+  }
+
   if (!emailText) {
+    document.getElementById('emailLoadingState').innerHTML = EMAIL_LOADING_HTML;
     try {
       const profile_id = +((document.getElementById('senderSelect') || {}).value) || null;
       const body = JSON.stringify(myFeedback ? { my_feedback: myFeedback, profile_id } : { profile_id });
@@ -1914,10 +1969,37 @@ function exportAnalysisPdf() {
   setTimeout(() => w.print(), 350);
 }
 
+// Aplikacja nie rysuje makiety. Zbiera material i sklada z niego prompt do wklejenia.
+async function pokazPromptMakiety() {
+  const okno = document.getElementById('promptMakietyModal');
+  const pole = document.getElementById('promptMakietyTekst');
+  pole.value = 'Zbieram materiał ze strony...';
+  bootstrap.Modal.getOrCreateInstance(okno).show();
+  try {
+    const res = await fetch(`/api/lead/${currentLeadId}/mockup-prompt`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    pole.value = data.prompt;
+  } catch (e) {
+    pole.value = 'Nie udało się zbudować prompta: ' + e.message;
+  }
+}
+
+async function skopiujPromptMakiety() {
+  const pole = document.getElementById('promptMakietyTekst');
+  try {
+    await navigator.clipboard.writeText(pole.value);
+    showToast('Prompt skopiowany, wklej go modelowi', 'success');
+  } catch (e) {
+    pole.select();
+    showToast('Schowek zablokowany, tekst jest zaznaczony, skopiuj ręcznie', 'warning');
+  }
+}
+
 function generateEmailFromAnalysis() {
   const feedback = document.getElementById('myFeedback').value.trim();
   bootstrap.Modal.getOrCreateInstance(document.getElementById('analyzeModal')).hide();
-  setTimeout(() => openEmailModal(currentLeadId, feedback), 300);
+  setTimeout(() => openEmailModal(currentLeadId, feedback, false, true), 300);
 }
 
 // ── Status / notes / delete ──

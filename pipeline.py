@@ -189,7 +189,8 @@ def run_analysis(lead) -> dict:
                 website_data = scraper.scrape_website(primary_url) or website_data
             stored = {key: agent_result[key] for key in ("analysis", "scores", "verdict", "story", "primary_url", "log")}
             db.update_lead(lead["id"], ai_analysis=json.dumps(stored, ensure_ascii=False),
-                           website_checks=json.dumps(website_data or {}), generated_email="")
+                           website_checks=json.dumps(website_data or {}), generated_email="",
+                           audit_verdict=agent_result["verdict"])
             return {"analysis": agent_result["analysis"], "scores": agent_result["scores"],
                     "website_data": website_data, "verdict": agent_result["verdict"], "story": agent_result["story"]}
         except Exception as error:

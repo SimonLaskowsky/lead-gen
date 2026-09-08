@@ -342,6 +342,8 @@ def scrape_website(url: str) -> dict | None:
 
         images = soup.find_all("img")
         images_missing_alt = sum(1 for img in images if not (img.get("alt") or "").strip())
+        image_urls = _photo_urls(soup, resp.url)
+        logo_url = _logo_url(soup, resp.url)
 
         # Phone number presence — Polish mobile/landline patterns
         phone_match = re.search(r'(\+48[\s\-]?)?\d[\d\s\-]{8,}\d', full_text)
@@ -379,6 +381,8 @@ def scrape_website(url: str) -> dict | None:
             "tech_stack": tech_stack,
             "image_count": len(images),
             "images_missing_alt": images_missing_alt,
+            "image_urls": image_urls,
+            "logo_url": logo_url,
             "has_phone": has_phone,
             "has_tel_link": has_tel_link,
             "word_count": word_count,
@@ -405,6 +409,59 @@ def scrape_website(url: str) -> dict | None:
                 "inactive_evidence": ""}
     except Exception as e:
         return {"error": str(e)}
+
+
+PHOTO_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp")
+NOT_A_PHOTO = ("logo", "icon", "ikon", "sprite", "favicon", "placeholder",
+               "pixel", "spacer", "avatar", "badge", "button", "arrow", "loader")
+SIZE_SUFFIX = re.compile(r"(-\d{2,4}x\d{2,4}|-scaled)(?=\.\w+$)")
+
+
+def _image_candidates(soup, base_url):
+    """Adresy obrazkow ze znacznikow img i z og:image, w kolejnosci wystepowania na stronie."""
+    from urllib.parse import urljoin, urlparse
+    found = []
+    for tag in soup.find_all("img"):
+        for attribute in ("src", "data-src", "data-lazy-src", "data-original"):
+            value = (tag.get(attribute) or "").strip()
+            if value and not value.startswith("data:"):
+                found.append((urljoin(base_url, value), (tag.get("alt") or "").strip()))
+                break
+    og = soup.find("meta", property="og:image")
+    if og and (og.get("content") or "").strip():
+        found.append((urljoin(base_url, og["content"].strip()), ""))
+    return [(url, alt) for url, alt in found if urlparse(url).scheme in ("http", "https")]
+
+
+def _photo_urls(soup, base_url, limit=24):
+    """Zdjecia nadajace sie na makiete: bez logotypow, ikon i miniatur, bez duplikatow w roznych rozmiarach."""
+    wybrane = []
+    widziane = set()
+    for url, alt in _image_candidates(soup, base_url):
+        adres = url.split("?")[0]
+        if not adres.lower().endswith(PHOTO_EXTENSIONS):
+            continue
+        if any(slowo in adres.lower() for slowo in NOT_A_PHOTO):
+            continue
+        bez_rozmiaru = SIZE_SUFFIX.sub("", adres)
+        if bez_rozmiaru in widziane:
+            continue
+        widziane.add(bez_rozmiaru)
+        wybrane.append({"url": bez_rozmiaru, "alt": alt[:120]})
+        if len(wybrane) >= limit:
+            break
+    return wybrane
+
+
+def _logo_url(soup, base_url):
+    from urllib.parse import urljoin
+    for url, alt in _image_candidates(soup, base_url):
+        if "logo" in (url + " " + alt).lower():
+            return SIZE_SUFFIX.sub("", url.split("?")[0])
+    icon = soup.find("link", rel=lambda v: v and "apple-touch-icon" in " ".join(v).lower())
+    if icon and icon.get("href"):
+        return urljoin(base_url, icon["href"])
+    return ""
 
 
 def _detect_tech(html: str, soup) -> list[str]:

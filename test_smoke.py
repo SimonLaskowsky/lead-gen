@@ -8,6 +8,7 @@ import db
 import scraper
 import analyzer
 import agent_audit
+import mockup
 
 
 def test_db_dedup():
@@ -262,3 +263,52 @@ def test_email_prompt_drops_the_scanner_checklist_when_audit_exists():
     prompt = zlapane["prompt"]
     assert "brak formularza kontaktowego" not in prompt, "checklista skanera nie ma dopisywać wad obok audytu"
     assert "Werdykt: strona jest w porządku." in prompt
+
+
+def test_photo_urls_skip_logos_and_size_duplicates():
+    from bs4 import BeautifulSoup
+    html = """
+      <img src="/wp-content/uploads/logo-firmy.png">
+      <img src="/wp-content/uploads/ikony/sprite.png">
+      <img src="/wp-content/uploads/salon-800x600.jpg" alt="Salon">
+      <img src="/wp-content/uploads/salon.jpg">
+      <img src="/wp-content/uploads/taras-scaled.jpeg">
+      <img src="data:image/gif;base64,R0lGOD">
+    """
+    zdjecia = scraper._photo_urls(BeautifulSoup(html, "html.parser"), "https://firma.pl/")
+    adresy = [z["url"] for z in zdjecia]
+    assert adresy == ["https://firma.pl/wp-content/uploads/salon.jpg",
+                      "https://firma.pl/wp-content/uploads/taras.jpeg"], adresy
+    assert zdjecia[0]["alt"] == "Salon", "alt z pierwszego wystąpienia ma zostać"
+
+
+def test_logo_url_prefers_full_size():
+    from bs4 import BeautifulSoup
+    html = '<img src="/uploads/Logo-Firma-180x108.png" alt="logo">'
+    znaleziony = scraper._logo_url(BeautifulSoup(html, "html.parser"), "https://firma.pl/")
+    assert znaleziony == "https://firma.pl/uploads/Logo-Firma.png", znaleziony
+
+
+def test_mockup_prompt_carries_real_material_only():
+    lead = {"business_name": "Willa Luiza", "business_type": "pensjonat", "city": "Wisła",
+            "phone": "500 414 866", "website_url": "https://luizawisla.pl/"}
+    dane = {"title": "Willa Luiza, Apartamenty w Wiśle", "h1_text": "Willa Luiza",
+            "text_preview": "Oaza   spokoju\n\n w sercu Beskidów.",
+            "image_urls": [{"url": "https://luizawisla.pl/a.jpg", "alt": "pokój"}],
+            "logo_url": "https://luizawisla.pl/logo.png"}
+    prompt = mockup.build_prompt(lead, dane, "Werdykt: przeciętna, telefonu nie da się kliknąć.")
+
+    assert "500 414 866" in prompt and "https://luizawisla.pl/a.jpg" in prompt
+    assert "https://luizawisla.pl/logo.png" in prompt
+    assert "telefonu nie da się kliknąć" in prompt
+    assert "Oaza spokoju w sercu Beskidów." in prompt, "tekst ma iść ściśnięty, bez pustych linii"
+    assert "NIE WYMYŚLAJ ŻADNYCH FAKTÓW" in prompt
+
+
+def test_mockup_prompt_without_site_forbids_stock_photos():
+    lead = {"business_name": "Hydraulik Kowalski", "business_type": "hydraulik",
+            "city": "Bielsko-Biała", "phone": "600 100 200", "website_url": ""}
+    prompt = mockup.build_prompt(lead, {}, None)
+    assert "NIE MA własnej strony" in prompt
+    assert "Places" in prompt
+    assert "Nie podstawiaj zdjęć stockowych" in prompt

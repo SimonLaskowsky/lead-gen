@@ -124,6 +124,7 @@ def _migrate(conn):
         ("last_error",     "TEXT DEFAULT ''"),
         ("autopilot",      "INTEGER DEFAULT 0"),
         ("campaign_id",    "INTEGER"),
+        ("audit_verdict",  "TEXT DEFAULT ''"),
     ]:
         try:
             conn.execute(f"ALTER TABLE leads ADD COLUMN {col} {definition}")
