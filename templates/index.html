@@ -780,9 +780,11 @@
           </div>
           <div class="subject-pill">
             <span class="pill-label">Temat</span>
-            <span id="emailSubject" style="flex:1"></span>
+            <span id="emailSubject" style="flex:1;outline:none" contenteditable="true"
+                  spellcheck="false" oninput="zaplanujZapisMaila()"></span>
+            <span id="emailZapis" style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--fg-3)"></span>
           </div>
-          <textarea id="emailBody" class="form-control email-textarea"></textarea>
+          <textarea id="emailBody" class="form-control email-textarea" oninput="zaplanujZapisMaila()"></textarea>
           <div class="msg-hist" id="emailHistory" style="display:none"></div>
         </div>
       </div>
@@ -1151,6 +1153,54 @@ function siteOkMark(lead) {
   return '<div class="site-ok" title="Audyt: strona jest dobra, nie ma sensu pisać z propozycją poprawek">Strona OK</div>';
 }
 
+// ── Autozapis poprawek w mailu ──
+// Bez tego recznie poprawiona tresc ginela przy ponownym otwarciu okna,
+// bo modal czytal wersje zapisana przy generowaniu.
+let licznikZapisuMaila = null;
+let zapisywanyLead = null;
+
+function zaplanujZapisMaila() {
+  if (followupMode) return;          // follow-up to inny tekst, nie nadpisujemy nim maila
+  zapisywanyLead = currentLeadId;
+  pokazStanZapisu('edytowane');
+  clearTimeout(licznikZapisuMaila);
+  licznikZapisuMaila = setTimeout(zapiszMaila, 900);
+}
+
+function pokazStanZapisu(stan) {
+  const znacznik = document.getElementById('emailZapis');
+  if (!znacznik) return;
+  znacznik.textContent = { edytowane: '...', zapisane: 'zapisano', blad: 'nie zapisano' }[stan] || '';
+  znacznik.style.color = stan === 'blad' ? 'var(--red)' : 'var(--fg-3)';
+}
+
+async function zapiszMaila() {
+  const leadId = zapisywanyLead;
+  if (!leadId || followupMode) return;
+  const temat = document.getElementById('emailSubject').textContent.trim();
+  const tresc = document.getElementById('emailBody').value;
+  const calosc = temat ? `Temat: ${temat}\n\n${tresc}` : tresc;
+  try {
+    const res = await fetch(`/api/lead/${leadId}/update`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ generated_email: calosc }),
+    });
+    if (!res.ok) throw new Error('serwer odrzucił zapis');
+    if (leadsById[leadId]) leadsById[leadId].generated_email = calosc;
+    pokazStanZapisu('zapisane');
+  } catch (e) {
+    pokazStanZapisu('blad');
+  }
+}
+
+// zamkniecie okna nie moze zjesc poprawki, ktora czekala na debounce
+document.addEventListener('DOMContentLoaded', () => {
+  const okno = document.getElementById('emailModal');
+  if (okno) okno.addEventListener('hide.bs.modal', () => {
+    if (licznikZapisuMaila) { clearTimeout(licznikZapisuMaila); zapiszMaila(); }
+  });
+});
+
 // ── Status badge HTML ──
 const STATUS_BADGES = {
   new:       '<span class="status-badge s-new"><i class="dot"></i>Nowy</span>',
@@ -1407,6 +1457,9 @@ async function openEmailModal(leadId, myFeedback = '', forceRegen = false, gener
   document.getElementById('emailContent').classList.add('d-none');
   document.getElementById('emailFooter').style.setProperty('display','none','important');
   document.getElementById('emailHistory').style.display = 'none';
+  clearTimeout(licznikZapisuMaila);
+  licznikZapisuMaila = null;
+  pokazStanZapisu('');
 
   bootstrap.Modal.getOrCreateInstance(document.getElementById('emailModal')).show();
 
