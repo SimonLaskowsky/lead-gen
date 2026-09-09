@@ -193,7 +193,12 @@ def get_lead(lead_id):
     lead = db.get_lead(lead_id)
     if not lead:
         return jsonify({"error": "Nie znaleziono"}), 404
-    lead["has_mockup"] = bool(lead.pop("mockup_image", None))
+    obrazek = lead.pop("mockup_image", None)
+    lead["has_mockup"] = bool(obrazek)
+    if obrazek:
+        nazwa, dane, _ = pipeline.mockup_attachment(lead)[0]
+        lead["attachment_name"] = nazwa
+        lead["attachment_kb"] = len(dane) // 1024
     try:
         lead["observations"] = json.loads(lead.get("observations") or "[]")
     except Exception:

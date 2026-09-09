@@ -774,6 +774,10 @@
       <div class="modal-body">
         <div id="emailLoadingState" class="text-center" style="padding:3rem 0"></div>
         <div id="emailContent" class="d-none">
+          <div id="emailZalaczniki" class="subject-pill" style="display:none">
+            <span class="pill-label">Załącznik</span>
+            <span id="emailZalacznikiTekst" style="flex:1"></span>
+          </div>
           <div class="subject-pill">
             <span class="pill-label">Temat</span>
             <span id="emailSubject" style="flex:1"></span>
@@ -1459,6 +1463,7 @@ async function openEmailModal(leadId, myFeedback = '', forceRegen = false, gener
 
   document.getElementById('emailSubject').textContent = subject;
   document.getElementById('emailBody').value          = body;
+  pokazZalaczniki(lead);
   document.getElementById('emailLoadingState').classList.add('d-none');
   document.getElementById('emailContent').classList.remove('d-none');
   document.getElementById('emailFooter').style.removeProperty('display');
@@ -1471,6 +1476,7 @@ function smsTo(phone, body) {
 }
 
 function openInSms() {
+  if (!ostrzezOBrakuZalacznika('SMS')) return;
   smsTo(currentLeadPhone, document.getElementById('emailBody').value);
 }
 
@@ -1482,7 +1488,34 @@ async function smsLead(leadId) {
   smsTo(lead.phone, body);
 }
 
+// Zalacznik istnieje tylko na sciezce SMTP. Link do Gmaila przenosi wylacznie tekst.
+let makietaBiezacegoLeada = null;
+
+function pokazZalaczniki(lead) {
+  makietaBiezacegoLeada = lead.has_mockup
+    ? { nazwa: lead.attachment_name, kb: lead.attachment_kb } : null;
+  const wiersz = document.getElementById('emailZalaczniki');
+  if (!makietaBiezacegoLeada) { wiersz.style.display = 'none'; return; }
+  wiersz.style.display = '';
+  document.getElementById('emailZalacznikiTekst').innerHTML =
+    `<a href="/api/lead/${currentLeadId}/mockup.jpg" target="_blank" rel="noopener">${escHtml(makietaBiezacegoLeada.nazwa)}</a>`
+    + ` <span style="color:var(--fg-3)">${makietaBiezacegoLeada.kb} kB, doleci tylko przy "Wyślij teraz" i "Do kolejki"</span>`;
+}
+
+function ostrzezOBrakuZalacznika(gdzie) {
+  if (!makietaBiezacegoLeada) return true;
+  return confirm(
+    `${gdzie} przenosi wyłącznie tekst, bez załącznika.\n\n` +
+    `Ten mail zapowiada projekt w załączniku (${makietaBiezacegoLeada.nazwa}), ` +
+    `więc klient dostanie obietnicę bez pliku.\n\n` +
+    `Użyj "Wyślij teraz" albo "Do kolejki", żeby załącznik doleciał. ` +
+    `Jeśli mimo to chcesz iść dalej, otworzę obrazek w nowej karcie, żebyś dołączył go ręcznie.\n\nKontynuować?`
+  );
+}
+
 function openInGmail() {
+  if (!ostrzezOBrakuZalacznika('Okno Gmaila')) return;
+  if (makietaBiezacegoLeada) window.open(`/api/lead/${currentLeadId}/mockup.jpg`, '_blank', 'noopener');
   const subject = document.getElementById('emailSubject').textContent;
   const body    = document.getElementById('emailBody').value;
   const params  = new URLSearchParams({
