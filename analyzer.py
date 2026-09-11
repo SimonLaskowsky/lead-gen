@@ -403,7 +403,17 @@ To zmienia całą prośbę w mailu i ma pierwszeństwo nad punktami o raporcie i
 """
 
 
-def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: str | None = None, my_feedback: str | None = None, profile: dict | None = None, has_mockup: bool = False) -> str:
+def _z_linkiem(text: str, link: str, sig: str) -> str:
+    """Mail ścieżki B bez linku jest pusty, więc gdy model go zgubi, wstawiamy go przed podpisem."""
+    if not link or link in text:
+        return text
+    pierwsza_linia_podpisu = (sig or "").splitlines()[0] if sig else ""
+    if pierwsza_linia_podpisu and pierwsza_linia_podpisu in text:
+        return text.replace(pierwsza_linia_podpisu, f"{link}\n\n{pierwsza_linia_podpisu}", 1)
+    return text.rstrip() + "\n\n" + link
+
+
+def generate_email(lead: dict, website_data: dict | None = None, ai_analysis: str | None = None, my_feedback: str | None = None, profile: dict | None = None, has_mockup: bool = False, sciezka: str = "audyt", mockup_link: str = "") -> str:
     client = _client()
     p = profile or {}
     snd = {
@@ -458,6 +468,67 @@ Jesli zadna nie pasuje do realnych problemow tej firmy, nie uzywaj zadnej: staty
 """
 
     style_rules = STYLE_RULES
+
+    if sciezka == "makieta":
+        prompt = f"""Jesteś copywriterem piszącym krótkiego, bezpretensjonalnego cold maila po polsku
+dla {snd['name']}, programisty robiącego strony lokalnym firmom.
+
+{sender_context}
+
+=== DANE FIRMY ===
+Firma: {business_name}
+Nazwa ze strony (bywa inna niż w Google, nie odmieniaj żadnej z nich): {(website_data or {}).get('title') or 'brak'}
+Typ biznesu: {business_type}
+Miasto: {city}
+Ich obecna strona: {lead.get('website_url', '')}
+{f"Dodatkowe spostrzeżenia (wpleć naturalnie): {my_feedback}" if my_feedback else ""}
+
+=== CO JEST GOTOWE ===
+Nadawca zbudował podgląd nowej strony głównej tej firmy, z ich własnych zdjęć i ich treści.
+Podgląd wisi pod tym adresem i to jest cała treść tego maila:
+{mockup_link}
+
+{style_rules}
+
+=== ODSTĘPSTWO OD ZASAD STYLU ===
+Punkt 4 zasad stylu nie obowiązuje w tym mailu. Podgląd nie jest propozycją do zrobienia,
+tylko gotową stroną, która czeka pod linkiem. Wolno o niej pisać jak o czymś, co istnieje.
+
+=== ZADANIE ===
+Napisz maila, który pokazuje, a nie ocenia. Reguły są twarde:
+
+1. ZERO OCENY ADRESATA. Zakazane jest każde zdanie sugerujące, że ich strona jest słaba,
+   przestarzała albo że ta wersja jest lepsza. "Zrobiłem Państwa stronę lepiej", "odświeżyłem",
+   "unowocześniłem", "przydałoby się" to zdania zakazane. Ocena zmusza odbiorcę do obrony,
+   a on niczego nie zamawiał.
+2. ZERO LISTY WAD. Ani jednej. Ta ścieżka niczego nie zarzuca, ona pokazuje.
+3. Rama ciekawostkowa: zrobiłem podgląd, jak mogłaby wyglądać strona [nazwa firmy],
+   nic Państwo nie zamawiali, wrzucam link, jakby był ciekawy. Napisz to własnymi słowami,
+   nie przepisuj tego zdania dosłownie.
+4. Jedno zdanie o tym, że podgląd stoi na ICH zdjęciach i ICH treści. To dowód, że ktoś
+   naprawdę wszedł na ich stronę, a nie wysłał masówki.
+5. NAJWYŻEJ 80 SŁÓW razem z tematem. Cała treść to link, reszta ma zejść mu z drogi.
+6. JEDNA prośba, na końcu, miękka: żeby rzucili okiem albo odpisali, co o tym myślą.
+   Żadnego drugiego pytania, żadnej propozycji rozmowy, spotkania, wyceny ani raportu
+   z przeglądu. Raport jest ofertą innej ścieżki i w tym mailu nie istnieje.
+7. Link wklej DOKŁADNIE tak, jak jest wyżej, w osobnej linii, bez skracania i bez nawiasów.
+8. Temat najwyżej 60 znaków, spokojny, bez obietnic i bez straszenia.
+9. Zero kwot, zero widełek, zero słowa o cenie. Zero emoji, zero wypunktowań, zero P.S.
+10. Per Pan/Pani, zwrot otwierający "Dzień dobry,".
+
+Odpowiedz wyłącznie gotową treścią maila, bez komentarzy przed ani po.
+Pierwsza linia: Temat: [temat]
+
+Podpisz maila dokładnie tak:
+{sig}"""
+        message = client.messages.create(
+            model=EMAIL_MODEL,
+            max_tokens=8000,
+            output_config={"effort": EMAIL_EFFORT},
+            messages=[{"role": "user", "content": prompt}],
+        )
+        _record(message, "mail")
+        return _with_opt_out(_z_linkiem(_text(message), mockup_link, sig))
 
     outsourced = (website_data or {}).get("outsourced_platform")
     if outsourced:

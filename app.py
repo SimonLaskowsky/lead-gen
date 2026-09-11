@@ -17,8 +17,13 @@ app = Flask(__name__)
 db.init_db()
 
 
+PUBLICZNE_TRASY = {"makieta_pod_linkiem"}
+
+
 @app.before_request
 def auth_check():
+    if request.endpoint in PUBLICZNE_TRASY:
+        return
     password = os.getenv("APP_PASSWORD", "")
     if not password:
         return  # local dev, no auth
@@ -60,6 +65,8 @@ def get_leads():
 def get_stats():
     stats = db.get_stats()
     stats["costs"] = pipeline.COST_ESTIMATES_USD
+    stats["sciezki"] = db.stats_by_path()
+    stats["prog_wnioskow"] = pipeline.MIN_WYSYLEK_NA_WNIOSEK
     return jsonify(stats)
 
 
@@ -76,11 +83,20 @@ def _service_status(service, env_key):
     }
 
 
+def _adres_makiet() -> dict:
+    """Maila pisze autopilot poza żądaniem HTTP, więc adres linku musi stać w konfiguracji."""
+    adres = (os.getenv("PUBLIC_BASE_URL") or "").strip().rstrip("/")
+    if not adres:
+        return {"state": "no_key", "detail": "brak PUBLIC_BASE_URL, ścieżka makietowa nie napisze maila"}
+    return {"state": "ok", "detail": adres}
+
+
 @app.route("/api/health")
 def health():
     return jsonify({
         "google": _service_status("google", "GOOGLE_MAPS_API_KEY"),
         "ai": _service_status("ai", "ANTHROPIC_API_KEY"),
+        "adres_makiet": _adres_makiet(),
         "leads": db.get_stats()["total"],
     })
 
@@ -195,8 +211,9 @@ def get_lead(lead_id):
         return jsonify({"error": "Nie znaleziono"}), 404
     obrazek = lead.pop("mockup_image", None)
     lead["has_mockup"] = bool(obrazek)
-    if obrazek:
-        nazwa, dane, _ = pipeline.mockup_attachment(lead)[0]
+    zalacznik = pipeline.mockup_attachment(lead)
+    if zalacznik:
+        nazwa, dane, _ = zalacznik[0]
         lead["attachment_name"] = nazwa
         lead["attachment_kb"] = len(dane) // 1024
     try:
@@ -242,7 +259,9 @@ def mockup_prompt(lead_id):
     if lead.get("website_url") and not website_data.get("image_urls"):
         website_data = scraper.scrape_website(lead["website_url"]) or website_data
         db.update_lead(lead_id, website_checks=json.dumps(website_data, ensure_ascii=False))
-    return jsonify({"prompt": mockup.build_prompt(lead, website_data, lead.get("ai_analysis"))})
+    na_sciezce_makietowej = lead.get("sciezka") == pipeline.SCIEZKA_MAKIETA
+    ustalenia_audytu = None if na_sciezce_makietowej else lead.get("ai_analysis")
+    return jsonify({"prompt": mockup.build_prompt(lead, website_data, ustalenia_audytu)})
 
 
 @app.route("/api/lead/<int:lead_id>/mockup", methods=["POST", "DELETE"])
@@ -253,15 +272,31 @@ def lead_mockup(lead_id):
         db.clear_mockup(lead_id)
         return jsonify({"ok": True, "has_mockup": False})
 
-    html = (request.json or {}).get("html", "").strip()
+    payload = request.json or {}
+    html = payload.get("html", "").strip()
     if "<" not in html:
         return jsonify({"error": "To nie wygląda na plik HTML z makietą"}), 400
+
+    audyt = {"zlamane": [], "sprawdzone": [], "blad": ""}
+    if not payload.get("mimo_wszystko"):
+        try:
+            audyt = mockup.audyt_makiety(html)
+        except Exception as e:
+            audyt = {"zlamane": [], "sprawdzone": [], "blad": f"audyt nie ruszył: {e}"}
+        if audyt["zlamane"]:
+            return jsonify({
+                "error": "Makieta łamie własne reguły. Popraw ją i wgraj jeszcze raz.",
+                "zlamane": audyt["zlamane"],
+                "sprawdzone": audyt["sprawdzone"],
+            }), 422
+
     image = scraper.screenshot_html(html, width=1280)
     if not image:
         return jsonify({"error": "Nie udało się wyrenderować makiety do obrazka"}), 500
     db.set_mockup(lead_id, html, image)
     db.update_lead(lead_id, generated_email="")
-    return jsonify({"ok": True, "has_mockup": True, "rozmiar_kb": len(image) // 1024})
+    return jsonify({"ok": True, "has_mockup": True, "rozmiar_kb": len(image) // 1024,
+                    "sprawdzone": audyt["sprawdzone"], "audyt_blad": audyt["blad"]})
 
 
 MOCKUP_CSP = ("default-src 'none'; img-src data: https:; style-src 'unsafe-inline' https://fonts.googleapis.com; "
@@ -274,7 +309,7 @@ def lead_mockup_html(lead_id):
     html = (lead or {}).get("mockup_html") or ""
     if not html:
         return jsonify({"error": "Brak makiety"}), 404
-    return Response(html, mimetype="text/html; charset=utf-8", headers={"Content-Security-Policy": MOCKUP_CSP})
+    return Response(html, mimetype="text/html", headers={"Content-Security-Policy": MOCKUP_CSP})
 
 
 @app.route("/api/lead/<int:lead_id>/mockup.jpg")
@@ -283,6 +318,40 @@ def lead_mockup_image(lead_id):
     if not image:
         return jsonify({"error": "Brak makiety"}), 404
     return Response(image, mimetype="image/jpeg")
+
+
+def publiczny_adres_makiety(token: str) -> str:
+    baza = (os.getenv("PUBLIC_BASE_URL") or request.url_root).rstrip("/")
+    return f"{baza}/m/{token}"
+
+
+@app.route("/api/lead/<int:lead_id>/mockup-link")
+def lead_mockup_link(lead_id):
+    lead = db.get_lead(lead_id)
+    if not lead:
+        return jsonify({"error": "Nie znaleziono"}), 404
+    if not (lead.get("mockup_html") or "").strip():
+        return jsonify({"error": "Brak makiety"}), 404
+    token = db.ensure_mockup_token(lead_id)
+    return jsonify({"link": publiczny_adres_makiety(token), "wejscia": db.mockup_views(lead_id)})
+
+
+@app.route("/m/<token>")
+def makieta_pod_linkiem(token):
+    """Jedyna trasa poza hasłem. Bez pikseli i bez analityki: wejście zapisujemy u siebie
+    i to jest cały sygnał, jaki mamy przed odpowiedzią."""
+    lead = db.lead_by_mockup_token(token)
+    html = (lead or {}).get("mockup_html") or ""
+    if not html:
+        return Response("Nie ma tu nic.", 404, mimetype="text/plain; charset=utf-8")
+    if request.method == "GET":
+        db.log_mockup_view(lead["id"])
+    return Response(html, mimetype="text/html", headers={
+        "Content-Security-Policy": MOCKUP_CSP,
+        "X-Robots-Tag": "noindex, nofollow",
+        "Referrer-Policy": "no-referrer",
+        "Cache-Control": "no-store",
+    })
 
 
 @app.route("/api/lead/<int:lead_id>/generate-email", methods=["POST"])
@@ -436,10 +505,12 @@ def campaigns_collection():
     if not business_type or not city:
         return jsonify({"error": "Podaj typ biznesu i miasto"}), 400
     target_count = max(1, min(int(data.get("target_count") or 20), 500))
+    tryb = data.get("tryb") if data.get("tryb") in pipeline.TRYBY_KAMPANII else pipeline.SCIEZKA_AUDYT
     campaign_id = db.add_campaign(
         business_type, city, target_count,
         no_website=bool(data.get("no_website")),
         profile_id=data.get("profile_id") or None,
+        tryb=tryb,
     )
     return jsonify({"id": campaign_id})
 
@@ -453,6 +524,8 @@ def update_campaign(campaign_id):
         updates["last_error"] = ""
     if "target_count" in data:
         updates["target_count"] = max(1, min(int(data["target_count"]), 500))
+    if data.get("tryb") in pipeline.TRYBY_KAMPANII:
+        updates["tryb"] = data["tryb"]
     db.update_campaign(campaign_id, **updates)
     return jsonify({"ok": True})
 

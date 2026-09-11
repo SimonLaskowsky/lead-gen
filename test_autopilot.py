@@ -58,7 +58,10 @@ def fake_analyze(lead, screenshots, website_data, impression=None):
     return {"scores": {"design": 4}, "analysis": "Strona do poprawy."}
 
 
-def fake_generate_email(lead, website_data, ai_analysis=None, my_feedback=None, profile=None, has_mockup=False):
+def fake_generate_email(lead, website_data, ai_analysis=None, my_feedback=None, profile=None,
+                       has_mockup=False, sciezka="audyt", mockup_link=""):
+    if sciezka == "makieta":
+        return f"Temat: Podgląd strony {lead['business_name']}\n\nDzień dobry,\n{mockup_link}\n\n{profile['name']}"
     return f"Temat: Uwagi do strony {lead['business_name']}\n\nDzień dobry,\ntreść maila.\n\n{profile['name']}"
 
 
@@ -399,3 +402,81 @@ def test_queued_message_carries_the_mockup_attachment():
     SENT.clear()
     pipeline.deliver(db.get_message(row_id))
     assert SENT[-1]["attachments"] == [], "bez makiety mail idzie bez załącznika"
+
+
+def _lead_kampanii(tryb, nazwa, profile_id):
+    campaign_id = db.add_campaign("pensjonat", "Wisła", target_count=5, profile_id=profile_id, tryb=tryb)
+    lead_id = db.add_lead(business_name=nazwa, city="Wisła", business_type="pensjonat",
+                          email="klient@example.com", website_url="https://luizawisla.pl")
+    db.update_lead(lead_id, profile_id=profile_id, campaign_id=campaign_id, autopilot=1)
+    return db.get_lead(lead_id)
+
+
+def test_campaign_mode_decides_the_path():
+    db.init_db()
+    profile_id = setup_mailbox()
+    audytowy = _lead_kampanii("audyt", "Willa Audyt", profile_id)
+    makietowy = _lead_kampanii("makieta", "Willa Makieta", profile_id)
+    assert pipeline.wybierz_sciezke(audytowy) == pipeline.SCIEZKA_AUDYT
+    assert pipeline.wybierz_sciezke(makietowy) == pipeline.SCIEZKA_MAKIETA
+
+    dzielony = _lead_kampanii("split", "Willa Split", profile_id)
+    parzysty = dict(dzielony, id=dzielony["id"] - dzielony["id"] % 2)
+    nieparzysty = dict(dzielony, id=parzysty["id"] + 1)
+    assert pipeline.wybierz_sciezke(parzysty) == pipeline.SCIEZKA_MAKIETA
+    assert pipeline.wybierz_sciezke(nieparzysty) == pipeline.SCIEZKA_AUDYT
+
+
+def test_path_b_skips_the_agent_audit_and_waits_for_the_mockup():
+    db.init_db()
+    profile_id = setup_mailbox()
+    lead = _lead_kampanii("makieta", "Willa Bez Makiety", profile_id)
+    poprzedni_adres = os.environ.get("PUBLIC_BASE_URL", "")
+    os.environ["PUBLIC_BASE_URL"] = "https://konsola.test"
+
+    wywolania_audytu = []
+    oryginalny_audyt = agent_audit.audit
+    agent_audit.audit = lambda lead: wywolania_audytu.append(lead["id"])
+    try:
+        row_id, powod = pipeline.prepare_lead(lead)
+        assert row_id is None and "czeka na makietę" in powod
+        assert wywolania_audytu == [], "ścieżka makietowa nie płaci za audyt agentowy"
+
+        po_analizie = db.get_lead(lead["id"])
+        assert po_analizie["sciezka"] == pipeline.SCIEZKA_MAKIETA
+        assert "Ścieżka makietowa" in po_analizie["ai_analysis"]
+        assert not po_analizie["generated_email"]
+        czekajace = lambda: [l["id"] for l in db.leads_awaiting_preparation(limit=50)]
+        assert lead["id"] not in czekajace(), "bez makiety autopilot nie ma co przygotować"
+
+        db.set_mockup(lead["id"], "<html>makieta</html>", b"udajemy-jpeg")
+        assert lead["id"] in czekajace(), "makieta odblokowuje pisanie maila"
+
+        row_id, powod = pipeline.prepare_lead(db.get_lead(lead["id"]))
+        assert row_id and not powod
+    finally:
+        agent_audit.audit = oryginalny_audyt
+        os.environ["PUBLIC_BASE_URL"] = poprzedni_adres
+
+    wiadomosc = db.get_message(row_id)
+    assert "https://konsola.test/m/" in wiadomosc["body"], "mail ścieżki B ma nieść link do makiety"
+
+
+def test_autopilot_queues_path_b_but_never_sends_it():
+    db.init_db()
+    profile_id = setup_mailbox()
+    db.set_settings(auto_send="on", daily_limit="10", send_from_hour="0", send_to_hour="23",
+                    weekdays_only="0", send_gap_minutes="0")
+    makietowy = _lead_kampanii("makieta", "Willa Ręczna", profile_id)
+    db.update_lead(makietowy["id"], sciezka=pipeline.SCIEZKA_MAKIETA)
+    db.set_mockup(makietowy["id"], "<html>makieta</html>", b"udajemy-jpeg")
+    row_id = pipeline.queue_message(db.get_lead(makietowy["id"]), "initial", "Podgląd", "Treść z linkiem")
+
+    assert db.next_due_message(db.now_iso()) is None, "automat ma omijać ścieżkę makietową"
+    SENT.clear()
+    worker.step_send()
+    assert SENT == [], "autopilot nie wysyła maila, którego makiety nikt nie obejrzał"
+
+    pipeline.deliver(db.get_message(row_id))
+    assert len(SENT) == 1, "człowiek wysyła ten sam mail ręcznie, bez przeszkód"
+    assert SENT[-1]["attachments"] == [], "ścieżka B idzie linkiem, bez załącznika"

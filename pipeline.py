@@ -9,6 +9,7 @@ import agent_audit
 import analyzer
 import db
 import mailer
+import mockup
 import scraper
 
 LAST_CALL = {"google": None, "ai": None}
@@ -35,6 +36,7 @@ def record_usage(purpose, model, input_tokens, output_tokens, cache_read_tokens=
 
 analyzer.on_usage = record_usage
 agent_audit.on_usage = record_usage
+mockup.on_usage = record_usage
 
 
 def price_for(model: str) -> tuple[float, float]:
@@ -166,21 +168,71 @@ Wizytówka w Google sprowadza ruch, ale każdy, kto kliknie w adres strony, traf
 Nie ma czego poprawiać, więc audyt strony nie ma sensu. Zaproponuj nową stronę: bezpłatny podgląd projektu wraz z wyceną, bez zobowiązań."""
 
 
+MIN_WYSYLEK_NA_WNIOSEK = 200
+"""Przy odpowiedziach rzędu kilku procent różnica między ścieżką dwuprocentową a dziesięcioprocentową
+tonie w szumie, dopóki na każdej ścieżce nie ma kilkuset wysyłek. Niżej pokazujemy same liczby."""
+
+SCIEZKA_AUDYT = "audyt"
+SCIEZKA_MAKIETA = "makieta"
+TRYBY_KAMPANII = (SCIEZKA_AUDYT, SCIEZKA_MAKIETA, "split")
+
+
+def wybierz_sciezke(lead) -> str:
+    """O ścieżce decyduje kampania, z której lead przyszedł. Split dzieli po parzystości id,
+    bo to samo dzieli pół na pół i nie zmienia się przy ponownym przygotowaniu leada."""
+    campaign = db.get_campaign(lead["campaign_id"]) if lead.get("campaign_id") else None
+    tryb = (campaign or {}).get("tryb") or SCIEZKA_AUDYT
+    if tryb == SCIEZKA_MAKIETA:
+        return SCIEZKA_MAKIETA
+    if tryb == "split" and lead["id"] % 2 == 0:
+        return SCIEZKA_MAKIETA
+    return SCIEZKA_AUDYT
+
+
+def mockup_path_analysis(url) -> str:
+    return f"""## Ścieżka makietowa
+
+Strona **{url}** działa, więc audyt agentowy się nie odbył: ten lead idzie ścieżką makietową
+i to obniża koszt przygotowania. Makieta powstaje z treści i zdjęć ze strony głównej.
+
+### Co dalej
+1. Zbuduj makietę z prompta i wgraj plik HTML w oknie projektu.
+2. Dopiero wtedy powstaje mail: jeden link, zero załącznika, zero listy wad.
+3. Autopilot takiego maila nie wyśle sam. Makietę trzeba obejrzeć i kliknąć wyślij."""
+
+
+def mockup_link(lead) -> str:
+    baza = (os.getenv("PUBLIC_BASE_URL") or "").strip().rstrip("/")
+    if not baza:
+        return ""
+    return f"{baza}/m/{db.ensure_mockup_token(lead['id'])}"
+
+
 def run_analysis(lead) -> dict:
     website_data = scraper.scrape_website(lead["website_url"])
     outsourced = (website_data or {}).get("outsourced_platform")
     if outsourced:
         pitch = (website_data or {}).get("outsourced_pitch", "korzystają z zewnętrznej platformy")
         analysis = outsourced_platform_analysis(outsourced, pitch)
-        db.update_lead(lead["id"], ai_analysis=analysis, website_checks=json.dumps(website_data), generated_email="")
+        db.update_lead(lead["id"], ai_analysis=analysis, website_checks=json.dumps(website_data),
+                       generated_email="", sciezka=SCIEZKA_AUDYT)
         return {"analysis": analysis, "scores": {}, "website_data": website_data}
 
     if (website_data or {}).get("inactive"):
         analysis = inactive_site_analysis(
             lead["website_url"], website_data["inactive_reason"], website_data.get("inactive_evidence"))
         mark("ai", True, f"strona nieaktywna, bez audytu: {lead['business_name']}")
-        db.update_lead(lead["id"], ai_analysis=analysis, website_checks=json.dumps(website_data), generated_email="")
+        db.update_lead(lead["id"], ai_analysis=analysis, website_checks=json.dumps(website_data),
+                       generated_email="", sciezka=SCIEZKA_AUDYT)
         return {"analysis": analysis, "scores": {}, "website_data": website_data}
+
+    if wybierz_sciezke(lead) == SCIEZKA_MAKIETA:
+        analysis = mockup_path_analysis(lead["website_url"])
+        mark("ai", True, f"ścieżka makietowa, bez audytu: {lead['business_name']}")
+        db.update_lead(lead["id"], ai_analysis=analysis, website_checks=json.dumps(website_data or {}),
+                       generated_email="", sciezka=SCIEZKA_MAKIETA)
+        return {"analysis": analysis, "scores": {}, "website_data": website_data,
+                "sciezka": SCIEZKA_MAKIETA}
 
     if os.getenv("AUDIT_MODE", "agent") == "agent":
         try:
@@ -192,7 +244,7 @@ def run_analysis(lead) -> dict:
             stored = {key: agent_result[key] for key in ("analysis", "scores", "verdict", "story", "primary_url", "log")}
             db.update_lead(lead["id"], ai_analysis=json.dumps(stored, ensure_ascii=False),
                            website_checks=json.dumps(website_data or {}), generated_email="",
-                           audit_verdict=agent_result["verdict"])
+                           audit_verdict=agent_result["verdict"], sciezka=SCIEZKA_AUDYT)
             return {"analysis": agent_result["analysis"], "scores": agent_result["scores"],
                     "website_data": website_data, "verdict": agent_result["verdict"], "story": agent_result["story"]}
         except Exception as error:
@@ -225,6 +277,7 @@ def run_analysis(lead) -> dict:
         ai_analysis=json.dumps(result),
         website_checks=json.dumps(website_data or {}),
         generated_email="",
+        sciezka=SCIEZKA_AUDYT,
     )
     return {"analysis": result["analysis"], "scores": result.get("scores", {}), "website_data": website_data}
 
@@ -251,6 +304,14 @@ def prepare_email(lead, profile_id=None, my_feedback=None, website_data=None) ->
     if website_data is None and lead.get("website_url"):
         website_data = scraper.scrape_website(lead["website_url"])
     profile = resolve_profile(profile_id or lead.get("profile_id"))
+    sciezka = lead.get("sciezka") or SCIEZKA_AUDYT
+    link = ""
+    if sciezka == SCIEZKA_MAKIETA:
+        if not (lead.get("mockup_html") or "").strip():
+            raise ValueError("Ścieżka makietowa: najpierw wgraj makietę, mail bez niej nie ma czego pokazać")
+        link = mockup_link(lead)
+        if not link:
+            raise ValueError("Ustaw PUBLIC_BASE_URL, bez niego mail ścieżki makietowej nie ma linku")
     try:
         email_text = analyzer.generate_email(
             lead, website_data,
@@ -258,6 +319,8 @@ def prepare_email(lead, profile_id=None, my_feedback=None, website_data=None) ->
             my_feedback=my_feedback or None,
             profile=profile,
             has_mockup=db.has_mockup(lead["id"]),
+            sciezka=sciezka,
+            mockup_link=link,
         )
         mark("ai", True, f"email: {lead['business_name']}")
     except Exception as error:
@@ -313,7 +376,8 @@ def queue_message(lead, kind, subject, body, send_now=False) -> int:
     return row_id
 
 
-def prepare_lead(lead) -> int | None:
+def prepare_lead(lead) -> tuple[int | None, str]:
+    """Zwraca id zakolejkowanej wiadomości albo None i powód, dla którego maila jeszcze nie ma."""
     website_data = None
     if lead.get("website_url") and not lead.get("ai_analysis"):
         analysis = run_analysis(lead)
@@ -322,13 +386,15 @@ def prepare_lead(lead) -> int | None:
             note = (lead.get("notes") or "").strip()
             reason = "Autopilot: strona jest dobra, mail pominięty. " + (analysis.get("story") or "")
             db.update_lead(lead["id"], status="skipped", notes=(note + "\n" + reason).strip())
-            return None
+            return None, "pominięty, strona jest dobra"
         lead = db.get_lead(lead["id"])
+    if lead.get("sciezka") == SCIEZKA_MAKIETA and not (lead.get("mockup_html") or "").strip():
+        return None, "ścieżka makietowa, czeka na makietę"
     email_text = prepare_email(lead, website_data=website_data)
     subject, body = split_subject(email_text)
     if not subject:
         subject = default_subject(lead)
-    return queue_message(lead, "initial", subject, body)
+    return queue_message(lead, "initial", subject, body), ""
 
 
 def followup_subject(lead) -> str:
@@ -370,7 +436,11 @@ def _slug(tekst: str) -> str:
 
 
 def mockup_attachment(lead) -> list[tuple[str, bytes, str]]:
-    """Makieta idzie jako obrazek, bo plik HTML w cold mailu laduje w spamie."""
+    """Makieta idzie jako obrazek, bo plik HTML w cold mailu laduje w spamie.
+    Ścieżka makietowa załącznika nie dostaje: ona ma link, a załącznik obniża dostarczalność
+    i gubi to, co w makiecie najlepsze, czyli ruch i zachowanie."""
+    if (lead.get("sciezka") or "") == SCIEZKA_MAKIETA:
+        return []
     obrazek = db.get_mockup_image(lead["id"])
     if not obrazek:
         return []

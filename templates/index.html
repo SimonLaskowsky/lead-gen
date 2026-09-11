@@ -562,8 +562,15 @@
       </div>
 
       <div class="win rail-section">
+        <div class="win-bar"><span class="wb-idx">3</span><span>ścieżki</span></div>
+        <div class="win-body">
+          <div class="rail-log" id="pomiarSciezek">&gt; liczę...</div>
+        </div>
+      </div>
+
+      <div class="win rail-section">
         <div class="win-bar">
-          <span class="wb-idx">3</span><span>log</span>
+          <span class="wb-idx">4</span><span>log</span>
           <span class="spacer"></span>
           <button class="bar-btn" onclick="probeApis()" title="Wyślij prawdziwe zapytanie do Google Maps (płatne)">test</button>
         </div>
@@ -578,7 +585,7 @@
     <main class="term-main">
 
       <div class="win">
-        <div class="win-bar"><span class="wb-idx">4</span><span>filtr</span><span class="spacer"></span><span class="wb-meta">/ przeszukuje bazę</span></div>
+        <div class="win-bar"><span class="wb-idx">5</span><span>filtr</span><span class="spacer"></span><span class="wb-meta">/ przeszukuje bazę</span></div>
         <div class="filter-bar">
           <span class="prompt">&gt;</span>
           <input type="text" id="searchInput" class="form-control" style="max-width:230px" placeholder="szukaj firmy..." oninput="debounceLoad()" />
@@ -599,7 +606,7 @@
       </div>
 
       <div class="win">
-        <div class="win-bar"><span class="wb-idx">5</span><span>cele</span><span class="spacer"></span><span class="wb-meta">live</span></div>
+        <div class="win-bar"><span class="wb-idx">6</span><span>cele</span><span class="spacer"></span><span class="wb-meta">live</span></div>
         <div class="table-responsive">
           <table class="table">
             <thead>
@@ -946,16 +953,35 @@
       </div>
       <div class="modal-body">
         <div style="font-size:11.5px;color:var(--fg-3);margin-bottom:12px">
-          Wgraj plik HTML makiety. Zrenderuję go do obrazka, który pójdzie do klienta jako załącznik,
-          a mail zostanie napisany tak, żeby się do niego odwoływał.
+          Wgraj plik HTML makiety. Zanim ją zapiszę, osobne wywołanie modelu sprawdzi ją pod jej własną
+          konstytucją i powie, gdzie reguła została złamana. Potem zrenderuję ją do obrazka, który pójdzie
+          do klienta jako załącznik, a mail zostanie napisany tak, żeby się do niego odwoływał.
         </div>
         <label class="form-label" id="makietaEtykieta">Plik HTML makiety</label>
         <input type="file" id="makietaPlik" accept=".html,text/html" class="form-control" onchange="wyslijMakiete(this)">
         <div id="makietaStan" style="font-size:12px;margin-top:12px;color:var(--fg-3)"></div>
+        <div id="makietaAudyt" style="display:none;margin-top:12px;font-size:12px">
+          <div style="margin-bottom:6px;color:var(--danger,#d14343)">Audyt wskazał złamane reguły konstytucji:</div>
+          <ul id="makietaAudytLista" style="padding-left:18px;margin:0;line-height:1.6"></ul>
+          <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="wgrajMimoAudytu()">
+            <i class="bi bi-exclamation-triangle me-1"></i> Wgraj mimo to
+          </button>
+        </div>
         <div id="makietaPodglad" style="margin-top:14px;display:none">
           <div style="display:flex;gap:14px;margin-bottom:10px;font-size:12px">
             <a id="makietaLinkHtml" href="#" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1"></i>Otwórz stronę</a>
             <a id="makietaLinkJpg" href="#" target="_blank" rel="noopener"><i class="bi bi-image me-1"></i>Otwórz załącznik</a>
+          </div>
+          <div style="border:1px solid var(--line-2);padding:10px 12px;margin-bottom:12px;font-size:12px">
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
+              <span style="color:var(--fg-3)">Link dla klienta, bez hasła i bez załącznika</span>
+              <button class="btn btn-ghost btn-sm" onclick="skopiujLinkMakiety()">
+                <i class="bi bi-clipboard me-1"></i> Kopiuj link
+              </button>
+            </div>
+            <a id="makietaLinkPubliczny" href="#" target="_blank" rel="noopener"
+               style="display:block;margin-top:6px;word-break:break-all;font-family:var(--mono,monospace)"></a>
+            <div id="makietaWejscia" style="margin-top:6px;color:var(--fg-3)"></div>
           </div>
           <a id="makietaLinkObraz" href="#" target="_blank" rel="noopener" title="Otwórz projekt w nowej karcie">
             <img id="makietaObraz" style="width:100%;border:1px solid var(--line-2);display:block" alt="Podgląd projektu">
@@ -1035,6 +1061,20 @@
             <div class="col-md-3"><label class="form-label">Miasto</label><input class="form-control" id="campCity" placeholder="np. Kraków"></div>
             <div class="col-md-2"><label class="form-label">Ile firm</label><input class="form-control" id="campTarget" type="number" value="20" min="1" max="500"></div>
             <div class="col-md-3"><label class="form-label">Nadawca</label><select class="form-select" id="campProfile"></select></div>
+          </div>
+          <div class="row g-2" style="margin-top:2px">
+            <div class="col-md-4">
+              <label class="form-label">Ścieżka</label>
+              <select class="form-select" id="campTryb">
+                <option value="audyt">audyt: mail z usterkami ze strony</option>
+                <option value="makieta">makieta: mail z linkiem do podglądu</option>
+                <option value="split">split: pół na pół</option>
+              </select>
+            </div>
+            <div class="col-md-8" style="font-size:11.5px;color:var(--fg-3);align-self:end;padding-bottom:6px">
+              Ścieżka makietowa pomija audyt agentowy, więc kosztuje mniej, ale makietę robi człowiek
+              i on klika wyślij. Autopilot przygotuje maila i wstawi go do kolejki, nie wyśle sam.
+            </div>
           </div>
           <div class="form-check" style="margin-top:10px">
             <input type="checkbox" id="campNoWebsite" class="form-check-input" />
@@ -1785,6 +1825,7 @@ async function loadCampaigns() {
     const err   = c.last_error ? `<div class="lead-error" style="max-width:none">${escHtml(c.last_error)}</div>` : '';
     const meta  = [
       `${c.found_count}/${c.target_count} firm`,
+      `ścieżka: ${c.tryb || 'audyt'}`,
       c.no_website ? 'tylko bez strony' : '',
       c.last_run_at ? 'ostatnio ' + c.last_run_at.slice(0, 16).replace('T', ' ') : '',
     ].filter(Boolean).join(', ');
@@ -1808,6 +1849,7 @@ async function createCampaign() {
     city:          document.getElementById('campCity').value.trim(),
     target_count:  document.getElementById('campTarget').value,
     no_website:    document.getElementById('campNoWebsite').checked,
+    tryb:          document.getElementById('campTryb').value,
     profile_id:    +document.getElementById('campProfile').value || null,
   };
   if (!body.business_type || !body.city) { showToast('Podaj typ biznesu i miasto', 'warning'); return; }
@@ -1853,9 +1895,13 @@ async function loadQueue() {
     const requeueBtn = m.status === 'failed'
       ? `<button class="btn btn-ghost btn-sm" onclick="requeueMessage(${m.id})"><i class="bi bi-arrow-repeat me-1"></i> Do kolejki ponownie</button>`
       : '';
+    const recznie = m.sciezka === 'makieta'
+      ? '<span class="ap-kind" title="Ścieżka makietowa: autopilot tego nie wyśle, obejrzyj makietę i kliknij wyślij">ręcznie</span>'
+      : '';
     return `<div class="ap-row" id="q-${m.id}">
       <div class="ap-row-head" style="cursor:pointer" onclick="document.getElementById('q-${m.id}').classList.toggle('open')">
         <span class="ap-kind ${m.status === 'failed' ? 'failed' : ''}">${kindLabel}</span>
+        ${recznie}
         <b>${escHtml(m.business_name)}</b>
         <span class="ap-meta">${escHtml(m.email)} · ${escHtml(m.city || '')}</span>
         <span class="spacer"></span>
@@ -2184,6 +2230,7 @@ async function zapiszEdycje() {
 // Makieta trafia do bazy jako HTML i jako obrazek. Obrazek jedzie zalacznikiem do klienta.
 function otworzMakiete() {
   bootstrap.Modal.getOrCreateInstance(document.getElementById('makietaModal')).show();
+  pokazAudytMakiety([]);
   odswiezMakiete();
 }
 
@@ -2203,6 +2250,7 @@ async function odswiezMakiete() {
     document.getElementById('makietaLinkObraz').href = `/api/lead/${currentLeadId}/mockup.html`;
     document.getElementById('makietaLinkHtml').href = `/api/lead/${currentLeadId}/mockup.html`;
     document.getElementById('makietaLinkJpg').href = `/api/lead/${currentLeadId}/mockup.jpg`;
+    odswiezLinkMakiety();
   }
   const przycisk = document.getElementById('btnMakieta');
   if (przycisk) przycisk.innerHTML = jest
@@ -2210,24 +2258,81 @@ async function odswiezMakiete() {
     : '<i class="bi bi-paperclip me-1"></i> Projekt strony';
 }
 
+let ostatniHtmlMakiety = '';
+
 async function wyslijMakiete(input) {
   const plik = input.files[0];
   if (!plik) return;
+  ostatniHtmlMakiety = await plik.text();
+  input.value = '';
+  wgrajMakiete(ostatniHtmlMakiety, false);
+}
+
+// Audyt orzeka o regulach, ktore model sam sobie postawil. Ostatnie slowo ma czlowiek.
+function wgrajMimoAudytu() {
+  if (ostatniHtmlMakiety) wgrajMakiete(ostatniHtmlMakiety, true);
+}
+
+async function wgrajMakiete(html, mimoWszystko) {
   const stan = document.getElementById('makietaStan');
-  stan.textContent = 'Renderuję makietę do obrazka...';
+  pokazAudytMakiety([]);
+  stan.textContent = mimoWszystko
+    ? 'Renderuję makietę do obrazka...'
+    : 'Sprawdzam makietę pod jej konstytucją...';
   try {
-    const html = await plik.text();
     const res = await fetch(`/api/lead/${currentLeadId}/mockup`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ html }),
+      body: JSON.stringify({ html, mimo_wszystko: mimoWszystko }),
     });
     const data = await res.json();
+    if (res.status === 422) {
+      pokazAudytMakiety(data.zlamane || []);
+      stan.textContent = data.error;
+      return;
+    }
     if (data.error) throw new Error(data.error);
+    if (data.audyt_blad) showToast('Audyt nie ruszył: ' + data.audyt_blad, 'warning');
     showToast(`Projekt wgrany, załącznik ${data.rozmiar_kb} kB. Wygeneruj maila od nowa.`, 'success');
-    input.value = '';
     odswiezMakiete();
   } catch (e) {
     stan.textContent = 'Nie udało się: ' + e.message;
+  }
+}
+
+function pokazAudytMakiety(zlamane) {
+  const lista = document.getElementById('makietaAudytLista');
+  lista.innerHTML = zlamane.map(z =>
+    `<li><b>${escHtml(z.sekcja || 'nieznana sekcja')}</b>: ${escHtml(z.regula || '')}<br>
+     <span style="color:var(--fg-3)">${escHtml(z.dowod || '')}</span></li>`).join('');
+  document.getElementById('makietaAudyt').style.display = zlamane.length ? '' : 'none';
+}
+
+async function odswiezLinkMakiety() {
+  const pole = document.getElementById('makietaLinkPubliczny');
+  const licznik = document.getElementById('makietaWejscia');
+  try {
+    const res = await fetch(`/api/lead/${currentLeadId}/mockup-link`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    pole.textContent = data.link;
+    pole.href = data.link;
+    licznik.textContent = data.wejscia.ile
+      ? `Wejścia: ${data.wejscia.ile}, ostatnie ${data.wejscia.ostatnie.replace('T', ' ')}`
+      : 'Jeszcze nikt nie wszedł.';
+  } catch (e) {
+    pole.textContent = '';
+    licznik.textContent = 'Nie udało się pobrać linku: ' + e.message;
+  }
+}
+
+async function skopiujLinkMakiety() {
+  const link = document.getElementById('makietaLinkPubliczny').textContent;
+  if (!link) return;
+  try {
+    await navigator.clipboard.writeText(link);
+    showToast('Link skopiowany', 'success');
+  } catch (e) {
+    showToast('Schowek zablokowany, skopiuj link ręcznie', 'warning');
   }
 }
 
@@ -2332,6 +2437,32 @@ async function refreshStats() {
   document.getElementById('metric-converted').textContent = s.converted;
   document.getElementById('metric-ready').textContent     = s.ready;
   document.getElementById('metric-emailed').textContent   = s.emailed;
+  pokazPomiarSciezek(s);
+}
+
+function odIluFirm(ile) {
+  return ile === 1 ? 'od 1 firmy' : `od ${ile} firm`;
+}
+
+function pokazPomiarSciezek(s) {
+  const box = document.getElementById('pomiarSciezek');
+  if (!box || !s.sciezki) return;
+  const prog = s.prog_wnioskow || 200;
+  const wiersz = (nazwa, dane) => {
+    const odsetek = dane.wyslane >= prog
+      ? ` <span style="color:var(--fg-3)">(${Math.round(100 * dane.odpowiedzi / dane.wyslane)}%)</span>`
+      : '';
+    return `&gt; <b>${nazwa}</b><br>`
+         + `&nbsp;&nbsp;wysłane łącznie <b>${dane.wyslane}</b> · wejścia <b>${dane.wejscia}</b> `
+         + `<span style="color:var(--fg-3)">${odIluFirm(dane.firmy_z_wejsciem)}</span><br>`
+         + `&nbsp;&nbsp;odpowiedzi <b>${dane.odpowiedzi}</b>${odsetek} · klienci <b>${dane.klienci}</b>`;
+  };
+  const zaMalo = Math.min(s.sciezki.audyt.wyslane, s.sciezki.makieta.wyslane) < prog;
+  const uwaga = zaMalo
+    ? `<div style="color:var(--fg-3);margin-top:6px">&gt; za mało wysyłek na wnioski. Poniżej ${prog} na ścieżkę `
+      + 'różnica między nimi to szum, a zero odpowiedzi nie znaczy nic.</div>'
+    : '';
+  box.innerHTML = wiersz('audyt', s.sciezki.audyt) + '<br>' + wiersz('makieta', s.sciezki.makieta) + uwaga;
 }
 
 // ── Toasts ──
@@ -2376,6 +2507,7 @@ async function refreshHealth(probe = false) {
     log.innerHTML = [
       healthLine('google maps', h.google),
       healthLine('silnik ai', h.ai),
+      healthLine('adres makiet', h.adres_makiet),
     ].join('<br>');
     if (probe) showToast(h.google.state === 'ok' ? 'Google Maps API działa' : '' + h.google.detail,
                          h.google.state === 'ok' ? 'success' : 'danger');
@@ -2390,6 +2522,7 @@ function probeApis() { refreshHealth(true); }
 refreshHealth();
 loadProfiles();
 loadAutopilot();
+refreshStats();
 setInterval(() => refreshHealth(), 60000);
 setInterval(() => loadAutopilot(), 30000);
 

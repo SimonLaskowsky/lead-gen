@@ -1,3 +1,4 @@
+import secrets
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime
@@ -70,6 +71,7 @@ def init_db():
                 created_at TEXT DEFAULT (datetime('now'))
             )
         """)
+        _migrate_campaigns(conn)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS messages (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -87,6 +89,16 @@ def init_db():
                 created_at TEXT NOT NULL
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS mockup_views (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                lead_id INTEGER NOT NULL,
+                at TEXT NOT NULL
+            )
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_mockup_views_lead ON mockup_views(lead_id)")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_mockup_token "
+                     "ON leads(mockup_token) WHERE mockup_token != ''")
         conn.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS api_usage (
@@ -125,11 +137,20 @@ def _migrate(conn):
         ("autopilot",      "INTEGER DEFAULT 0"),
         ("campaign_id",    "INTEGER"),
         ("audit_verdict",  "TEXT DEFAULT ''"),
+        ("mockup_token",   "TEXT DEFAULT ''"),
+        ("sciezka",        "TEXT DEFAULT ''"),
     ]:
         try:
             conn.execute(f"ALTER TABLE leads ADD COLUMN {col} {definition}")
         except Exception:
             pass  # column already exists
+
+
+def _migrate_campaigns(conn):
+    try:
+        conn.execute("ALTER TABLE campaigns ADD COLUMN tryb TEXT DEFAULT 'audyt'")
+    except Exception:
+        pass
 
 
 def _migrate_usage(conn):
@@ -230,14 +251,22 @@ def delete_lead(lead_id):
     with get_conn() as conn:
         conn.execute("DELETE FROM leads WHERE id = ?", (lead_id,))
         conn.execute("DELETE FROM messages WHERE lead_id = ?", (lead_id,))
+        conn.execute("DELETE FROM mockup_views WHERE lead_id = ?", (lead_id,))
+
+
+BEZ_MAKIETY_NA_SCIEZCE_B = ("NOT (COALESCE(sciezka, '') = 'makieta' "
+                            "AND COALESCE(mockup_html, '') = '')")
 
 
 def leads_awaiting_preparation(limit=1):
+    """Lead ścieżki makietowej bez makiety nie jest gotowy: mail nie ma czego pokazać,
+    a makietę robi człowiek."""
     with get_conn() as conn:
         rows = conn.execute(
-            """SELECT * FROM leads
+            f"""SELECT * FROM leads
                WHERE autopilot = 1 AND status = 'new' AND email != ''
                  AND COALESCE(generated_email, '') = ''
+                 AND {BEZ_MAKIETY_NA_SCIEZCE_B}
                ORDER BY id LIMIT ?""",
             (limit,),
         ).fetchall()
@@ -247,9 +276,10 @@ def leads_awaiting_preparation(limit=1):
 def count_awaiting_preparation() -> int:
     with get_conn() as conn:
         return conn.execute(
-            """SELECT COUNT(*) FROM leads
+            f"""SELECT COUNT(*) FROM leads
                WHERE autopilot = 1 AND status = 'new' AND email != ''
-                 AND COALESCE(generated_email, '') = ''"""
+                 AND COALESCE(generated_email, '') = ''
+                 AND {BEZ_MAKIETY_NA_SCIEZCE_B}"""
         ).fetchone()[0]
 
 
@@ -377,16 +407,17 @@ def set_settings(**values):
 # ── Kampanie ──
 CAMPAIGN_FIELDS = (
     "business_type", "city", "target_count", "no_website", "profile_id",
-    "active", "found_count", "last_run_at", "last_error",
+    "active", "found_count", "last_run_at", "last_error", "tryb",
 )
 
 
-def add_campaign(business_type, city, target_count=20, no_website=False, profile_id=None) -> int:
+def add_campaign(business_type, city, target_count=20, no_website=False, profile_id=None,
+                 tryb="audyt") -> int:
     with get_conn() as conn:
         cur = conn.execute(
-            """INSERT INTO campaigns (business_type, city, target_count, no_website, profile_id)
-               VALUES (?, ?, ?, ?, ?)""",
-            (business_type, city, int(target_count), 1 if no_website else 0, profile_id),
+            """INSERT INTO campaigns (business_type, city, target_count, no_website, profile_id, tryb)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (business_type, city, int(target_count), 1 if no_website else 0, profile_id, tryb),
         )
         return cur.lastrowid
 
@@ -455,7 +486,8 @@ def update_message(row_id, **fields):
 def get_queue():
     with get_conn() as conn:
         rows = conn.execute(
-            """SELECT m.*, l.business_name, l.email, l.city, l.status AS lead_status, l.profile_id
+            """SELECT m.*, l.business_name, l.email, l.city, l.status AS lead_status,
+                      l.profile_id, l.sciezka
                FROM messages m JOIN leads l ON l.id = m.lead_id
                WHERE m.direction = 'out' AND m.status IN ('queued', 'failed')
                ORDER BY m.status DESC, m.scheduled_at, m.id"""
@@ -496,11 +528,14 @@ def cancel_queued_for_lead(lead_id):
 
 
 def next_due_message(now):
+    """Kolejka dla automatu. Ścieżka makietowa jej nie dotyczy: tam makietę ma najpierw
+    obejrzeć człowiek i on klika wyślij."""
     with get_conn() as conn:
         row = conn.execute(
             """SELECT m.* FROM messages m JOIN leads l ON l.id = m.lead_id
                WHERE m.direction = 'out' AND m.status = 'queued' AND m.scheduled_at <= ?
                  AND l.status IN ('ready', 'emailed') AND l.email != ''
+                 AND COALESCE(l.sciezka, '') != 'makieta'
                ORDER BY m.scheduled_at, m.id LIMIT 1""",
             (now,),
         ).fetchone()
@@ -538,6 +573,7 @@ def set_mockup(lead_id, html, image):
     with get_conn() as conn:
         conn.execute("UPDATE leads SET mockup_html = ?, mockup_image = ? WHERE id = ?",
                      (html, image, lead_id))
+    ensure_mockup_token(lead_id)
 
 
 def clear_mockup(lead_id):
@@ -553,6 +589,85 @@ def get_mockup_image(lead_id):
 
 def has_mockup(lead_id) -> bool:
     return bool(get_mockup_image(lead_id))
+
+
+# ── Publiczny link do makiety ──
+DLUGOSC_TOKENU = 16
+
+
+def ensure_mockup_token(lead_id) -> str:
+    """Token zostaje przy leadzie na zawsze. Wymiana makiety ma wracać pod tym samym adresem,
+    bo ten adres poszedł już mailem do klienta."""
+    with get_conn() as conn:
+        row = conn.execute("SELECT mockup_token FROM leads WHERE id = ?", (lead_id,)).fetchone()
+        if row is None:
+            return ""
+        if row["mockup_token"]:
+            return row["mockup_token"]
+        token = secrets.token_urlsafe(DLUGOSC_TOKENU)
+        conn.execute("UPDATE leads SET mockup_token = ? WHERE id = ?", (token, lead_id))
+        return token
+
+
+def lead_by_mockup_token(token):
+    if not token:
+        return None
+    with get_conn() as conn:
+        row = conn.execute("SELECT * FROM leads WHERE mockup_token = ?", (token,)).fetchone()
+        return dict(row) if row else None
+
+
+def log_mockup_view(lead_id):
+    with get_conn() as conn:
+        conn.execute("INSERT INTO mockup_views (lead_id, at) VALUES (?, ?)", (lead_id, now_iso()))
+
+
+def mockup_views(lead_id) -> dict:
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS ile, MAX(at) AS ostatnie FROM mockup_views WHERE lead_id = ?",
+            (lead_id,),
+        ).fetchone()
+    return {"ile": row["ile"], "ostatnie": row["ostatnie"] or ""}
+
+
+# ── Pomiar ścieżek ──
+LEAD_NA_SCIEZCE_MAKIETOWEJ = "COALESCE(sciezka, '') = 'makieta'"
+LEAD_NA_SCIEZCE_AUDYTOWEJ = "COALESCE(sciezka, '') != 'makieta'"
+
+
+def _lejek_sciezki(conn, warunek) -> dict:
+    """Lejek, nie trzy rozłączne kubełki: klient jest też odpowiedzią, odpowiedź jest też wysyłką."""
+    podsumowanie = conn.execute(
+        f"""SELECT
+               SUM(CASE WHEN COALESCE(emailed_at, '') != '' THEN 1 ELSE 0 END) AS wyslane,
+               SUM(CASE WHEN status IN ('replied', 'converted') THEN 1 ELSE 0 END) AS odpowiedzi,
+               SUM(CASE WHEN status = 'converted' THEN 1 ELSE 0 END) AS klienci,
+               COUNT(*) AS leady
+            FROM leads WHERE {warunek}"""
+    ).fetchone()
+    wejscia = conn.execute(
+        f"""SELECT COUNT(*) AS wejscia, COUNT(DISTINCT v.lead_id) AS firmy
+            FROM mockup_views v JOIN leads l ON l.id = v.lead_id
+            WHERE {warunek}"""
+    ).fetchone()
+    return {
+        "leady": podsumowanie["leady"] or 0,
+        "wyslane": podsumowanie["wyslane"] or 0,
+        "wejscia": wejscia["wejscia"] or 0,
+        "firmy_z_wejsciem": wejscia["firmy"] or 0,
+        "odpowiedzi": podsumowanie["odpowiedzi"] or 0,
+        "klienci": podsumowanie["klienci"] or 0,
+    }
+
+
+def stats_by_path() -> dict:
+    """Leady sprzed podziału na ścieżki mają puste pole i liczą się do audytowej, bo tamtędy poszły."""
+    with get_conn() as conn:
+        return {
+            "audyt": _lejek_sciezki(conn, LEAD_NA_SCIEZCE_AUDYTOWEJ),
+            "makieta": _lejek_sciezki(conn, LEAD_NA_SCIEZCE_MAKIETOWEJ),
+        }
 
 
 # ── Zużycie API Anthropic ──

@@ -1,6 +1,7 @@
 # Minimalny smoke test logiki bez sieci: python test_smoke.py
 import io
 import itertools
+import json
 import os
 import tempfile
 
@@ -327,6 +328,120 @@ def test_mockup_prompt_with_site_has_no_from_scratch_clause():
     assert "cały tekst piszesz od zera" not in prompt, "mając ich teksty nie piszemy od zera"
 
 
+MAKIETA_Z_KONSTYTUCJA = """<!--KONSTYTUCJA
+REFERENCJE: mapa turystyczna, etykieta przetworów, tabliczka znamionowa
+REGULY:
+1. Dokładnie trzy rozmiary tekstu
+2. Zero cieni
+3. Wszystkie krawędzie ostre
+4. Akcent najwyżej cztery razy
+5. Odstępy tylko z ciągu 8/16/32/64/128
+MOTYW: numery sekcji na marginesie, wraca w pięciu sekcjach
+TOKENY: Fraunces i Bricolage Grotesque, trzy stopnie, trzy szarości plus zieleń ze zdjęcia lasu
+ODRZUCONE: Inter, karty z ikonkami, FAQ w akordeonie
+KONIEC KONSTYTUCJI-->
+<html><head><style>body { font-family: Fraunces, serif }</style></head>
+<body><h1>Willa Luiza</h1><img src="data:image/jpeg;base64,%s"></body></html>""" % ("A" * 400)
+
+
+def test_mockup_prompt_forces_the_constitution():
+    lead = {"business_name": "Willa Luiza", "business_type": "pensjonat", "city": "Wisła",
+            "website_url": "https://luizawisla.pl/"}
+    prompt = mockup.build_prompt(lead, {"text_preview": "Oaza spokoju."}, None)
+
+    assert "TRZY REFERENCJE SPOZA WEB DESIGNU" in prompt
+    assert "PIĘĆ DO SIEDMIU REGUŁ ŁAMLIWYCH" in prompt
+    assert "MINIMUM PIĘĆ RAZY" in prompt
+    assert "Trzy szarości, nie dziewięć" in prompt
+    assert "Inter" in prompt, "zakazane kroje mają być wymienione z nazwy"
+    assert "próbkowaniem ze zdjęć" in prompt
+    assert "metronom" in prompt, "rytm ma być wymuszony wprost"
+    assert "GDZIE ta reguła jest złamana" in prompt, "audyt pyta o miejsce, nie o urodę"
+    assert mockup.KONSTYTUCJA_START in prompt and mockup.KONSTYTUCJA_KONIEC in prompt
+
+
+def test_two_firms_get_different_systems():
+    ramy = [mockup._rama_projektu(lead) for lead in [
+        {"business_name": "Willa Luiza", "city": "Wisła", "business_type": "pensjonat"},
+        {"business_name": "Studio Tatuażu Czarny Tusz", "city": "Łódź", "business_type": "studio tatuażu"},
+        {"business_name": "Warsztat Stolarski Dębowy Kąt", "city": "Poznań", "business_type": "stolarz"},
+    ]]
+    uklady = {rama["uklad"] for rama in ramy}
+    typografie = {rama["typografia"] for rama in ramy}
+    assert len(uklady) > 1 and len(typografie) > 1, "trzy firmy mają dostać różne systemy, nie tę samą makietę"
+
+
+def test_the_same_firm_keeps_its_frame():
+    lead = {"business_name": "Willa Luiza", "city": "Wisła", "business_type": "pensjonat"}
+    assert mockup._rama_projektu(lead) == mockup._rama_projektu(dict(lead))
+
+
+def test_constitution_is_read_back_from_the_file():
+    konstytucja = mockup.wyodrebnij_konstytucje(MAKIETA_Z_KONSTYTUCJA)
+    assert konstytucja.startswith("\nREFERENCJE") or "REFERENCJE" in konstytucja
+    assert len(mockup.reguly_z_konstytucji(konstytucja)) == 5
+    assert "MOTYW" in konstytucja
+
+
+def test_audit_prompt_carries_rules_but_not_photos():
+    konstytucja = mockup.wyodrebnij_konstytucje(MAKIETA_Z_KONSTYTUCJA)
+    prompt = mockup.build_audit_prompt(MAKIETA_Z_KONSTYTUCJA, konstytucja)
+    assert "GDZIE ta reguła jest złamana" in prompt
+    assert "Dokładnie trzy rozmiary tekstu" in prompt
+    assert "A" * 400 not in prompt, "data URI ma zostać wycięte, inaczej audyt kosztuje jak makieta"
+    assert "zdjecie-wyciete" in prompt
+
+
+def _mockup_z_odpowiedzia_modelu(tresc):
+    from types import SimpleNamespace
+
+    class _Fake:
+        def create(self, **_):
+            return SimpleNamespace(content=[SimpleNamespace(type="text", text=tresc)],
+                                   usage=None, model="claude-sonnet-5")
+
+    return lambda: SimpleNamespace(messages=_Fake())
+
+
+def test_mockup_without_a_constitution_is_rejected_before_paying_for_the_model():
+    def _wybuch():
+        raise AssertionError("audyt bez konstytucji nie ma o co pytać modelu")
+
+    oryginal = mockup._client
+    mockup._client = _wybuch
+    try:
+        wynik = mockup.audyt_makiety("<html><body>bez konstytucji</body></html>")
+    finally:
+        mockup._client = oryginal
+    assert len(wynik["zlamane"]) == 1
+    assert "KONSTYTUCJA" in wynik["zlamane"][0]["dowod"]
+
+
+def test_forbidden_font_is_caught_without_the_model():
+    z_interem = MAKIETA_Z_KONSTYTUCJA.replace("font-family: Fraunces, serif", "font-family: Inter, sans-serif")
+    oryginal = mockup._client
+    mockup._client = _mockup_z_odpowiedzia_modelu('{"zlamane": [], "sprawdzone": ["Zero cieni"]}')
+    try:
+        czysta = mockup.audyt_makiety(MAKIETA_Z_KONSTYTUCJA)
+        zlamana = mockup.audyt_makiety(z_interem)
+    finally:
+        mockup._client = oryginal
+    assert czysta["zlamane"] == [], "Inter wymieniony w ODRZUCONE to nie jest Inter na stronie"
+    assert any("Inter" in z["dowod"] for z in zlamana["zlamane"])
+
+
+def test_audit_findings_from_the_model_land_in_the_result():
+    odpowiedz = '{"zlamane": [{"regula": "Zero cieni", "sekcja": "hero", "dowod": "box-shadow w .hero"}], "sprawdzone": []}'
+    oryginal = mockup._client
+    mockup._client = _mockup_z_odpowiedzia_modelu(odpowiedz)
+    try:
+        wynik = mockup.audyt_makiety(MAKIETA_Z_KONSTYTUCJA)
+    finally:
+        mockup._client = oryginal
+    assert wynik["zlamane"][0]["sekcja"] == "hero"
+    assert not wynik["blad"]
+
+
 class _PrzegladarkaZDanymi:
     def __init__(self, **dane):
         self.width = 1280
@@ -428,6 +543,35 @@ def test_email_prompt_without_design_stays_on_the_report_offer():
     assert "ZAŁĄCZNIKU" not in prompt
 
 
+def test_mockup_path_email_shows_instead_of_judging():
+    prompt = _prompt_maila(sciezka="makieta", mockup_link="https://konsola.pl/m/abc123")
+
+    assert "https://konsola.pl/m/abc123" in prompt
+    assert "ZERO OCENY ADRESATA" in prompt
+    assert "ZERO LISTY WAD" in prompt
+    assert "NAJWYŻEJ 80 SŁÓW" in prompt
+    assert "JEDNA prośba" in prompt
+    assert "Zero kwot" in prompt and "Per Pan/Pani" in prompt
+    assert "ZAŁĄCZNIKU" not in prompt, "ścieżka B idzie linkiem, nie załącznikiem"
+    assert "ani raportu" in prompt, "raport z przeglądu to oferta ścieżki audytowej"
+
+
+def test_audit_email_prompt_stays_out_of_the_mockup_path():
+    audytowy = _prompt_maila(sciezka="audyt")
+    assert "WYNIKI AUDYTU STRONY" in audytowy
+    assert "ZERO OCENY ADRESATA" not in audytowy, "reguły ścieżki B nie mają wchodzić w mail audytowy"
+
+
+def test_the_link_survives_a_model_that_forgets_it():
+    podpis = "Szymon Laskowski\nszymonlaskowski.pl"
+    bez_linku = "Dzień dobry,\n\nzrobiłem podgląd.\n\nSzymon Laskowski\nszymonlaskowski.pl"
+    z_linkiem = analyzer._z_linkiem(bez_linku, "https://konsola.pl/m/abc", podpis)
+    assert z_linkiem.index("https://konsola.pl/m/abc") < z_linkiem.index("Szymon Laskowski")
+
+    juz_ma = "Dzień dobry, https://konsola.pl/m/abc\n\nSzymon Laskowski"
+    assert analyzer._z_linkiem(juz_ma, "https://konsola.pl/m/abc", podpis) == juz_ma, "bez dublowania linku"
+
+
 def test_attachment_is_built_only_when_a_mockup_exists():
     zapisane = {}
     oryginal = pipeline.db.get_mockup_image
@@ -518,6 +662,185 @@ def test_stored_mockup_can_be_opened_later():
     assert odpowiedz.status_code == 200
     assert b"makieta" in odpowiedz.data
     assert "script-src 'none'" in odpowiedz.headers["Content-Security-Policy"]
+
+
+def test_upload_stops_on_a_broken_rule_and_goes_through_when_forced():
+    import app as flask_app
+    klient, lead_id = _aplikacja_z_leadem()
+    znalezione = [{"regula": "Zero cieni", "sekcja": "hero", "dowod": "box-shadow w .hero"}]
+
+    oryginalny_audyt = flask_app.mockup.audyt_makiety
+    oryginalny_zrzut = flask_app.scraper.screenshot_html
+    flask_app.mockup.audyt_makiety = lambda html: {"zlamane": znalezione, "sprawdzone": [], "blad": ""}
+    flask_app.scraper.screenshot_html = lambda html, width=1280: b"jpeg"
+    try:
+        zatrzymana = klient.post(f"/api/lead/{lead_id}/mockup", json={"html": "<html>makieta</html>"})
+        assert zatrzymana.status_code == 422
+        assert zatrzymana.get_json()["zlamane"] == znalezione
+        assert not db.get_lead(lead_id)["mockup_html"], "łamiąca reguły makieta nie ma trafić do bazy"
+
+        wymuszona = klient.post(f"/api/lead/{lead_id}/mockup",
+                                json={"html": "<html>makieta</html>", "mimo_wszystko": True})
+        assert wymuszona.status_code == 200
+        assert db.get_lead(lead_id)["mockup_html"] == "<html>makieta</html>"
+    finally:
+        flask_app.mockup.audyt_makiety = oryginalny_audyt
+        flask_app.scraper.screenshot_html = oryginalny_zrzut
+
+
+def test_a_dead_audit_call_does_not_block_the_upload():
+    import app as flask_app
+    klient, lead_id = _aplikacja_z_leadem()
+
+    def _padnij(html):
+        raise RuntimeError("brak klucza API")
+
+    oryginalny_audyt = flask_app.mockup.audyt_makiety
+    oryginalny_zrzut = flask_app.scraper.screenshot_html
+    flask_app.mockup.audyt_makiety = _padnij
+    flask_app.scraper.screenshot_html = lambda html, width=1280: b"jpeg"
+    try:
+        odpowiedz = klient.post(f"/api/lead/{lead_id}/mockup", json={"html": "<html>makieta</html>"})
+    finally:
+        flask_app.mockup.audyt_makiety = oryginalny_audyt
+        flask_app.scraper.screenshot_html = oryginalny_zrzut
+    assert odpowiedz.status_code == 200
+    assert "brak klucza API" in odpowiedz.get_json()["audyt_blad"]
+
+
+def _lead_z_makieta(html="<html><body>makieta dla klienta</body></html>"):
+    klient, lead_id = _aplikacja_z_leadem()
+    db.set_mockup(lead_id, html, b"jpeg")
+    return klient, lead_id, db.ensure_mockup_token(lead_id)
+
+
+def test_mockup_link_is_the_only_thing_outside_the_password():
+    klient, lead_id, token = _lead_z_makieta()
+    poprzednie = os.environ.get("APP_PASSWORD", "")
+    os.environ["APP_PASSWORD"] = "tajne"
+    try:
+        makieta = klient.get(f"/m/{token}")
+        konsola = klient.get("/")
+        api = klient.get(f"/api/lead/{lead_id}")
+    finally:
+        os.environ["APP_PASSWORD"] = poprzednie
+    assert makieta.status_code == 200 and b"makieta dla klienta" in makieta.data
+    assert makieta.headers["X-Robots-Tag"].startswith("noindex")
+    assert konsola.status_code == 401 and api.status_code == 401, "reszta konsoli zostaje za hasłem"
+
+
+def test_unknown_token_and_removed_mockup_serve_nothing():
+    klient, lead_id, token = _lead_z_makieta()
+    assert klient.get("/m/wymyslony-token-1234567").status_code == 404
+    db.clear_mockup(lead_id)
+    assert klient.get(f"/m/{token}").status_code == 404, "skasowana makieta ma zgasić link"
+
+
+def test_replacing_the_mockup_keeps_the_address_already_sent_out():
+    klient, lead_id, token = _lead_z_makieta()
+    db.set_mockup(lead_id, "<html>druga wersja</html>", b"jpeg")
+    assert db.ensure_mockup_token(lead_id) == token
+    assert b"druga wersja" in klient.get(f"/m/{token}").data
+
+
+def test_every_visit_is_logged_and_shown_in_the_console():
+    klient, lead_id, token = _lead_z_makieta()
+    assert db.mockup_views(lead_id)["ile"] == 0
+    klient.get(f"/m/{token}")
+    klient.get(f"/m/{token}")
+    wejscia = db.mockup_views(lead_id)
+    assert wejscia["ile"] == 2 and wejscia["ostatnie"]
+
+    dane = klient.get(f"/api/lead/{lead_id}/mockup-link").get_json()
+    assert dane["link"].endswith(f"/m/{token}") and dane["wejscia"]["ile"] == 2
+
+
+def test_public_address_follows_the_configured_domain():
+    klient, lead_id, token = _lead_z_makieta()
+    poprzedni = os.environ.get("PUBLIC_BASE_URL", "")
+    os.environ["PUBLIC_BASE_URL"] = "https://konsola.szymonlaskowski.pl/"
+    try:
+        dane = klient.get(f"/api/lead/{lead_id}/mockup-link").get_json()
+    finally:
+        os.environ["PUBLIC_BASE_URL"] = poprzedni
+    assert dane["link"] == f"https://konsola.szymonlaskowski.pl/m/{token}"
+
+
+def test_path_stats_count_each_funnel_separately():
+    db.init_db()
+    przed = db.stats_by_path()
+
+    audytowy = db.add_lead(business_name=f"Audytowa {next(_licznik_leadow)}", city="Wisła")
+    db.update_lead(audytowy, sciezka="audyt", status="replied", emailed_at="2026-09-01T10:00:00")
+    makietowy = db.add_lead(business_name=f"Makietowa {next(_licznik_leadow)}", city="Wisła")
+    db.update_lead(makietowy, sciezka="makieta", status="converted", emailed_at="2026-09-02T10:00:00")
+    db.log_mockup_view(makietowy)
+    db.log_mockup_view(makietowy)
+
+    po = db.stats_by_path()
+    przyrost = lambda sciezka, pole: po[sciezka][pole] - przed[sciezka][pole]
+
+    assert przyrost("audyt", "wyslane") == 1 and przyrost("makieta", "wyslane") == 1
+    assert przyrost("audyt", "odpowiedzi") == 1 and przyrost("audyt", "klienci") == 0
+    assert przyrost("makieta", "odpowiedzi") == 1, "klient jest też odpowiedzią, to jeden lejek"
+    assert przyrost("makieta", "klienci") == 1
+    assert przyrost("makieta", "wejscia") == 2 and przyrost("makieta", "firmy_z_wejsciem") == 1
+    assert przyrost("audyt", "wejscia") == 0, "ścieżka audytowa nie ma linku, nie ma wejść"
+
+
+def test_leads_from_before_the_split_count_as_the_audit_path():
+    db.init_db()
+    przed = db.stats_by_path()
+    stary = db.add_lead(business_name=f"Sprzed podziału {next(_licznik_leadow)}", city="Szczyrk")
+    db.update_lead(stary, emailed_at="2026-08-01T10:00:00")
+    po = db.stats_by_path()
+    assert po["audyt"]["wyslane"] - przed["audyt"]["wyslane"] == 1
+    assert po["makieta"]["wyslane"] == przed["makieta"]["wyslane"]
+
+
+def test_stats_endpoint_serves_both_paths_and_the_threshold():
+    klient, _ = _aplikacja_z_leadem()
+    dane = klient.get("/api/stats").get_json()
+    assert set(dane["sciezki"]) == {"audyt", "makieta"}
+    assert dane["prog_wnioskow"] == pipeline.MIN_WYSYLEK_NA_WNIOSEK
+    assert dane["prog_wnioskow"] >= 100, "przy mniejszej próbie procenty z cold maila nic nie mówią"
+
+
+def test_health_says_which_address_the_mockup_links_will_carry():
+    klient, _ = _aplikacja_z_leadem()
+    poprzedni = os.environ.get("PUBLIC_BASE_URL", "")
+    os.environ["PUBLIC_BASE_URL"] = "https://podglad.szymonlaskowski.pl/"
+    try:
+        ustawiony = klient.get("/api/health").get_json()["adres_makiet"]
+        os.environ["PUBLIC_BASE_URL"] = ""
+        brakujacy = klient.get("/api/health").get_json()["adres_makiet"]
+    finally:
+        os.environ["PUBLIC_BASE_URL"] = poprzedni
+    assert ustawiony == {"state": "ok", "detail": "https://podglad.szymonlaskowski.pl"}
+    assert brakujacy["state"] == "no_key" and "PUBLIC_BASE_URL" in brakujacy["detail"]
+
+
+def test_token_is_long_enough_to_be_unguessable():
+    _, _, token = _lead_z_makieta()
+    assert len(token) >= 22 and token.isascii()
+
+
+def test_mockup_prompt_does_not_quote_the_path_note_as_an_audit():
+    klient, lead_id, _ = _lead_z_makieta()
+    zebrany_material = {"title": "Willa", "image_urls": [{"url": "https://stara.pl/a.jpg", "alt": "pokój"}]}
+    db.update_lead(lead_id, sciezka="makieta", website_checks=json.dumps(zebrany_material),
+                   ai_analysis=pipeline.mockup_path_analysis("https://stara.pl/"))
+    prompt = klient.get(f"/api/lead/{lead_id}/mockup-prompt").get_json()["prompt"]
+    assert "Co audyt ustalił" not in prompt, "na ścieżce B nie ma audytu, nie ma czego cytować"
+    assert "Ścieżka makietowa" not in prompt
+
+
+def test_lead_on_the_mockup_path_opens_without_an_attachment():
+    klient, lead_id, _ = _lead_z_makieta()
+    db.update_lead(lead_id, sciezka="makieta")
+    dane = klient.get(f"/api/lead/{lead_id}").get_json()
+    assert dane["has_mockup"] is True
+    assert "attachment_name" not in dane, "ścieżka B nie ma załącznika, karta leada ma to przeżyć"
 
 
 def _png(kolor, plama=None):
