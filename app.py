@@ -343,7 +343,7 @@ def makieta_pod_linkiem(token):
     lead = db.lead_by_mockup_token(token)
     html = (lead or {}).get("mockup_html") or ""
     if not html:
-        return Response("Nie ma tu nic.", 404, mimetype="text/plain; charset=utf-8")
+        return Response("Nie ma tu nic.", 404, mimetype="text/plain")
     if request.method == "GET":
         db.log_mockup_view(lead["id"])
     return Response(html, mimetype="text/html", headers={
